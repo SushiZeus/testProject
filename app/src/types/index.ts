@@ -1,0 +1,383 @@
+// User Roles
+export type UserRole = 
+  | 'documentation_officer'
+  | 'declaration_manager'
+  | 'declarant'
+  | 'operations_manager'
+  | 'operation_clerk'
+  | 'permits_clerk'
+  | 'shipping_line_clerk'
+  | 'delivery_clerk'
+  | 'transport_manager'
+  | 'coo'
+  | 'finance_manager'
+  | 'cashier'
+  | 'hr_manager'
+  | 'driver'
+  | 'contact_person'
+  | 'admin';
+
+// Shipment Types
+export type ShipmentType = 'IMPORT' | 'EXPORT' | 'TRANSSHIPMENT' | 'TRANSIT';
+
+// Transport Modes
+export type TransportMode = 'AIR' | 'SEA' | 'ROAD' | 'RAIL';
+
+// Document Types
+export type DocumentType = 
+  | 'commercial_invoice'
+  | 'packing_list'
+  | 'bill_of_lading'
+  | 'airway_bill'
+  | 'road_consignment_note'
+  | 'coc'
+  | 'coo'
+  | 'other';
+
+// File Status
+export type FileStatus =
+  | 'WAITING_FOR_DECLARATION'
+  | 'ASSIGNED_TO_DECLARANT'
+  | 'DECLARANT_ACKNOWLEDGED'
+  | 'WAITING_FOR_FINAL_ASSESSMENT'
+  | 'DECLARATION_DONE'
+  | 'WAITING_FOR_TAX_PAYMENT'
+  | 'TAXES_PAID'
+  | 'READY_FOR_OPERATIONS'
+  | 'RECEIVED_BY_CLERK'
+  | 'CLERK_WORKING_ON_FILE'
+  | 'SHIPMENT_UNDER_VERIFICATION'
+  | 'WAITING_FOR_PERMIT_PAYMENTS'
+  | 'PERMIT_PAYMENTS_DONE'
+  | 'RELEASE_ORDER_UPLOADED'
+  | 'PROCESSING_DELIVERY_ORDER'
+  | 'WAITING_FOR_DO_PAYMENT'
+  | 'DELIVERY_ORDER_PAYMENTS_DONE'
+  | 'DELIVERY_ORDER_READY'
+  | 'WAITING_FOR_PORT_CHARGES'
+  | 'WAITING_FOR_PORT_PAYMENT'
+  | 'PORT_CHARGES_PAID'
+  | 'WAITING_FOR_PAYMENTS'
+  | 'WAITING_FOR_SWISSPORT_PAYMENTS'
+  | 'SWISSPORT_CHARGES_PAID'
+  | 'DRIVER_REQUESTED'
+  | 'DRIVER_ASSIGNED'
+  | 'DRIVER_COLLECTING_CARGO'
+  | 'CARGO_COLLECTED_FROM_ICD'
+  | 'CARGO_COLLECTED_FROM_AIRPORT'
+  | 'DELIVERED_TO_CLIENT'
+  | 'SHIPMENT_AT_WAREHOUSE'
+  | 'COMPLETED'
+  | 'CANCELLED';
+
+// Petty Cash Request Status
+export type PettyCashStatus =
+  | 'PENDING_HR_APPROVAL'
+  | 'PENDING_MANAGER_APPROVAL'
+  | 'PENDING_COO_APPROVAL'
+  | 'APPROVED_BY_COO'
+  | 'REJECTED_BY_HR'
+  | 'REJECTED_BY_MANAGER'
+  | 'REJECTED_BY_COO'
+  | 'PENDING_FINANCE'
+  | 'PENDING_PAYMENT'
+  | 'PAID'
+  | 'REJECTED_BACK_TO_CLERK';
+
+// Driver Status
+export type DriverStatus = 'AVAILABLE' | 'ON_JOB' | 'OFF_DUTY';
+
+// Job Status for Drivers
+export type DriverJobStatus = 
+  | 'PENDING'
+  | 'ACCEPTED'
+  | 'COLLECTING'
+  | 'COLLECTED'
+  | 'DELIVERING'
+  | 'DELIVERED';
+
+// Payment Option
+export type PaymentOption = 'CLIENT_TO_PAY' | 'PROCEED_TO_REQUEST';
+
+// User Interface
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  department?: string;
+  phone?: string;
+  avatar?: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Client Interface
+export interface Client {
+  id: string;
+  name: string;
+  mobile: string;
+  email?: string;
+  tin: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Shipping Document Interface
+export interface ShippingDocument {
+  id: string;
+  fileId: string;
+  documentType: DocumentType;
+  documentName: string;
+  fileUrl: string;
+  uploadedBy: string;
+  uploadedAt: Date;
+}
+
+// Shipment File Interface
+export interface ShipmentFile {
+  id: string;
+  fileNumber: string;
+  clientId: string;
+  client?: Client;
+  shipmentType: ShipmentType;
+  transportMode: TransportMode;
+  documents: ShippingDocument[];
+  status: FileStatus;
+  
+  // Declaration fields
+  assignedDeclarantId?: string;
+  assignedDeclarant?: User;
+  taxAssessmentUrl?: string;
+  declarationDoneAt?: Date;
+  taxesPaidAt?: Date;
+  
+  // Operations fields
+  assignedOperationClerkId?: string;
+  assignedOperationClerk?: User;
+  clerkAcknowledgedAt?: Date;
+  verificationCheckedAt?: Date;
+  verificationPhotos?: string[]; // URLs of verification photos (max 4)
+  releaseOrderUrl?: string;
+  swissportPaidAt?: Date;
+  
+  // Permits fields
+  assignedPermitsClerkId?: string;
+  permitPaymentOption?: PaymentOption;
+  permitInvoiceUrl?: string;
+  permitDocumentUrl?: string;
+  permitPaymentsDoneAt?: Date;
+  
+  // Shipping line fields (SEA only)
+  assignedShippingLineClerkId?: string;
+  deliveryOrderApplicationAt?: Date;
+  deliveryOrderInvoiceUrl?: string;
+  deliveryOrderDocumentUrl?: string;
+  deliveryOrderPaymentsDoneAt?: Date;
+  
+  // Port charges fields
+  portChargesInvoiceUrl?: string;
+  portChargesPaidAt?: Date;
+  
+  // Delivery fields
+  assignedDeliveryClerkId?: string;
+  assignedDriverId?: string;
+  assignedDriver?: User;
+  driverAcceptedAt?: Date;
+  cargoCollectedAt?: Date;
+  deliveredToClientAt?: Date;
+  arrivedAtWarehouseAt?: Date;
+  
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy: string;
+  
+  // Comments/History
+  comments?: FileComment[];
+}
+
+// File Comment Interface
+export interface FileComment {
+  id: string;
+  fileId: string;
+  userId: string;
+  user?: User;
+  comment: string;
+  createdAt: Date;
+}
+
+// Petty Cash Request Interface
+export interface PettyCashRequest {
+  id: string;
+  requestNumber: string;
+  fileId?: string;
+  file?: ShipmentFile;
+  requestedBy: string;
+  requester?: User;
+  amount: number;
+  currency: string;
+  description: string;
+  attachmentUrl?: string;
+  status: PettyCashStatus;
+  
+  // Approval chain
+  managerId?: string;
+  manager?: User;
+  managerComment?: string;
+  managerActionAt?: Date;
+  
+  cooId?: string;
+  coo?: User;
+  cooComment?: string;
+  cooActionAt?: Date;
+  
+  financeManagerId?: string;
+  financeManager?: User;
+  financeComment?: string;
+  financeActionAt?: Date;
+  
+  cashierId?: string;
+  cashier?: User;
+  paidAt?: Date;
+  paymentReference?: string;
+  
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Permit Interface
+export interface Permit {
+  id: string;
+  fileId: string;
+  file?: ShipmentFile;
+  permitType: string;
+  invoiceUrl?: string;
+  permitUrl?: string;
+  paymentOption?: PaymentOption;
+  isPaid: boolean;
+  paidAt?: Date;
+  paidBy?: string;
+  requestedBy: string;
+  requester?: User;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Driver Assignment Interface
+export interface DriverAssignment {
+  id: string;
+  fileId: string;
+  file?: ShipmentFile;
+  driverId: string;
+  driver?: User;
+  requestedBy: string;
+  requester?: User;
+  assignedBy?: string;
+  assignedByUser?: User;
+  status: DriverJobStatus;
+  acceptedAt?: Date;
+  collectedAt?: Date;
+  deliveredAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Notification Interface
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  isRead: boolean;
+  link?: string;
+  fileId?: string;
+  createdAt: Date;
+}
+
+// Activity Log Interface
+export interface ActivityLog {
+  id: string;
+  fileId: string;
+  userId: string;
+  user?: User;
+  action: string;
+  description: string;
+  oldStatus?: FileStatus;
+  newStatus?: FileStatus;
+  createdAt: Date;
+}
+
+// Dashboard Stats Interface
+export interface DashboardStats {
+  totalFiles: number;
+  waitingFiles: number;
+  inProgressFiles: number;
+  completedFiles: number;
+  myAssignedFiles: number;
+  pendingApprovals: number;
+  pendingPayments: number;
+}
+
+// Workload Interface
+export interface DeclarantWorkload {
+  declarant: User;
+  totalAssigned: number;
+  inProgress: number;
+  waitingAssessment: number;
+}
+
+export interface DriverWorkload {
+  driver: User;
+  totalAssigned: number;
+  completedToday: number;
+  currentStatus: DriverStatus;
+}
+
+// Form Data Types
+export interface FileOpeningFormData {
+  clientType: 'new' | 'existing';
+  client?: Client;
+  clientId?: string;
+  shipmentType: ShipmentType;
+  transportMode: TransportMode;
+  documents: { type: DocumentType; file: File }[];
+}
+
+export interface PettyCashFormData {
+  fileId: string;
+  amount: number;
+  currency: string;
+  description: string;
+  attachment?: File;
+}
+
+export interface PermitFormData {
+  fileId: string;
+  permitType: string;
+  invoice?: File;
+  paymentOption: PaymentOption;
+}
+
+// Role-based permissions
+export interface Permission {
+  action: string;
+  roles: UserRole[];
+}
+
+export const PERMISSIONS: Permission[] = [
+  { action: 'create_file', roles: ['documentation_officer', 'admin'] },
+  { action: 'assign_declarant', roles: ['declaration_manager', 'admin'] },
+  { action: 'process_declaration', roles: ['declarant', 'admin'] },
+  { action: 'assign_operation_clerk', roles: ['operations_manager', 'admin'] },
+  { action: 'process_operations', roles: ['operation_clerk', 'permits_clerk', 'delivery_clerk', 'admin'] },
+  { action: 'approve_petty_cash_manager', roles: ['operations_manager', 'admin'] },
+  { action: 'approve_petty_cash_coo', roles: ['coo', 'admin'] },
+  { action: 'process_finance', roles: ['finance_manager', 'cashier', 'admin'] },
+  { action: 'assign_driver', roles: ['hr_manager', 'admin'] },
+  { action: 'view_all_files', roles: ['admin', 'coo'] },
+  { action: 'view_department_files', roles: ['declaration_manager', 'operations_manager', 'finance_manager', 'hr_manager'] },
+];
