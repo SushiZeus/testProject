@@ -1,0 +1,89 @@
+═══════════════════════════════════════════════════════════════
+                    QUICK LOGIN REFERENCE
+═══════════════════════════════════════════════════════════════
+
+🌐 APP URL: http://localhost:4173/
+
+═══════════════════════════════════════════════════════════════
+                    MAIN WORKFLOW USERS
+═══════════════════════════════════════════════════════════════
+
+1️⃣  CREATE FILE
+    Email: doc@company.com
+    Pass:  doc123
+    Role:  Documentation Officer
+
+2️⃣  ASSIGN DECLARANT
+    Email: declmanager@company.com
+    Pass:  declmanager123
+    Role:  Declaration Manager
+
+3️⃣  PROCESS DECLARATION
+    Email: declarant1@company.com
+    Pass:  declarant123
+    Role:  Declarant
+
+4️⃣  ASSIGN CLERK
+    Email: opsmanager@company.com
+    Pass:  opsmanager123
+    Role:  Operations Manager
+
+5️⃣  PROCESS OPERATIONS
+    Email: clerk1@company.com
+    Pass:  clerk123
+    Role:  Operation Clerk
+
+6️⃣  APPROVE PAYMENTS (Chain)
+    A) Email: opsmanager@company.com / Pass: opsmanager123
+    B) Email: coo@company.com / Pass: coo123
+    C) Email: finance@company.com / Pass: finance123
+    D) Email: cashier@company.com / Pass: cashier123
+
+7️⃣  ASSIGN DRIVER
+    Email: hr@company.com
+    Pass:  hr123
+    Role:  HR Manager
+
+8️⃣  COLLECT CARGO
+    Email: driver1@company.com
+    Pass:  driver123
+    Role:  Driver
+
+═══════════════════════════════════════════════════════════════
+                    ALL USERS (QUICK REF)
+═══════════════════════════════════════════════════════════════
+
+doc@company.com          / doc123
+declmanager@company.com  / declmanager123
+declarant1@company.com   / declarant123
+declarant2@company.com   / declarant123
+opsmanager@company.com   / opsmanager123
+clerk1@company.com       / clerk123
+clerk2@company.com       / clerk123
+permits@company.com      / permits123
+delivery@company.com     / delivery123
+coo@company.com          / coo123
+finance@company.com      / finance123
+cashier@company.com      / cashier123
+hr@company.com           / hr123
+driver1@company.com      / driver123
+driver2@company.com      / driver123
+driver3@company.com      / driver123
+contact@company.com      / contact123
+admin@company.com        / admin123
+
+═══════════════════════════════════════════════════════════════
+                    SYSTEM STATUS
+═══════════════════════════════════════════════════════════════
+
+✅ All files CLEANED (empty system)
+✅ All users ACTIVE
+✅ All notifications ENABLED
+✅ Complete tracking ACTIVE
+
+═══════════════════════════════════════════════════════════════
+
+💡 TIP: Start with doc@company.com to create a file,
+        then switch users to process it through the workflow!
+
+═══════════════════════════════════════════════════════════════
