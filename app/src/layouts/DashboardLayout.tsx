@@ -15,6 +15,7 @@ import {
   LogOut,
   Settings,
   User,
+  BarChart3,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -40,12 +41,48 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard', icon: LayoutDashboard, href: 'dashboard', roles: ['*'] },
-  { label: 'File Opening', icon: FilePlus, href: 'files/open', roles: ['documentation_officer', 'admin'] },
-  { label: 'Declaration', icon: ClipboardCheck, href: 'declaration', roles: ['declaration_manager', 'declarant', 'admin'] },
-  { label: 'Operations', icon: Truck, href: 'operations', roles: ['operations_manager', 'operation_clerk', 'permits_clerk', 'delivery_clerk', 'admin'] },
-  { label: 'Petty Cash', icon: DollarSign, href: 'petty-cash', roles: ['documentation_officer', 'declaration_manager', 'declarant', 'operations_manager', 'operation_clerk', 'coo', 'finance_manager', 'cashier', 'admin'] },
-  { label: 'Drivers', icon: Users, href: 'drivers', roles: ['hr_manager', 'delivery_clerk', 'admin'] },
+  { 
+    label: 'Dashboard', 
+    icon: LayoutDashboard, 
+    href: 'dashboard', 
+    roles: ['*'] // All users can access dashboard
+  },
+  { 
+    label: 'File Opening', 
+    icon: FilePlus, 
+    href: 'files/open', 
+    roles: ['documentation_officer', 'finance_manager', 'commercial_manager', 'coo', 'managing_director', 'administrator'] 
+  },
+  { 
+    label: 'Declaration', 
+    icon: ClipboardCheck, 
+    href: 'declaration', 
+    roles: ['declaration_manager', 'declarant', 'finance_manager', 'commercial_manager', 'coo', 'managing_director', 'administrator'] 
+  },
+  { 
+    label: 'Operations', 
+    icon: Truck, 
+    href: 'operations', 
+    roles: ['operations_manager', 'operation_clerk', 'permits_clerk', 'delivery_clerk', 'transport_manager', 'finance_manager', 'commercial_manager', 'coo', 'managing_director', 'administrator'] 
+  },
+  { 
+    label: 'Petty Cash', 
+    icon: DollarSign, 
+    href: 'petty-cash', 
+    roles: ['documentation_officer', 'declaration_manager', 'declarant', 'operations_manager', 'operation_clerk', 'hr_manager', 'finance_manager', 'cashier', 'commercial_manager', 'coo', 'managing_director', 'administrator'] 
+  },
+  { 
+    label: 'Reports', 
+    icon: BarChart3, 
+    href: 'reports', 
+    roles: ['operations_manager', 'declaration_manager', 'hr_manager', 'finance_manager', 'commercial_manager', 'coo', 'managing_director', 'administrator'] 
+  },
+  { 
+    label: 'Drivers', 
+    icon: Users, 
+    href: 'drivers', 
+    roles: ['hr_manager', 'transport_manager', 'delivery_clerk', 'finance_manager', 'commercial_manager', 'coo', 'managing_director', 'administrator'] 
+  },
 ];
 
 interface DashboardLayoutProps {

@@ -3,11 +3,12 @@ import type {
   DriverAssignment, Notification, ActivityLog
 } from '@/types';
 
-// Mock Users with Passwords
+// Mock Users with Hierarchical Access Control
 export const mockUsers: User[] = [
+  // Department Staff - Limited Access
   {
     id: '1',
-    email: 'doc@company.com',
+    email: 'documentation_officer@company.com',
     name: 'John Smith',
     role: 'documentation_officer',
     department: 'Documentation',
@@ -18,7 +19,7 @@ export const mockUsers: User[] = [
   },
   {
     id: '2',
-    email: 'declmanager@company.com',
+    email: 'declaration_manager@company.com',
     name: 'Sarah Johnson',
     role: 'declaration_manager',
     department: 'Declaration',
@@ -29,7 +30,7 @@ export const mockUsers: User[] = [
   },
   {
     id: '3',
-    email: 'declarant1@company.com',
+    email: 'declarant@company.com',
     name: 'Michael Brown',
     role: 'declarant',
     department: 'Declaration',
@@ -51,7 +52,7 @@ export const mockUsers: User[] = [
   },
   {
     id: '5',
-    email: 'opsmanager@company.com',
+    email: 'operations_manager@company.com',
     name: 'Robert Wilson',
     role: 'operations_manager',
     department: 'Operations',
@@ -62,7 +63,7 @@ export const mockUsers: User[] = [
   },
   {
     id: '6',
-    email: 'clerk1@company.com',
+    email: 'operation_clerk@company.com',
     name: 'Lisa Anderson',
     role: 'operation_clerk',
     department: 'Operations',
@@ -73,7 +74,7 @@ export const mockUsers: User[] = [
   },
   {
     id: '7',
-    email: 'clerk2@company.com',
+    email: 'operation_clerk2@company.com',
     name: 'David Martinez',
     role: 'operation_clerk',
     department: 'Operations',
@@ -84,7 +85,7 @@ export const mockUsers: User[] = [
   },
   {
     id: '8',
-    email: 'permits@company.com',
+    email: 'permits_clerk@company.com',
     name: 'Jennifer Taylor',
     role: 'permits_clerk',
     department: 'Operations',
@@ -95,7 +96,7 @@ export const mockUsers: User[] = [
   },
   {
     id: '9',
-    email: 'delivery@company.com',
+    email: 'delivery_clerk@company.com',
     name: 'James Thomas',
     role: 'delivery_clerk',
     department: 'Operations',
@@ -105,19 +106,21 @@ export const mockUsers: User[] = [
     updatedAt: new Date('2024-01-01'),
   },
   {
-    id: '10',
-    email: 'coo@company.com',
-    name: 'Patricia White',
-    role: 'coo',
-    department: 'Management',
-    phone: '+255 712 345 010',
+    id: '14',
+    email: 'transport_manager@company.com',
+    name: 'Mark Johnson',
+    role: 'transport_manager',
+    department: 'Transport',
+    phone: '+255 712 345 014',
     isActive: true,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
   },
+  
+  // Finance Department - Limited to Finance + Full Access Roles
   {
     id: '11',
-    email: 'finance@company.com',
+    email: 'finance_manager@company.com',
     name: 'Christopher Lee',
     role: 'finance_manager',
     department: 'Finance',
@@ -137,9 +140,11 @@ export const mockUsers: User[] = [
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
   },
+  
+  // HR Department - Limited to HR + Full Access Roles
   {
     id: '13',
-    email: 'hr@company.com',
+    email: 'hr_manager@company.com',
     name: 'Daniel Clark',
     role: 'hr_manager',
     department: 'HR',
@@ -148,23 +153,49 @@ export const mockUsers: User[] = [
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
   },
+  
+  // Senior Management - Full System Access
   {
-    id: '14',
-    email: 'driver1@company.com',
-    name: 'Joseph Lewis',
-    role: 'driver',
-    department: 'HR',
-    phone: '+255 712 345 014',
+    id: '19',
+    email: 'commercial_manager@company.com',
+    name: 'Victoria Thompson',
+    role: 'commercial_manager',
+    department: 'Commercial',
+    phone: '+255 712 345 019',
     isActive: true,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
   },
   {
+    id: '10',
+    email: 'coo@company.com',
+    name: 'Patricia White',
+    role: 'coo',
+    department: 'Executive',
+    phone: '+255 712 345 010',
+    isActive: true,
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01'),
+  },
+  {
+    id: '20',
+    email: 'managing_director@company.com',
+    name: 'Alexander Rodriguez',
+    role: 'managing_director',
+    department: 'Executive',
+    phone: '+255 712 345 020',
+    isActive: true,
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01'),
+  },
+  
+  // Transport and Drivers
+  {
     id: '15',
-    email: 'driver2@company.com',
-    name: 'Matthew Walker',
+    email: 'driver@company.com',
+    name: 'Joseph Lewis',
     role: 'driver',
-    department: 'HR',
+    department: 'Transport',
     phone: '+255 712 345 015',
     isActive: true,
     createdAt: new Date('2024-01-01'),
@@ -172,10 +203,10 @@ export const mockUsers: User[] = [
   },
   {
     id: '16',
-    email: 'driver3@company.com',
-    name: 'Andrew Young',
+    email: 'driver2@company.com',
+    name: 'Matthew Walker',
     role: 'driver',
-    department: 'HR',
+    department: 'Transport',
     phone: '+255 712 345 016',
     isActive: true,
     createdAt: new Date('2024-01-01'),
@@ -183,100 +214,131 @@ export const mockUsers: User[] = [
   },
   {
     id: '17',
-    email: 'contact@company.com',
-    name: 'Michelle King',
-    role: 'contact_person',
-    department: 'Customer Service',
+    email: 'driver3@company.com',
+    name: 'Andrew Young',
+    role: 'driver',
+    department: 'Transport',
     phone: '+255 712 345 017',
     isActive: true,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
   },
+  
+  // Client Services
   {
     id: '18',
-    email: 'admin@company.com',
-    name: 'Admin User',
-    role: 'admin',
-    department: 'IT',
+    email: 'contact_person@company.com',
+    name: 'Michelle King',
+    role: 'contact_person',
+    department: 'Client Services',
     phone: '+255 712 345 018',
+    isActive: true,
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01'),
+  },
+  
+  // System Administration
+  {
+    id: '21',
+    email: 'administrator@company.com',
+    name: 'Admin User',
+    role: 'administrator',
+    department: 'IT',
+    phone: '+255 712 345 021',
     isActive: true,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
   },
 ];
 
-// User credentials for login (password is same as role name for simplicity)
+// User credentials for login with hierarchical access
 export const userCredentials: Record<string, { email: string; password: string; role: string; name: string }> = {
-  doc: { email: 'doc@company.com', password: 'doc123', role: 'documentation_officer', name: 'John Smith' },
-  declmanager: { email: 'declmanager@company.com', password: 'declmanager123', role: 'declaration_manager', name: 'Sarah Johnson' },
-  declarant1: { email: 'declarant1@company.com', password: 'declarant123', role: 'declarant', name: 'Michael Brown' },
+  // Department Staff - Limited Access
+  documentation_officer: { email: 'documentation_officer@company.com', password: 'documentation_officer123', role: 'documentation_officer', name: 'John Smith' },
+  declaration_manager: { email: 'declaration_manager@company.com', password: 'declaration_manager123', role: 'declaration_manager', name: 'Sarah Johnson' },
+  declarant: { email: 'declarant@company.com', password: 'declarant123', role: 'declarant', name: 'Michael Brown' },
   declarant2: { email: 'declarant2@company.com', password: 'declarant123', role: 'declarant', name: 'Emily Davis' },
-  opsmanager: { email: 'opsmanager@company.com', password: 'opsmanager123', role: 'operations_manager', name: 'Robert Wilson' },
-  clerk1: { email: 'clerk1@company.com', password: 'clerk123', role: 'operation_clerk', name: 'Lisa Anderson' },
-  clerk2: { email: 'clerk2@company.com', password: 'clerk123', role: 'operation_clerk', name: 'David Martinez' },
-  permits: { email: 'permits@company.com', password: 'permits123', role: 'permits_clerk', name: 'Jennifer Taylor' },
-  delivery: { email: 'delivery@company.com', password: 'delivery123', role: 'delivery_clerk', name: 'James Thomas' },
-  coo: { email: 'coo@company.com', password: 'coo123', role: 'coo', name: 'Patricia White' },
-  finance: { email: 'finance@company.com', password: 'finance123', role: 'finance_manager', name: 'Christopher Lee' },
+  operations_manager: { email: 'operations_manager@company.com', password: 'operations_manager123', role: 'operations_manager', name: 'Robert Wilson' },
+  operation_clerk: { email: 'operation_clerk@company.com', password: 'operation_clerk123', role: 'operation_clerk', name: 'Lisa Anderson' },
+  operation_clerk2: { email: 'operation_clerk2@company.com', password: 'operation_clerk123', role: 'operation_clerk', name: 'David Martinez' },
+  permits_clerk: { email: 'permits_clerk@company.com', password: 'permits_clerk123', role: 'permits_clerk', name: 'Jennifer Taylor' },
+  delivery_clerk: { email: 'delivery_clerk@company.com', password: 'delivery_clerk123', role: 'delivery_clerk', name: 'James Thomas' },
+  transport_manager: { email: 'transport_manager@company.com', password: 'transport_manager123', role: 'transport_manager', name: 'Mark Johnson' },
+  
+  // Finance Department - Limited to Finance + Full Access Roles
+  finance_manager: { email: 'finance_manager@company.com', password: 'finance_manager123', role: 'finance_manager', name: 'Christopher Lee' },
   cashier: { email: 'cashier@company.com', password: 'cashier123', role: 'cashier', name: 'Amanda Hall' },
-  hr: { email: 'hr@company.com', password: 'hr123', role: 'hr_manager', name: 'Daniel Clark' },
-  driver1: { email: 'driver1@company.com', password: 'driver123', role: 'driver', name: 'Joseph Lewis' },
+  
+  // HR Department - Limited to HR + Full Access Roles  
+  hr_manager: { email: 'hr_manager@company.com', password: 'hr_manager123', role: 'hr_manager', name: 'Daniel Clark' },
+  
+  // Senior Management - Full System Access
+  commercial_manager: { email: 'commercial_manager@company.com', password: 'commercial_manager123', role: 'commercial_manager', name: 'Victoria Thompson' },
+  coo: { email: 'coo@company.com', password: 'coo123', role: 'coo', name: 'Patricia White' },
+  managing_director: { email: 'managing_director@company.com', password: 'managing_director123', role: 'managing_director', name: 'Alexander Rodriguez' },
+  
+  // Transport and Drivers
+  driver: { email: 'driver@company.com', password: 'driver123', role: 'driver', name: 'Joseph Lewis' },
   driver2: { email: 'driver2@company.com', password: 'driver123', role: 'driver', name: 'Matthew Walker' },
   driver3: { email: 'driver3@company.com', password: 'driver123', role: 'driver', name: 'Andrew Young' },
-  contact: { email: 'contact@company.com', password: 'contact123', role: 'contact_person', name: 'Michelle King' },
-  admin: { email: 'admin@company.com', password: 'admin123', role: 'admin', name: 'Admin User' },
+  
+  // Client Services
+  contact_person: { email: 'contact_person@company.com', password: 'contact_person123', role: 'contact_person', name: 'Michelle King' },
+  
+  // System Administration
+  administrator: { email: 'administrator@company.com', password: 'administrator123', role: 'administrator', name: 'Admin User' },
 };
 
-// Mock Clients
 export const mockClients: Client[] = [
   {
     id: '1',
     name: 'ABC Trading Ltd',
     mobile: '+255 713 456 001',
-    email: 'info@abctrading.com',
-    tin: '101-234-567',
+    email: 'contact@abctrading.com',
+    tin: 'TIN001234567',
     isActive: true,
-    createdAt: new Date('2024-01-15'),
-    updatedAt: new Date('2024-01-15'),
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01'),
   },
   {
     id: '2',
     name: 'XYZ Imports Inc',
     mobile: '+255 713 456 002',
-    email: 'contact@xyzimports.com',
-    tin: '102-345-678',
+    email: 'info@xyzimports.com',
+    tin: 'TIN002345678',
     isActive: true,
-    createdAt: new Date('2024-02-10'),
-    updatedAt: new Date('2024-02-10'),
+    createdAt: new Date('2024-01-15'),
+    updatedAt: new Date('2024-01-15'),
   },
   {
     id: '3',
     name: 'Global Freight Solutions',
     mobile: '+255 713 456 003',
     email: 'operations@globalfreight.com',
-    tin: '103-456-789',
+    tin: 'TIN003456789',
     isActive: true,
-    createdAt: new Date('2024-03-05'),
-    updatedAt: new Date('2024-03-05'),
+    createdAt: new Date('2024-02-01'),
+    updatedAt: new Date('2024-02-01'),
   },
   {
     id: '4',
     name: 'East African Logistics',
     mobile: '+255 713 456 004',
-    tin: '104-567-890',
+    email: 'logistics@eastafrica.com',
+    tin: 'TIN004567890',
     isActive: true,
-    createdAt: new Date('2024-03-20'),
-    updatedAt: new Date('2024-03-20'),
+    createdAt: new Date('2024-02-15'),
+    updatedAt: new Date('2024-02-15'),
   },
   {
     id: '5',
     name: 'Marine Cargo Services',
     mobile: '+255 713 456 005',
-    email: 'cargo@marine.co.tz',
-    tin: '105-678-901',
+    email: 'marine@cargosvc.com',
+    tin: 'TIN005678901',
     isActive: true,
-    createdAt: new Date('2024-04-01'),
-    updatedAt: new Date('2024-04-01'),
+    createdAt: new Date('2024-03-01'),
+    updatedAt: new Date('2024-03-01'),
   },
 ];
 
@@ -298,23 +360,17 @@ export const mockNotifications: Notification[] = [];
 // Mock Activity Logs - CLEANED (empty for fresh start)
 export const mockActivityLogs: ActivityLog[] = [];
 
-// Helper functions to get data
+// Helper function to get user by ID
 export const getUserById = (id: string): User | undefined => {
-  return mockUsers.find(u => u.id === id);
+  return mockUsers.find(user => user.id === id);
 };
 
+// Helper function to get client by ID
 export const getClientById = (id: string): Client | undefined => {
-  return mockClients.find(c => c.id === id);
+  return mockClients.find(client => client.id === id);
 };
 
-export const getFileById = (id: string): ShipmentFile | undefined => {
-  return mockShipmentFiles.find(f => f.id === id);
-};
-
-export const getFilesByStatus = (status: string): ShipmentFile[] => {
-  return mockShipmentFiles.filter(f => f.status === status);
-};
-
+// Workload calculation functions
 export const getDeclarantWorkload = (declarantId: string, files: any[] = mockShipmentFiles) => {
   const assigned = files.filter(f => f.assignedDeclarantId === declarantId);
   return {

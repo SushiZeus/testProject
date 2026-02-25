@@ -11,6 +11,7 @@ interface AuthState {
 }
 
 const rolePermissions: Record<UserRole, string[]> = {
+  // Department Staff - Limited Access
   documentation_officer: ['create_file', 'view_own_files', 'create_petty_cash_request'],
   declaration_manager: ['assign_declarant', 'view_department_files', 'view_all_declarations', 'create_petty_cash_request'],
   declarant: ['process_declaration', 'view_assigned_files', 'create_petty_cash_request'],
@@ -20,13 +21,23 @@ const rolePermissions: Record<UserRole, string[]> = {
   shipping_line_clerk: ['process_delivery_order', 'upload_do_documents', 'create_petty_cash_request'],
   delivery_clerk: ['process_delivery', 'request_driver'],
   transport_manager: ['assign_big_truck_driver', 'manage_big_truck_drivers', 'view_driver_reports'],
-  coo: ['approve_petty_cash_coo', 'view_all_files', 'view_reports'],
-  finance_manager: ['process_finance', 'view_financial_reports'],
-  cashier: ['process_payments', 'view_pending_payments'],
-  hr_manager: ['assign_small_truck_driver', 'manage_small_truck_drivers', 'view_driver_reports', 'approve_petty_cash_hr'],
   driver: ['view_assigned_jobs', 'update_job_status'],
   contact_person: ['view_client_files', 'update_payment_status', 'select_payment_option'],
-  admin: ['*'],
+  
+  // Finance Department - Limited to Finance + Full Access Roles
+  finance_manager: ['process_finance', 'view_financial_reports', 'view_accounts_department', 'view_all_modules', 'approve_petty_cash_finance'],
+  cashier: ['process_payments', 'view_pending_payments'],
+  
+  // HR Department - Limited to HR + Full Access Roles  
+  hr_manager: ['assign_small_truck_driver', 'manage_small_truck_drivers', 'view_driver_reports', 'approve_petty_cash_hr', 'view_hr_department'],
+  
+  // Senior Management - Full System Access
+  commercial_manager: ['view_all_modules', 'view_accounts_department', 'view_hr_department', 'view_all_files', 'view_reports', 'approve_petty_cash_commercial'],
+  coo: ['view_all_modules', 'view_accounts_department', 'view_hr_department', 'approve_petty_cash_coo', 'view_all_files', 'view_reports', 'manage_all_departments'],
+  managing_director: ['view_all_modules', 'view_accounts_department', 'view_hr_department', 'view_all_files', 'view_reports', 'manage_all_departments', 'executive_access'],
+  
+  // System Administration
+  administrator: ['*'],
 };
 
 // Load state from localStorage or use defaults

@@ -358,7 +358,7 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
 
     const actions: { label: string; onClick: () => void; icon: React.ElementType; color: string }[] = [];
 
-    if (user.role === 'documentation_officer' || user.role === 'admin') {
+    if (user.role === 'documentation_officer' || user.role === 'administrator') {
       actions.push({
         label: 'Open New File',
         onClick: () => navigate('files/open'),
@@ -367,7 +367,7 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
       });
     }
 
-    if (user.role === 'declaration_manager' || user.role === 'admin') {
+    if (user.role === 'declaration_manager' || user.role === 'administrator') {
       actions.push({
         label: 'Assign Declarants',
         onClick: () => navigate('declaration'),

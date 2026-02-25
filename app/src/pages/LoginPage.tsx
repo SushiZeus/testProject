@@ -24,13 +24,16 @@ const roles: { value: UserRole; label: string }[] = [
   { value: 'operation_clerk', label: 'Operation Clerk' },
   { value: 'permits_clerk', label: 'Permits Clerk' },
   { value: 'delivery_clerk', label: 'Delivery Clerk' },
-  { value: 'coo', label: 'Chief Operations Officer' },
+  { value: 'transport_manager', label: 'Transport Manager' },
   { value: 'finance_manager', label: 'Finance Manager' },
   { value: 'cashier', label: 'Cashier' },
+  { value: 'commercial_manager', label: 'Commercial Manager' },
+  { value: 'coo', label: 'Chief Operations Officer' },
+  { value: 'managing_director', label: 'Managing Director' },
   { value: 'hr_manager', label: 'HR Manager' },
   { value: 'driver', label: 'Driver' },
   { value: 'contact_person', label: 'Contact Person' },
-  { value: 'admin', label: 'Administrator' },
+  { value: 'administrator', label: 'Administrator' },
 ];
 
 interface LoginPageProps {
@@ -70,22 +73,24 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
   // Quick login for demo - maps roles to their corresponding mock user emails
   const roleToEmailMap: Record<UserRole, string> = {
-    'documentation_officer': 'doc.officer@company.com',
-    'declaration_manager': 'decl.manager@company.com',
-    'declarant': 'declarant1@company.com',
-    'operations_manager': 'ops.manager@company.com',
-    'operation_clerk': 'op.clerk1@company.com',
-    'permits_clerk': 'permits.clerk@company.com',
-    'shipping_line_clerk': 'shipping.clerk@company.com',
-    'delivery_clerk': 'delivery.clerk@company.com',
-    'transport_manager': 'transport.manager@company.com',
-    'coo': 'coo@company.com',
-    'finance_manager': 'finance.manager@company.com',
+    'documentation_officer': 'documentation_officer@company.com',
+    'declaration_manager': 'declaration_manager@company.com',
+    'declarant': 'declarant@company.com',
+    'operations_manager': 'operations_manager@company.com',
+    'operation_clerk': 'operation_clerk@company.com',
+    'permits_clerk': 'permits_clerk@company.com',
+    'shipping_line_clerk': 'shipping_line_clerk@company.com',
+    'delivery_clerk': 'delivery_clerk@company.com',
+    'transport_manager': 'transport_manager@company.com',
+    'finance_manager': 'finance_manager@company.com',
     'cashier': 'cashier@company.com',
-    'hr_manager': 'hr.manager@company.com',
-    'driver': 'driver1@company.com',
-    'contact_person': 'contact@company.com',
-    'admin': 'admin@company.com',
+    'commercial_manager': 'commercial_manager@company.com',
+    'coo': 'coo@company.com',
+    'managing_director': 'managing_director@company.com',
+    'hr_manager': 'hr_manager@company.com',
+    'driver': 'driver@company.com',
+    'contact_person': 'contact_person@company.com',
+    'administrator': 'administrator@company.com',
   };
 
   const handleDemoLogin = (demoRole: UserRole) => {
@@ -217,7 +222,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 { role: 'documentation_officer' as const, label: 'Doc' },
                 { role: 'declaration_manager' as const, label: 'Decl Mgr' },
                 { role: 'operations_manager' as const, label: 'Ops Mgr' },
-                { role: 'admin' as const, label: 'Admin' },
+                { role: 'administrator' as const, label: 'Admin' },
               ].map((demo) => (
                 <button
                   key={demo.role}

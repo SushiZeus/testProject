@@ -9,13 +9,15 @@ export type UserRole =
   | 'shipping_line_clerk'
   | 'delivery_clerk'
   | 'transport_manager'
-  | 'coo'
   | 'finance_manager'
   | 'cashier'
+  | 'commercial_manager'
+  | 'coo'
+  | 'managing_director'
   | 'hr_manager'
   | 'driver'
   | 'contact_person'
-  | 'admin';
+  | 'administrator';
 
 // Shipment Types
 export type ShipmentType = 'IMPORT' | 'EXPORT' | 'TRANSSHIPMENT' | 'TRANSIT';
@@ -369,15 +371,15 @@ export interface Permission {
 }
 
 export const PERMISSIONS: Permission[] = [
-  { action: 'create_file', roles: ['documentation_officer', 'admin'] },
-  { action: 'assign_declarant', roles: ['declaration_manager', 'admin'] },
-  { action: 'process_declaration', roles: ['declarant', 'admin'] },
-  { action: 'assign_operation_clerk', roles: ['operations_manager', 'admin'] },
-  { action: 'process_operations', roles: ['operation_clerk', 'permits_clerk', 'delivery_clerk', 'admin'] },
-  { action: 'approve_petty_cash_manager', roles: ['operations_manager', 'admin'] },
-  { action: 'approve_petty_cash_coo', roles: ['coo', 'admin'] },
-  { action: 'process_finance', roles: ['finance_manager', 'cashier', 'admin'] },
-  { action: 'assign_driver', roles: ['hr_manager', 'admin'] },
-  { action: 'view_all_files', roles: ['admin', 'coo'] },
+  { action: 'create_file', roles: ['documentation_officer', 'administrator'] },
+  { action: 'assign_declarant', roles: ['declaration_manager', 'administrator'] },
+  { action: 'process_declaration', roles: ['declarant', 'administrator'] },
+  { action: 'assign_operation_clerk', roles: ['operations_manager', 'administrator'] },
+  { action: 'process_operations', roles: ['operation_clerk', 'permits_clerk', 'delivery_clerk', 'administrator'] },
+  { action: 'approve_petty_cash_manager', roles: ['operations_manager', 'administrator'] },
+  { action: 'approve_petty_cash_coo', roles: ['coo', 'administrator'] },
+  { action: 'process_finance', roles: ['finance_manager', 'cashier', 'administrator'] },
+  { action: 'assign_driver', roles: ['hr_manager', 'administrator'] },
+  { action: 'view_all_files', roles: ['administrator', 'coo'] },
   { action: 'view_department_files', roles: ['declaration_manager', 'operations_manager', 'finance_manager', 'hr_manager'] },
 ];

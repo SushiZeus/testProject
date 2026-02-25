@@ -8,6 +8,7 @@ import { DeclarationPage } from '@/pages/DeclarationPage';
 import { OperationsPage } from '@/pages/OperationsPage';
 import { PettyCashPage } from '@/pages/PettyCashPage';
 import { DriverManagementPage } from '@/pages/DriverManagementPage';
+import { ReportsPage } from '@/pages/ReportsPage';
 import { FileDetailPage } from '@/pages/FileDetailPage';
 import { useAuthStore } from '@/store/authStore';
 
@@ -19,6 +20,7 @@ export type AppRoute =
   | 'declaration'
   | 'operations'
   | 'petty-cash'
+  | 'reports'
   | 'drivers';
 
 function App() {
@@ -56,6 +58,8 @@ function App() {
         return <OperationsPage navigate={navigate} />;
       case 'petty-cash':
         return <PettyCashPage navigate={navigate} />;
+      case 'reports':
+        return <ReportsPage navigate={navigate} />;
       case 'drivers':
         return <DriverManagementPage navigate={navigate} />;
       default:
