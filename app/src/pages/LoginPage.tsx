@@ -100,7 +100,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1e3a8a] via-[#1e40af] to-[#0f172a] p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 p-4">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0" style={{
@@ -115,15 +115,15 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         }`}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#1e3a8a] to-[#3b82f6] p-8 text-center">
+        <div className="bg-gradient-to-r from-slate-800 to-orange-300 p-8 text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-full mb-4 backdrop-blur-sm">
             <Building2 className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-white mb-1">
-            Shipment Workflow
+            DOW ELEF System
           </h1>
-          <p className="text-blue-100 text-sm">
-            Enterprise Logistics Solutions
+          <p className="text-orange-100 text-sm">
+            Enterprise Management Solutions
           </p>
         </div>
 
@@ -142,7 +142,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="pl-10 h-12 border-gray-200 focus:border-[#3b82f6] focus:ring-[#3b82f6] transition-all"
+                className="pl-10 h-12 border-gray-200 focus:border-orange-300 focus:ring-orange-300 transition-all"
                 required
               />
             </div>
@@ -161,7 +161,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-10 pr-10 h-12 border-gray-200 focus:border-[#3b82f6] focus:ring-[#3b82f6] transition-all"
+                className="pl-10 pr-10 h-12 border-gray-200 focus:border-orange-300 focus:ring-orange-300 transition-all"
                 required
               />
               <button
@@ -180,7 +180,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               Select Role
             </Label>
             <Select value={role} onValueChange={(v) => setRole(v as UserRole)}>
-              <SelectTrigger className="h-12 border-gray-200 focus:border-[#3b82f6] focus:ring-[#3b82f6]">
+              <SelectTrigger className="h-12 border-gray-200 focus:border-orange-300 focus:ring-orange-300">
                 <div className="flex items-center gap-2">
                   <UserCircle className="w-5 h-5 text-gray-400" />
                   <SelectValue placeholder="Select your role" />
@@ -200,7 +200,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           <Button
             type="submit"
             disabled={isLoading}
-            className="w-full h-12 bg-gradient-to-r from-[#1e3a8a] to-[#3b82f6] hover:from-[#1e40af] hover:to-[#2563eb] text-white font-semibold rounded-lg transition-all duration-200 hover:shadow-lg hover:scale-[1.02] disabled:opacity-70"
+            className="w-full h-12 bg-gradient-to-r from-slate-800 to-orange-300 hover:from-slate-700 hover:to-orange-400 text-white font-semibold rounded-lg transition-all duration-200 hover:shadow-lg hover:scale-[1.02] disabled:opacity-70"
           >
             {isLoading ? (
               <div className="flex items-center gap-2">
@@ -241,7 +241,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         <div className="px-8 pb-6 text-center">
           <a 
             href="#" 
-            className="text-sm text-[#3b82f6] hover:text-[#1e40af] transition-colors"
+            className="text-sm text-orange-300 hover:text-orange-400 transition-colors"
           >
             Forgot your password?
           </a>

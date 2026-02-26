@@ -51,7 +51,7 @@ function TimelineItem({ status, title, description, timestamp, user, isLast, isA
       <div className="flex flex-col items-center">
         <div className={cn(
           'w-10 h-10 rounded-full flex items-center justify-center',
-          isActive ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'
+          isActive ? 'bg-orange-300 text-slate-800' : 'bg-gray-100 text-gray-500'
         )}>
           <Icon className="w-5 h-5" />
         </div>
@@ -59,8 +59,8 @@ function TimelineItem({ status, title, description, timestamp, user, isLast, isA
       </div>
       <div className={cn("pb-8", isLast && "pb-0")}>
         <div className="flex items-center gap-2">
-          <h4 className={cn("font-semibold", isActive && "text-blue-600")}>{title}</h4>
-          {isActive && <Badge className="bg-blue-100 text-blue-700">Current</Badge>}
+          <h4 className={cn("font-semibold", isActive && "text-orange-600")}>{title}</h4>
+          {isActive && <Badge className="bg-orange-100 text-orange-700">Current</Badge>}
         </div>
         <p className="text-sm text-gray-500 mt-1">{description}</p>
         <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">

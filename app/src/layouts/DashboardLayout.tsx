@@ -123,7 +123,7 @@ export function DashboardLayout({ children, navigate, currentRoute }: DashboardL
       {/* Sidebar - Desktop */}
       <aside
         className={cn(
-          'fixed left-0 top-0 h-full bg-[#1e3a8a] text-white transition-all duration-300 z-40 hidden lg:block',
+          'fixed left-0 top-0 h-full bg-slate-800 text-white transition-all duration-300 z-40 hidden lg:block',
           sidebarOpen ? 'w-72' : 'w-20'
         )}
       >
@@ -131,17 +131,17 @@ export function DashboardLayout({ children, navigate, currentRoute }: DashboardL
         <div className="h-20 flex items-center justify-center border-b border-white/10">
           {sidebarOpen ? (
             <div className="flex items-center gap-3 px-6">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <FileText className="w-6 h-6" />
+              <div className="w-10 h-10 bg-orange-300 rounded-lg flex items-center justify-center">
+                <FileText className="w-6 h-6 text-slate-800" />
               </div>
               <div>
-                <h1 className="font-bold text-lg leading-tight">Shipment</h1>
-                <p className="text-xs text-blue-200">Workflow System</p>
+                <h1 className="font-bold text-lg leading-tight">DOW ELEF</h1>
+                <p className="text-xs text-orange-200">Management System</p>
               </div>
             </div>
           ) : (
-            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-              <FileText className="w-6 h-6" />
+            <div className="w-10 h-10 bg-orange-300 rounded-lg flex items-center justify-center">
+              <FileText className="w-6 h-6 text-slate-800" />
             </div>
           )}
         </div>
@@ -155,7 +155,7 @@ export function DashboardLayout({ children, navigate, currentRoute }: DashboardL
               className={cn(
                 'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-left',
                 currentRoute === item.href
-                  ? 'bg-[#3b82f6] border-l-4 border-white'
+                  ? 'bg-orange-300 text-slate-800 border-l-4 border-orange-500'
                   : 'hover:bg-white/10 border-l-4 border-transparent'
               )}
             >
@@ -185,18 +185,18 @@ export function DashboardLayout({ children, navigate, currentRoute }: DashboardL
       {/* Sidebar - Mobile */}
       <aside
         className={cn(
-          'fixed left-0 top-0 h-full bg-[#1e3a8a] text-white transition-all duration-300 z-50 lg:hidden',
+          'fixed left-0 top-0 h-full bg-slate-800 text-white transition-all duration-300 z-50 lg:hidden',
           mobileMenuOpen ? 'w-72 translate-x-0' : 'w-72 -translate-x-full'
         )}
       >
         <div className="h-20 flex items-center justify-between px-6 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-              <FileText className="w-6 h-6" />
+            <div className="w-10 h-10 bg-orange-300 rounded-lg flex items-center justify-center">
+              <FileText className="w-6 h-6 text-slate-800" />
             </div>
             <div>
-              <h1 className="font-bold text-lg leading-tight">Shipment</h1>
-              <p className="text-xs text-blue-200">Workflow System</p>
+              <h1 className="font-bold text-lg leading-tight">DOW ELEF</h1>
+              <p className="text-xs text-orange-200">Management System</p>
             </div>
           </div>
           <button onClick={() => setMobileMenuOpen(false)}>
@@ -215,7 +215,7 @@ export function DashboardLayout({ children, navigate, currentRoute }: DashboardL
               className={cn(
                 'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-left',
                 currentRoute === item.href
-                  ? 'bg-[#3b82f6] border-l-4 border-white'
+                  ? 'bg-orange-300 text-slate-800 border-l-4 border-orange-500'
                   : 'hover:bg-white/10 border-l-4 border-transparent'
               )}
             >
@@ -296,7 +296,7 @@ export function DashboardLayout({ children, navigate, currentRoute }: DashboardL
                       <div className="flex items-center gap-2 w-full">
                         <span className={cn(
                           'w-2 h-2 rounded-full',
-                          notification.type === 'info' && 'bg-blue-500',
+                          notification.type === 'info' && 'bg-orange-300',
                           notification.type === 'success' && 'bg-green-500',
                           notification.type === 'warning' && 'bg-amber-500',
                           notification.type === 'error' && 'bg-red-500',
@@ -322,8 +322,8 @@ export function DashboardLayout({ children, navigate, currentRoute }: DashboardL
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-3 hover:bg-gray-100 rounded-lg p-2 transition-colors">
-                  <Avatar className="h-8 w-8 bg-[#3b82f6]">
-                    <AvatarFallback className="bg-[#3b82f6] text-white text-sm">
+                  <Avatar className="h-8 w-8 bg-orange-300">
+                    <AvatarFallback className="bg-orange-300 text-slate-800 text-sm">
                       {user ? getInitials(user.name) : 'U'}
                     </AvatarFallback>
                   </Avatar>
