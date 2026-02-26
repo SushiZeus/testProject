@@ -312,44 +312,56 @@ export function PettyCashPage({ }: PettyCashPageProps) {
         )}
       </div>
 
+      {/* Department-Specific Approval Stages */}
       <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-100">
         <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                  1
-                </div>
-                <div>
-                  <p className="text-sm font-medium">HR Manager</p>
-                  <p className="text-xs text-gray-500">Documentation Officer Requests</p>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-gray-400" />
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                  2
-                </div>
-                <div>
-                  <p className="text-sm font-medium">COO</p>
-                  <p className="text-xs text-gray-500">Final Approval</p>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-gray-400" />
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                  3
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Finance</p>
-                  <p className="text-xs text-gray-500">Payment</p>
-                </div>
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-gray-700">Approval Stages by Department</h3>
+            
+            {/* Documentation Department */}
+            <div className="border-l-4 border-purple-400 pl-4">
+              <p className="text-sm font-medium text-purple-700">Documentation Department</p>
+              <div className="flex items-center gap-2 mt-2">
+                <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">1</div>
+                <span className="text-xs text-gray-600">HR Manager</span>
+                <ArrowRight className="w-3 h-3 text-gray-400" />
+                <div className="w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center text-white text-xs font-bold">2</div>
+                <span className="text-xs text-gray-600">COO</span>
+                <ArrowRight className="w-3 h-3 text-gray-400" />
+                <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold">3</div>
+                <span className="text-xs text-gray-600">Finance → Cashier</span>
               </div>
             </div>
-          </div>
-          <div className="mt-3 text-xs text-gray-600">
-            <p><strong>Note:</strong> Documentation Officer requests: HR → COO → Finance (skips Operations Manager)</p>
-            <p><strong>Other users:</strong> Operations Manager → COO → Finance</p>
+
+            {/* Operations Department */}
+            <div className="border-l-4 border-amber-400 pl-4">
+              <p className="text-sm font-medium text-amber-700">Operations Department</p>
+              <div className="flex items-center gap-2 mt-2">
+                <div className="w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center text-white text-xs font-bold">1</div>
+                <span className="text-xs text-gray-600">Operations Manager</span>
+                <ArrowRight className="w-3 h-3 text-gray-400" />
+                <div className="w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center text-white text-xs font-bold">2</div>
+                <span className="text-xs text-gray-600">COO</span>
+                <ArrowRight className="w-3 h-3 text-gray-400" />
+                <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold">3</div>
+                <span className="text-xs text-gray-600">Finance → Cashier</span>
+              </div>
+            </div>
+
+            {/* Declaration Department */}
+            <div className="border-l-4 border-blue-400 pl-4">
+              <p className="text-sm font-medium text-blue-700">Declaration Department</p>
+              <div className="flex items-center gap-2 mt-2">
+                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">1</div>
+                <span className="text-xs text-gray-600">Operations Manager</span>
+                <ArrowRight className="w-3 h-3 text-gray-400" />
+                <div className="w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center text-white text-xs font-bold">2</div>
+                <span className="text-xs text-gray-600">COO</span>
+                <ArrowRight className="w-3 h-3 text-gray-400" />
+                <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold">3</div>
+                <span className="text-xs text-gray-600">Finance → Cashier</span>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
