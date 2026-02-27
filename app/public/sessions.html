@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOW ELEF - Active Sessions</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 1rem;
+            font-size: 2.5rem;
+        }
+        .subtitle {
+            color: rgba(255,255,255,0.9);
+            text-align: center;
+            margin-bottom: 3rem;
+            font-size: 1.1rem;
+        }
+        .sessions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .session-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+        .session-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+        .session-number {
+            display: inline-block;
+            background: linear-gradient(135deg, #3b82f6, #1e3a8a);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        .session-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1e3a8a;
+            margin-bottom: 0.5rem;
+        }
+        .session-user {
+            color: #64748b;
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+        .session-role {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+        .session-link {
+            display: inline-block;
+            background: #3b82f6;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background 0.3s;
+            width: 100%;
+            text-align: center;
+        }
+        .session-link:hover {
+            background: #2563eb;
+        }
+        .status-badge {
+            display: inline-block;
+            background: #10b981;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        .info-box {
+            background: rgba(255,255,255,0.95);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+        .info-box h2 {
+            color: #1e3a8a;
+            margin-bottom: 1rem;
+        }
+        .info-box p {
+            color: #64748b;
+            line-height: 1.6;
+            margin-bottom: 0.5rem;
+        }
+        .credentials {
+            background: #f1f5f9;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+        .credentials code {
+            background: #e2e8f0;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 DOW ELEF Management System</h1>
+        <p class="subtitle">5 Active Development Sessions - Test Multi-User Workflows</p>
+        
+        <div class="sessions-grid">
+            <!-- Session 1 -->
+            <div class="session-card" onclick="window.open('http://localhost:5173', '_blank')">
+                <div class="session-number">1</div>
+                <span class="status-badge">✓ Running</span>
+                <h3 class="session-title">Documentation Officer</h3>
+                <p class="session-user">👤 John Smith</p>
+                <p class="session-role">📝 Create petty cash requests</p>
+                <a href="http://localhost:5173" target="_blank" class="session-link" onclick="event.stopPropagation()">
+                    Open Session →
+                </a>
+            </div>
+
+            <!-- Session 2 -->
+            <div class="session-card" onclick="window.open('http://localhost:5174', '_blank')">
+                <div class="session-number">2</div>
+                <span class="status-badge">✓ Running</span>
+                <h3 class="session-title">HR Manager</h3>
+                <p class="session-user">👤 Daniel Clark</p>
+                <p class="session-role">✅ Approve HR requests</p>
+                <a href="http://localhost:5174" target="_blank" class="session-link" onclick="event.stopPropagation()">
+                    Open Session →
+                </a>
+            </div>
+
+            <!-- Session 3 -->
+            <div class="session-card" onclick="window.open('http://localhost:5175', '_blank')">
+                <div class="session-number">3</div>
+                <span class="status-badge">✓ Running</span>
+                <h3 class="session-title">Operations Manager</h3>
+                <p class="session-user">👤 James Wilson</p>
+                <p class="session-role">✅ Approve operations requests</p>
+                <a href="http://localhost:5175" target="_blank" class="session-link" onclick="event.stopPropagation()">
+                    Open Session →
+                </a>
+            </div>
+
+            <!-- Session 4 -->
+            <div class="session-card" onclick="window.open('http://localhost:5176', '_blank')">
+                <div class="session-number">4</div>
+                <span class="status-badge">✓ Running</span>
+                <h3 class="session-title">COO</h3>
+                <p class="session-user">👤 Robert Taylor</p>
+                <p class="session-role">👑 Final approval authority</p>
+                <a href="http://localhost:5176" target="_blank" class="session-link" onclick="event.stopPropagation()">
+                    Open Session →
+                </a>
+            </div>
+
+            <!-- Session 5 -->
+            <div class="session-card" onclick="window.open('http://localhost:5177', '_blank')">
+                <div class="session-number">5</div>
+                <span class="status-badge">✓ Running</span>
+                <h3 class="session-title">Finance Manager</h3>
+                <p class="session-user">👤 Lisa Anderson</p>
+                <p class="session-role">💰 Process payments</p>
+                <a href="http://localhost:5177" target="_blank" class="session-link" onclick="event.stopPropagation()">
+                    Open Session →
+                </a>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <h2>⚠️ Important: Data Isolation</h2>
+            <p style="color: #dc2626; font-weight: 600;">Each port has SEPARATE localStorage - data is NOT shared between ports!</p>
+            <p>This means a request created on port 5173 won't appear on port 5174.</p>
+            
+            <h2 style="margin-top: 2rem;">✅ For Shared Data Testing</h2>
+            <p><strong>Use ONE port with multiple windows instead:</strong></p>
+            <ol style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                <li>Open http://localhost:5173 in 5 different browser windows</li>
+                <li>Log in as different users in each window</li>
+                <li>All windows will share the same data!</li>
+            </ol>
+            
+            <div style="background: #fef3c7; padding: 1rem; border-radius: 0.5rem; margin-top: 1rem; border-left: 4px solid #f59e0b;">
+                <p style="color: #92400e; margin: 0;"><strong>💡 Tip:</strong> For testing workflows, close these 5 ports and use only port 5173 with multiple windows.</p>
+            </div>
+
+            <h2 style="margin-top: 2rem;">🔐 Login Credentials</h2>
+            <p><strong>All users have the same password:</strong> <code>password123</code></p>
+            
+            <div class="credentials">
+                <p><strong>Session 1:</strong> <code>documentation_officer@company.com</code></p>
+                <p><strong>Session 2:</strong> <code>hr_manager@company.com</code></p>
+                <p><strong>Session 3:</strong> <code>operations_manager@company.com</code></p>
+                <p><strong>Session 4:</strong> <code>coo@company.com</code></p>
+                <p><strong>Session 5:</strong> <code>finance_manager@company.com</code></p>
+            </div>
+
+            <h2 style="margin-top: 2rem;">💡 Testing Tips</h2>
+            <p>✅ Each session has isolated localStorage (separate user data)</p>
+            <p>✅ Open each link in a different browser window</p>
+            <p>✅ Use incognito/private windows for better isolation</p>
+            <p>✅ Test the complete approval workflow across sessions</p>
+            <p>✅ Watch for notifications in each session</p>
+
+            <h2 style="margin-top: 2rem;">🔄 Test Workflow</h2>
+            <p><strong>1.</strong> Session 1 → Create petty cash request</p>
+            <p><strong>2.</strong> Session 2 → HR Manager approves</p>
+            <p><strong>3.</strong> Session 4 → COO gives final approval</p>
+            <p><strong>4.</strong> Session 5 → Finance Manager processes payment</p>
+            <p><strong>5.</strong> Session 5 → Switch to Cashier and mark as paid</p>
+        </div>
+    </div>
+</body>
+</html>

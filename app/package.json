@@ -5,6 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:5173": "vite --port 5173 --strictPort",
+    "dev:5174": "vite --port 5174 --strictPort",
+    "dev:5175": "vite --port 5175 --strictPort",
+    "dev:5176": "vite --port 5176 --strictPort",
+    "dev:5177": "vite --port 5177 --strictPort",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -54,6 +59,7 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
     "vaul": "^1.1.2",
+    "xlsx": "^0.18.5",
     "zod": "^4.3.5"
   },
   "devDependencies": {

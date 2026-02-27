@@ -71,33 +71,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     }
   };
 
-  // Quick login for demo - maps roles to their corresponding mock user emails
-  const roleToEmailMap: Record<UserRole, string> = {
-    'documentation_officer': 'documentation_officer@company.com',
-    'declaration_manager': 'declaration_manager@company.com',
-    'declarant': 'declarant@company.com',
-    'operations_manager': 'operations_manager@company.com',
-    'operation_clerk': 'operation_clerk@company.com',
-    'permits_clerk': 'permits_clerk@company.com',
-    'shipping_line_clerk': 'shipping_line_clerk@company.com',
-    'delivery_clerk': 'delivery_clerk@company.com',
-    'transport_manager': 'transport_manager@company.com',
-    'finance_manager': 'finance_manager@company.com',
-    'cashier': 'cashier@company.com',
-    'commercial_manager': 'commercial_manager@company.com',
-    'coo': 'coo@company.com',
-    'managing_director': 'managing_director@company.com',
-    'hr_manager': 'hr_manager@company.com',
-    'driver': 'driver@company.com',
-    'contact_person': 'contact_person@company.com',
-    'administrator': 'administrator@company.com',
-  };
 
-  const handleDemoLogin = (demoRole: UserRole) => {
-    setEmail(roleToEmailMap[demoRole]);
-    setPassword('password');
-    setRole(demoRole);
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 p-4">
@@ -212,29 +186,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             )}
           </Button>
 
-          {/* Demo Login Buttons */}
-          <div className="pt-4 border-t border-gray-100">
-            <p className="text-xs text-gray-500 text-center mb-3">
-              Quick Demo Login
-            </p>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {[
-                { role: 'documentation_officer' as const, label: 'Doc' },
-                { role: 'declaration_manager' as const, label: 'Decl Mgr' },
-                { role: 'operations_manager' as const, label: 'Ops Mgr' },
-                { role: 'administrator' as const, label: 'Admin' },
-              ].map((demo) => (
-                <button
-                  key={demo.role}
-                  type="button"
-                  onClick={() => handleDemoLogin(demo.role)}
-                  className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full transition-colors"
-                >
-                  {demo.label}
-                </button>
-              ))}
-            </div>
-          </div>
+
         </form>
 
         {/* Footer */}

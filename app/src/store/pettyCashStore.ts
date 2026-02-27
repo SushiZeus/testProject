@@ -18,6 +18,8 @@ interface PettyCashState {
     data?: {
       managerId?: string;
       managerComment?: string;
+      declarationManagerId?: string;
+      declarationManagerComment?: string;
       cooId?: string;
       cooComment?: string;
       financeManagerId?: string;
@@ -28,10 +30,12 @@ interface PettyCashState {
       hrComment?: string;
     }
   ) => void;
+  deleteRequest: (requestId: string) => void;
   getRequestById: (id: string) => PettyCashRequest | undefined;
   getRequestsByFile: (fileId: string) => PettyCashRequest[];
   getRequestsByRequester: (requesterId: string) => PettyCashRequest[];
   getPendingApprovalsForManager: (managerId: string) => PettyCashRequest[];
+  getPendingApprovalsForDeclarationManager: () => PettyCashRequest[];
   getPendingApprovalsForHR: () => PettyCashRequest[];
   getPendingApprovalsForCOO: () => PettyCashRequest[];
   getPendingPayments: () => PettyCashRequest[];
@@ -111,7 +115,9 @@ export const usePettyCashStore = (): PettyCashState => {
       return state.requests.map((r: PettyCashRequest) => ({
         ...r,
         requester: getUserById(r.requestedBy),
+        hrManager: r.hrManagerId ? getUserById(r.hrManagerId) : undefined,
         manager: r.managerId ? getUserById(r.managerId) : undefined,
+        declarationManager: r.declarationManagerId ? getUserById(r.declarationManagerId) : undefined,
         coo: r.cooId ? getUserById(r.cooId) : undefined,
         financeManager: r.financeManagerId ? getUserById(r.financeManagerId) : undefined,
         cashier: r.cashierId ? getUserById(r.cashierId) : undefined,
@@ -119,13 +125,31 @@ export const usePettyCashStore = (): PettyCashState => {
     },
 
     createRequest: (data) => {
-      // Determine initial status based on requester role
+      // Validate required fields
+      if (!data.description || data.description.trim().length === 0) {
+        throw new Error('Description is required');
+      }
+      if (!data.amount || data.amount <= 0) {
+        throw new Error('Amount must be greater than 0');
+      }
+      if (!data.currency || data.currency.trim().length === 0) {
+        throw new Error('Currency is required');
+      }
+
+      // Determine initial status based on requester role and department
       let initialStatus: PettyCashStatus = 'PENDING_MANAGER_APPROVAL';
       
-      // Documentation officer requests go to HR first
       const requester = getUserById(data.requestedBy);
-      if (requester?.role === 'documentation_officer') {
+      
+      if (requester?.role === 'coo') {
+        // COO requests go directly to finance manager (no approval needed)
+        initialStatus = 'COO_DIRECT_TO_FINANCE';
+      } else if (requester?.role === 'documentation_officer') {
+        // Documentation officer requests go to HR first
         initialStatus = 'PENDING_HR_APPROVAL';
+      } else if (requester?.role === 'declarant') {
+        // Declarant requests go to Declaration Manager first
+        initialStatus = 'PENDING_DECLARATION_MANAGER_APPROVAL';
       }
 
       const newRequest: PettyCashRequest = {
@@ -155,7 +179,9 @@ export const usePettyCashStore = (): PettyCashState => {
                 ...data,
                 status: newStatus,
                 updatedAt: new Date(),
+                ...(data.hrManagerId && { hrActionAt: new Date() }),
                 ...(data.managerId && { managerActionAt: new Date() }),
+                ...(data.declarationManagerId && { declarationManagerActionAt: new Date() }),
                 ...(data.cooId && { cooActionAt: new Date() }),
                 ...(data.financeManagerId && { financeActionAt: new Date() }),
                 ...(data.cashierId && { paidAt: new Date() }),
@@ -166,13 +192,23 @@ export const usePettyCashStore = (): PettyCashState => {
       notify();
     },
 
+    deleteRequest: (requestId) => {
+      state = {
+        ...state,
+        requests: state.requests.filter((r: PettyCashRequest) => r.id !== requestId),
+      };
+      notify();
+    },
+
     getRequestById: (id) => {
       const request = state.requests.find((r: PettyCashRequest) => r.id === id);
       if (request) {
         return {
           ...request,
           requester: getUserById(request.requestedBy),
+          hrManager: request.hrManagerId ? getUserById(request.hrManagerId) : undefined,
           manager: request.managerId ? getUserById(request.managerId) : undefined,
+          declarationManager: request.declarationManagerId ? getUserById(request.declarationManagerId) : undefined,
           coo: request.cooId ? getUserById(request.cooId) : undefined,
           financeManager: request.financeManagerId ? getUserById(request.financeManagerId) : undefined,
           cashier: request.cashierId ? getUserById(request.cashierId) : undefined,
@@ -187,7 +223,9 @@ export const usePettyCashStore = (): PettyCashState => {
         .map((r: PettyCashRequest) => ({
           ...r,
           requester: getUserById(r.requestedBy),
+          hrManager: r.hrManagerId ? getUserById(r.hrManagerId) : undefined,
           manager: r.managerId ? getUserById(r.managerId) : undefined,
+          declarationManager: r.declarationManagerId ? getUserById(r.declarationManagerId) : undefined,
           coo: r.cooId ? getUserById(r.cooId) : undefined,
           financeManager: r.financeManagerId ? getUserById(r.financeManagerId) : undefined,
           cashier: r.cashierId ? getUserById(r.cashierId) : undefined,
@@ -200,7 +238,9 @@ export const usePettyCashStore = (): PettyCashState => {
         .map((r: PettyCashRequest) => ({
           ...r,
           requester: getUserById(r.requestedBy),
+          hrManager: r.hrManagerId ? getUserById(r.hrManagerId) : undefined,
           manager: r.managerId ? getUserById(r.managerId) : undefined,
+          declarationManager: r.declarationManagerId ? getUserById(r.declarationManagerId) : undefined,
           coo: r.cooId ? getUserById(r.cooId) : undefined,
           financeManager: r.financeManagerId ? getUserById(r.financeManagerId) : undefined,
           cashier: r.cashierId ? getUserById(r.cashierId) : undefined,
@@ -213,7 +253,24 @@ export const usePettyCashStore = (): PettyCashState => {
         .map((r: PettyCashRequest) => ({
           ...r,
           requester: getUserById(r.requestedBy),
+          hrManager: r.hrManagerId ? getUserById(r.hrManagerId) : undefined,
           manager: r.managerId ? getUserById(r.managerId) : undefined,
+          declarationManager: r.declarationManagerId ? getUserById(r.declarationManagerId) : undefined,
+          coo: r.cooId ? getUserById(r.cooId) : undefined,
+          financeManager: r.financeManagerId ? getUserById(r.financeManagerId) : undefined,
+          cashier: r.cashierId ? getUserById(r.cashierId) : undefined,
+        }));
+    },
+
+    getPendingApprovalsForDeclarationManager: () => {
+      return state.requests
+        .filter((r: PettyCashRequest) => r.status === 'PENDING_DECLARATION_MANAGER_APPROVAL')
+        .map((r: PettyCashRequest) => ({
+          ...r,
+          requester: getUserById(r.requestedBy),
+          hrManager: r.hrManagerId ? getUserById(r.hrManagerId) : undefined,
+          manager: r.managerId ? getUserById(r.managerId) : undefined,
+          declarationManager: r.declarationManagerId ? getUserById(r.declarationManagerId) : undefined,
           coo: r.cooId ? getUserById(r.cooId) : undefined,
           financeManager: r.financeManagerId ? getUserById(r.financeManagerId) : undefined,
           cashier: r.cashierId ? getUserById(r.cashierId) : undefined,
@@ -226,7 +283,9 @@ export const usePettyCashStore = (): PettyCashState => {
         .map((r: PettyCashRequest) => ({
           ...r,
           requester: getUserById(r.requestedBy),
+          hrManager: r.hrManagerId ? getUserById(r.hrManagerId) : undefined,
           manager: r.managerId ? getUserById(r.managerId) : undefined,
+          declarationManager: r.declarationManagerId ? getUserById(r.declarationManagerId) : undefined,
           coo: r.cooId ? getUserById(r.cooId) : undefined,
           financeManager: r.financeManagerId ? getUserById(r.financeManagerId) : undefined,
           cashier: r.cashierId ? getUserById(r.cashierId) : undefined,
@@ -239,7 +298,9 @@ export const usePettyCashStore = (): PettyCashState => {
         .map((r: PettyCashRequest) => ({
           ...r,
           requester: getUserById(r.requestedBy),
+          hrManager: r.hrManagerId ? getUserById(r.hrManagerId) : undefined,
           manager: r.managerId ? getUserById(r.managerId) : undefined,
+          declarationManager: r.declarationManagerId ? getUserById(r.declarationManagerId) : undefined,
           coo: r.cooId ? getUserById(r.cooId) : undefined,
           financeManager: r.financeManagerId ? getUserById(r.financeManagerId) : undefined,
           cashier: r.cashierId ? getUserById(r.cashierId) : undefined,
@@ -252,7 +313,9 @@ export const usePettyCashStore = (): PettyCashState => {
         .map((r: PettyCashRequest) => ({
           ...r,
           requester: getUserById(r.requestedBy),
+          hrManager: r.hrManagerId ? getUserById(r.hrManagerId) : undefined,
           manager: r.managerId ? getUserById(r.managerId) : undefined,
+          declarationManager: r.declarationManagerId ? getUserById(r.declarationManagerId) : undefined,
           coo: r.cooId ? getUserById(r.cooId) : undefined,
           financeManager: r.financeManagerId ? getUserById(r.financeManagerId) : undefined,
           cashier: r.cashierId ? getUserById(r.cashierId) : undefined,

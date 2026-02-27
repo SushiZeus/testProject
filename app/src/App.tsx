@@ -8,8 +8,10 @@ import { DeclarationPage } from '@/pages/DeclarationPage';
 import { OperationsPage } from '@/pages/OperationsPage';
 import { PettyCashPage } from '@/pages/PettyCashPage';
 import { DriverManagementPage } from '@/pages/DriverManagementPage';
+import { DriversPage } from '@/pages/DriversPage';
 import { ReportsPage } from '@/pages/ReportsPage';
 import { FileDetailPage } from '@/pages/FileDetailPage';
+import { PettyCashHistoryPage } from '@/pages/PettyCashHistoryPage';
 import { useAuthStore } from '@/store/authStore';
 
 export type AppRoute = 
@@ -20,8 +22,10 @@ export type AppRoute =
   | 'declaration'
   | 'operations'
   | 'petty-cash'
+  | 'petty-cash/history'
   | 'reports'
-  | 'drivers';
+  | 'drivers'
+  | 'drivers-management';
 
 function App() {
   const { isAuthenticated } = useAuthStore();
@@ -58,9 +62,13 @@ function App() {
         return <OperationsPage navigate={navigate} />;
       case 'petty-cash':
         return <PettyCashPage navigate={navigate} />;
+      case 'petty-cash/history':
+        return <PettyCashHistoryPage navigate={navigate} />;
       case 'reports':
         return <ReportsPage navigate={navigate} />;
       case 'drivers':
+        return <DriversPage navigate={navigate} />;
+      case 'drivers-management':
         return <DriverManagementPage navigate={navigate} />;
       default:
         return <DashboardPage navigate={navigate} />;

@@ -54,6 +54,7 @@ interface WorkloadCardProps {
 }
 
 function WorkloadCard({ declarant, workload, onAssign }: WorkloadCardProps) {
+  const { canManipulateDeclarationModule } = useAuthStore();
   const capacity = 10;
   const utilization = (workload.totalAssigned / capacity) * 100;
 
@@ -108,8 +109,13 @@ function WorkloadCard({ declarant, workload, onAssign }: WorkloadCardProps) {
           </div>
         </div>
 
-        <Button onClick={onAssign} variant="outline" className="w-full mt-4">
-          Assign File
+        <Button 
+          onClick={onAssign} 
+          variant="outline" 
+          className="w-full mt-4"
+          disabled={!canManipulateDeclarationModule()}
+        >
+          {canManipulateDeclarationModule() ? 'Assign File' : 'View Only'}
         </Button>
       </CardContent>
     </Card>
@@ -121,7 +127,7 @@ interface DeclarationPageProps {
 }
 
 export function DeclarationPage({ navigate }: DeclarationPageProps) {
-  const { user, hasPermission } = useAuthStore();
+  const { user, hasPermission, isExecutive, canManipulateDeclarationModule } = useAuthStore();
   const { files, assignDeclarant, updateFileStatus, addDocument } = useFileStore();
   const { addNotification } = useNotificationStore();
   const { createRequest } = usePettyCashStore();
@@ -143,6 +149,8 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
   });
 
   const declarants = mockUsers.filter((u: User) => u.role === 'declarant');
+  const isUserExecutive = isExecutive();
+  const canManipulate = canManipulateDeclarationModule();
 
   const filteredFiles = files.filter((file: ShipmentFile) => {
     const matchesSearch = 
@@ -312,6 +320,7 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
     WAITING_FOR_DO_PAYMENT: 'bg-amber-100 text-amber-700',
     DELIVERY_ORDER_PAYMENTS_DONE: 'bg-green-100 text-green-700',
     DELIVERY_ORDER_READY: 'bg-green-100 text-green-700',
+    DELIVERY_ORDER_COLLECTED: 'bg-blue-100 text-blue-700',
     WAITING_FOR_PORT_CHARGES: 'bg-amber-100 text-amber-700',
     WAITING_FOR_PORT_PAYMENT: 'bg-amber-100 text-amber-700',
     PORT_CHARGES_PAID: 'bg-green-100 text-green-700',
@@ -412,7 +421,29 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
         )}
       </div>
 
-      {user?.role === 'declaration_manager' && (
+      {!canManipulate && user && (
+        <Card className="bg-gradient-to-r from-orange-50 to-blue-50 border-orange-200">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-orange-300 rounded-full flex items-center justify-center flex-shrink-0">
+                <UserCheck className="w-4 h-4 text-slate-800" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-800">
+                  {isUserExecutive ? 'Executive View' : 'View-Only Access'} - Declaration Department
+                </h3>
+                <p className="text-sm text-slate-600 mt-1">
+                  You have read-only access to view declaration statistics and file data. 
+                  Only the Declaration Manager can assign declarants, process declarations, and perform operational tasks. 
+                  You can view all files and add comments to file timelines.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {user?.role === 'declaration_manager' && canManipulate && (
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Declarant Workload</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -525,17 +556,17 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
                               <Button variant="ghost" size="sm" onClick={() => navigate('files/:id', { id: file.id })}>
                                 View
                               </Button>
-                              {user?.role === 'declaration_manager' && file.status === 'WAITING_FOR_DECLARATION' && (
+                              {canManipulate && user?.role === 'declaration_manager' && file.status === 'WAITING_FOR_DECLARATION' && (
                                 <Button size="sm" onClick={() => { setSelectedFile(file); setAssignDialogOpen(true); }}>
                                   Assign
                                 </Button>
                               )}
-                              {user?.role === 'declarant' && file.status === 'ASSIGNED_TO_DECLARANT' && (
+                              {canManipulate && user?.role === 'declarant' && file.status === 'ASSIGNED_TO_DECLARANT' && (
                                 <Button size="sm" onClick={() => { setSelectedFile(file); setAcknowledgeDialogOpen(true); }}>
                                   Acknowledge
                                 </Button>
                               )}
-                              {user?.role === 'declarant' && file.status === 'DECLARANT_ACKNOWLEDGED' && (
+                              {canManipulate && user?.role === 'declarant' && file.status === 'DECLARANT_ACKNOWLEDGED' && (
                                 <>
                                   <Button size="sm" variant="outline" onClick={() => { setSelectedFile(file); setUploadDialogOpen(true); }}>
                                     Upload Docs
@@ -550,6 +581,11 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
                                   <DollarSign className="w-3 h-3 mr-1" />
                                   Petty Cash
                                 </Button>
+                              )}
+                              {!canManipulate && (
+                                <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-700">
+                                  View Only
+                                </Badge>
                               )}
                             </div>
                           </td>

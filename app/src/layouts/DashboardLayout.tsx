@@ -81,7 +81,13 @@ const navItems: NavItem[] = [
     label: 'Drivers', 
     icon: Users, 
     href: 'drivers', 
-    roles: ['hr_manager', 'transport_manager', 'delivery_clerk', 'finance_manager', 'commercial_manager', 'coo', 'managing_director', 'administrator'] 
+    roles: ['hr_manager', 'commercial_manager', 'coo', 'managing_director', 'administrator'] 
+  },
+  { 
+    label: 'Driver Management', 
+    icon: Truck, 
+    href: 'drivers-management', 
+    roles: ['transport_manager', 'delivery_clerk', 'administrator'] 
   },
 ];
 

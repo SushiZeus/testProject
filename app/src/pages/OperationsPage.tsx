@@ -50,6 +50,7 @@ interface WorkloadCardProps {
 }
 
 function WorkloadCard({ clerk, workload, onAssign }: WorkloadCardProps) {
+  const { canManipulateOperationsModule } = useAuthStore();
   const capacity = 15; // Operation clerks can handle more files than declarants
   const utilization = (workload.totalAssigned / capacity) * 100;
 
@@ -104,8 +105,13 @@ function WorkloadCard({ clerk, workload, onAssign }: WorkloadCardProps) {
           </div>
         </div>
 
-        <Button onClick={onAssign} variant="outline" className="w-full mt-4">
-          Assign File
+        <Button 
+          onClick={onAssign} 
+          variant="outline" 
+          className="w-full mt-4"
+          disabled={!canManipulateOperationsModule()}
+        >
+          {canManipulateOperationsModule() ? 'Assign File' : 'View Only'}
         </Button>
       </CardContent>
     </Card>
@@ -117,7 +123,7 @@ interface OperationsPageProps {
 }
 
 export function OperationsPage({ navigate }: OperationsPageProps) {
-  const { user, hasPermission } = useAuthStore();
+  const { user, hasPermission, isExecutive, canManipulateOperationsModule } = useAuthStore();
   const { files, assignOperationClerk } = useFileStore();
   const { createRequest } = usePettyCashStore();
   const { addNotification } = useNotificationStore();
@@ -136,6 +142,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
   });
 
   const operationClerks = mockUsers.filter((u: User) => u.role === 'operation_clerk');
+  const isUserExecutive = isExecutive();
+  const canManipulate = canManipulateOperationsModule();
 
   const operationFiles = files.filter((f: ShipmentFile) => 
     f.status === 'READY_FOR_OPERATIONS' ||
@@ -252,6 +260,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     WAITING_FOR_PORT_CHARGES: 'bg-amber-100 text-amber-700',
     WAITING_FOR_PORT_PAYMENT: 'bg-amber-100 text-amber-700',
     PORT_CHARGES_PAID: 'bg-green-100 text-green-700',
+    DELIVERY_ORDER_COLLECTED: 'bg-blue-100 text-blue-700',
     WAITING_FOR_PAYMENTS: 'bg-amber-100 text-amber-700',
     WAITING_FOR_SWISSPORT_PAYMENTS: 'bg-amber-100 text-amber-700',
     SWISSPORT_CHARGES_PAID: 'bg-green-100 text-green-700',
@@ -353,7 +362,29 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
         )}
       </div>
 
-      {user?.role === 'operations_manager' && (
+      {!canManipulate && user && (
+        <Card className="bg-gradient-to-r from-orange-50 to-blue-50 border-orange-200">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-orange-300 rounded-full flex items-center justify-center flex-shrink-0">
+                <Package className="w-4 h-4 text-slate-800" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-800">
+                  {isUserExecutive ? 'Executive View' : 'View-Only Access'} - Operations Department
+                </h3>
+                <p className="text-sm text-slate-600 mt-1">
+                  You have read-only access to view operations statistics and file data. 
+                  Only the Operations Manager can assign operation clerks, process operations, and perform operational tasks. 
+                  You can view all files and add comments to file timelines.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {user?.role === 'operations_manager' && canManipulate && (
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Operation Clerk Workload</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -449,16 +480,21 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                               <Button variant="ghost" size="sm" onClick={() => navigate('files/:id', { id: file.id })}>
                                 View
                               </Button>
-                              {user?.role === 'operations_manager' && file.status === 'READY_FOR_OPERATIONS' && (
+                              {canManipulate && user?.role === 'operations_manager' && file.status === 'READY_FOR_OPERATIONS' && (
                                 <Button size="sm" onClick={() => { setSelectedFile(file); setAssignDialogOpen(true); }}>
                                   Assign
                                 </Button>
                               )}
-                              {(user?.role === 'operations_manager' || user?.role === 'operation_clerk') && 
+                              {canManipulate && (user?.role === 'operations_manager' || user?.role === 'operation_clerk') && 
                                file.status === 'READY_FOR_OPERATIONS' && (
                                 <Button size="sm" onClick={() => { setSelectedFile(file); setProcessDialogOpen(true); }}>
                                   Accept
                                 </Button>
+                              )}
+                              {!canManipulate && (
+                                <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-700">
+                                  View Only
+                                </Badge>
                               )}
                             </div>
                           </td>

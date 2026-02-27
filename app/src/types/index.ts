@@ -56,6 +56,7 @@ export type FileStatus =
   | 'WAITING_FOR_DO_PAYMENT'
   | 'DELIVERY_ORDER_PAYMENTS_DONE'
   | 'DELIVERY_ORDER_READY'
+  | 'DELIVERY_ORDER_COLLECTED'
   | 'WAITING_FOR_PORT_CHARGES'
   | 'WAITING_FOR_PORT_PAYMENT'
   | 'PORT_CHARGES_PAID'
@@ -76,10 +77,13 @@ export type FileStatus =
 export type PettyCashStatus =
   | 'PENDING_HR_APPROVAL'
   | 'PENDING_MANAGER_APPROVAL'
+  | 'PENDING_DECLARATION_MANAGER_APPROVAL'
   | 'PENDING_COO_APPROVAL'
   | 'APPROVED_BY_COO'
+  | 'COO_DIRECT_TO_FINANCE'
   | 'REJECTED_BY_HR'
   | 'REJECTED_BY_MANAGER'
+  | 'REJECTED_BY_DECLARATION_MANAGER'
   | 'REJECTED_BY_COO'
   | 'PENDING_FINANCE'
   | 'PENDING_PAYMENT'
@@ -226,10 +230,20 @@ export interface PettyCashRequest {
   status: PettyCashStatus;
   
   // Approval chain
+  hrManagerId?: string;
+  hrManager?: User;
+  hrComment?: string;
+  hrActionAt?: Date;
+  
   managerId?: string;
   manager?: User;
   managerComment?: string;
   managerActionAt?: Date;
+  
+  declarationManagerId?: string;
+  declarationManager?: User;
+  declarationManagerComment?: string;
+  declarationManagerActionAt?: Date;
   
   cooId?: string;
   coo?: User;

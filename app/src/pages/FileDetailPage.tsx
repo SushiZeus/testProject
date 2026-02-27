@@ -104,7 +104,7 @@ interface FileDetailPageProps {
 }
 
 export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
-  const { user } = useAuthStore();
+  const { user, isExecutive } = useAuthStore();
   const { getFileById, getActivityLogs, addComment } = useFileStore();
 
   const [comment, setComment] = useState('');
@@ -112,6 +112,8 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
 
   const file = fileId ? getFileById(fileId) : null;
   const activityLogs = fileId ? getActivityLogs(fileId) : [];
+
+  const isUserExecutive = isExecutive();
 
   if (!file) {
     return (
@@ -144,6 +146,7 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
     WAITING_FOR_DO_PAYMENT: 'bg-amber-100 text-amber-700',
     DELIVERY_ORDER_PAYMENTS_DONE: 'bg-green-100 text-green-700',
     DELIVERY_ORDER_READY: 'bg-green-100 text-green-700',
+    DELIVERY_ORDER_COLLECTED: 'bg-blue-100 text-blue-700',
     WAITING_FOR_PORT_CHARGES: 'bg-amber-100 text-amber-700',
     WAITING_FOR_PORT_PAYMENT: 'bg-amber-100 text-amber-700',
     PORT_CHARGES_PAID: 'bg-green-100 text-green-700',
@@ -229,6 +232,26 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
           </div>
         </CardContent>
       </Card>
+
+      {isUserExecutive && (
+        <Card className="bg-gradient-to-r from-orange-50 to-blue-50 border-orange-200">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-orange-300 rounded-full flex items-center justify-center flex-shrink-0">
+                <UserIcon className="w-4 h-4 text-slate-800" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-800">Executive View Mode</h3>
+                <p className="text-sm text-slate-600 mt-1">
+                  You have read-only access to view file statistics and data from all departments. 
+                  You can add comments to the timeline but cannot perform operational actions like 
+                  assigning staff, uploading documents, or changing file status.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">

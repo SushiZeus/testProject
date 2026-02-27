@@ -93,6 +93,7 @@ function RecentFileCard({ file, onClick }: RecentFileCardProps) {
     WAITING_FOR_DO_PAYMENT: 'bg-amber-100 text-amber-700',
     DELIVERY_ORDER_PAYMENTS_DONE: 'bg-green-100 text-green-700',
     DELIVERY_ORDER_READY: 'bg-green-100 text-green-700',
+    DELIVERY_ORDER_COLLECTED: 'bg-blue-100 text-blue-700',
     WAITING_FOR_PORT_CHARGES: 'bg-amber-100 text-amber-700',
     WAITING_FOR_PORT_PAYMENT: 'bg-amber-100 text-amber-700',
     PORT_CHARGES_PAID: 'bg-green-100 text-green-700',

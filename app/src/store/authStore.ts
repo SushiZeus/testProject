@@ -8,6 +8,12 @@ interface AuthState {
   login: (email: string, password: string, role: UserRole) => Promise<boolean>;
   logout: () => void;
   hasPermission: (action: string) => boolean;
+  isExecutive: () => boolean;
+  canPerformOperationalActions: () => boolean;
+  canManipulateDeclarationModule: () => boolean;
+  canManipulateOperationsModule: () => boolean;
+  canManipulateDriversModule: () => boolean;
+  canViewDriversModule: () => boolean;
 }
 
 const rolePermissions: Record<UserRole, string[]> = {
@@ -15,26 +21,42 @@ const rolePermissions: Record<UserRole, string[]> = {
   documentation_officer: ['create_file', 'view_own_files', 'create_petty_cash_request'],
   declaration_manager: ['assign_declarant', 'view_department_files', 'view_all_declarations', 'create_petty_cash_request'],
   declarant: ['process_declaration', 'view_assigned_files', 'create_petty_cash_request'],
-  operations_manager: ['assign_operation_clerk', 'approve_petty_cash_manager', 'view_operations'],
+  operations_manager: ['assign_operation_clerk', 'approve_petty_cash_manager', 'view_operations', 'create_petty_cash_request'],
   operation_clerk: ['process_operations', 'upload_verification_photos', 'create_petty_cash_request'],
-  permits_clerk: ['process_permits', 'create_permit_request', 'upload_permit_documents'],
+  permits_clerk: ['process_permits', 'create_permit_request', 'upload_permit_documents', 'create_petty_cash_request'],
   shipping_line_clerk: ['process_delivery_order', 'upload_do_documents', 'create_petty_cash_request'],
-  delivery_clerk: ['process_delivery', 'request_driver'],
-  transport_manager: ['assign_big_truck_driver', 'manage_big_truck_drivers', 'view_driver_reports'],
-  driver: ['view_assigned_jobs', 'update_job_status'],
-  contact_person: ['view_client_files', 'update_payment_status', 'select_payment_option'],
+  delivery_clerk: ['process_delivery', 'request_driver', 'create_petty_cash_request'],
+  transport_manager: ['assign_big_truck_driver', 'manage_big_truck_drivers', 'view_driver_reports', 'create_petty_cash_request'],
+  driver: ['view_assigned_jobs', 'update_job_status', 'create_petty_cash_request'],
+  contact_person: ['view_client_files', 'update_payment_status', 'select_payment_option', 'create_petty_cash_request'],
   
   // Finance Department - Limited to Finance + Full Access Roles
-  finance_manager: ['process_finance', 'view_financial_reports', 'view_accounts_department', 'view_all_modules', 'approve_petty_cash_finance'],
-  cashier: ['process_payments', 'view_pending_payments'],
+  finance_manager: [
+    'process_finance', 'view_financial_reports', 'view_accounts_department', 
+    'approve_petty_cash_finance', 'executive_view_all_departments', 'view_all_statistics',
+    'add_file_comments', 'view_all_files_readonly', 'create_petty_cash_request'
+  ],
+  cashier: ['process_payments', 'view_pending_payments', 'create_petty_cash_request'],
   
   // HR Department - Limited to HR + Full Access Roles  
-  hr_manager: ['assign_small_truck_driver', 'manage_small_truck_drivers', 'view_driver_reports', 'approve_petty_cash_hr', 'view_hr_department'],
+  hr_manager: ['assign_small_truck_driver', 'manage_small_truck_drivers', 'view_driver_reports', 'approve_petty_cash_hr', 'view_hr_department', 'create_petty_cash_request'],
   
-  // Senior Management - Full System Access
-  commercial_manager: ['view_all_modules', 'view_accounts_department', 'view_hr_department', 'view_all_files', 'view_reports', 'approve_petty_cash_commercial'],
-  coo: ['view_all_modules', 'view_accounts_department', 'view_hr_department', 'approve_petty_cash_coo', 'view_all_files', 'view_reports', 'manage_all_departments'],
-  managing_director: ['view_all_modules', 'view_accounts_department', 'view_hr_department', 'view_all_files', 'view_reports', 'manage_all_departments', 'executive_access'],
+  // Senior Management - Executive Access (View Only + Comments)
+  commercial_manager: [
+    'executive_view_all_departments', 'view_all_statistics', 'view_all_files_readonly',
+    'add_file_comments', 'view_reports', 'view_accounts_department', 'view_hr_department', 'create_petty_cash_request'
+  ],
+  coo: [
+    'executive_view_all_departments', 'view_all_statistics', 'view_all_files_readonly',
+    'add_file_comments', 'approve_petty_cash_coo', 'view_reports', 'view_accounts_department', 
+    'view_hr_department', 'manage_all_departments_readonly', 'create_petty_cash_request', 'coo_direct_finance_access'
+  ],
+  managing_director: [
+    'executive_view_all_departments', 'view_all_statistics', 'view_all_files_readonly',
+    'add_file_comments', 'view_reports', 'view_accounts_department', 'view_hr_department', 
+    'manage_all_departments_readonly', 'executive_access'
+    // NOTE: Managing Director does NOT have 'create_petty_cash_request' permission
+  ],
   
   // System Administration
   administrator: ['*'],
@@ -130,9 +152,76 @@ export const useAuthStore = (): AuthState => {
     },
 
     hasPermission: (action: string) => {
+      try {
+        if (!state.user) {
+          console.log('hasPermission: No user found');
+          return false;
+        }
+        
+        const userRole = state.user.role;
+        console.log('hasPermission: User role:', userRole, 'checking action:', action);
+        
+        // Handle administrator role specifically
+        if (userRole === 'administrator') {
+          console.log('hasPermission: Administrator has all permissions');
+          return true;
+        }
+        
+        const permissions = rolePermissions[userRole as UserRole];
+        console.log('hasPermission: Permissions array:', permissions);
+        
+        if (!permissions || !Array.isArray(permissions)) {
+          console.log('hasPermission: No valid permissions array found for role:', userRole);
+          return false;
+        }
+        
+        const hasAccess = permissions.includes('*') || permissions.includes(action);
+        console.log('hasPermission: Result:', hasAccess);
+        return hasAccess;
+      } catch (error) {
+        console.error('hasPermission error:', error);
+        return false;
+      }
+    },
+
+    isExecutive: () => {
       if (!state.user) return false;
-      const permissions = rolePermissions[state.user.role as UserRole] || [];
-      return permissions.includes('*') || permissions.includes(action);
+      return ['managing_director', 'coo', 'finance_manager', 'commercial_manager'].includes(state.user.role);
+    },
+
+    canPerformOperationalActions: () => {
+      if (!state.user) return false;
+      // Executives cannot perform operational actions like assigning, uploading, etc.
+      return !['managing_director', 'coo', 'commercial_manager'].includes(state.user.role);
+    },
+
+    // Module-specific access control
+    canManipulateDeclarationModule: () => {
+      if (!state.user) return false;
+      // Only Declaration Manager and Administrator can manipulate declaration module
+      return state.user.role === 'declaration_manager' || state.user.role === 'administrator';
+    },
+
+    canManipulateOperationsModule: () => {
+      if (!state.user) return false;
+      // Only Operations Manager and Administrator can manipulate operations module
+      return state.user.role === 'operations_manager' || state.user.role === 'administrator';
+    },
+
+    canManipulateDriversModule: () => {
+      if (!state.user) return false;
+      // Only HR Manager and Administrator can manipulate drivers module
+      return state.user.role === 'hr_manager' || state.user.role === 'administrator';
+    },
+
+    canViewDriversModule: () => {
+      if (!state.user) return false;
+      // HR Manager, Administrator, and Executives can view drivers module
+      return state.user.role === 'hr_manager' || 
+             state.user.role === 'administrator' ||
+             state.user.role === 'coo' ||
+             state.user.role === 'managing_director' ||
+             state.user.role === 'commercial_manager';
     },
   };
 };
