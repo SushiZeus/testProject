@@ -201,13 +201,38 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
   const handleAcknowledge = () => {
     if (!selectedFile || !user) return;
 
-    updateFileStatus(
-      selectedFile.id,
-      'DECLARANT_ACKNOWLEDGED',
-      user.id
-    );
+    // If declarant is self-acknowledging (not assigned yet)
+    const isSelfAcknowledge = !selectedFile.assignedDeclarantId && user.role === 'declarant';
 
-    toast.success('File acknowledged - You can now work on this file');
+    if (isSelfAcknowledge) {
+      // Self-acknowledge: assign to self and notify declaration manager
+      assignDeclarant(selectedFile.id, user.id, user.id);
+      
+      // Notify declaration manager
+      const declarationManager = mockUsers.find(u => u.role === 'declaration_manager');
+      if (declarationManager) {
+        addNotification({
+          userId: declarationManager.id,
+          title: 'Declarant Self-Acknowledged File',
+          message: `${user.name} has acknowledged and started working on file ${selectedFile.fileNumber}`,
+          type: 'info',
+          fileId: selectedFile.id,
+          link: '/declaration',
+        });
+      }
+
+      toast.success('File acknowledged - You are now assigned to this file');
+    } else {
+      // Regular acknowledge (already assigned)
+      updateFileStatus(
+        selectedFile.id,
+        'DECLARANT_ACKNOWLEDGED',
+        user.id
+      );
+
+      toast.success('File acknowledged - You can now work on this file');
+    }
+
     setAcknowledgeDialogOpen(false);
     setSelectedFile(null);
   };
@@ -557,16 +582,26 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
                                 View
                               </Button>
                               {canManipulate && user?.role === 'declaration_manager' && file.status === 'WAITING_FOR_DECLARATION' && (
-                                <Button size="sm" onClick={() => { setSelectedFile(file); setAssignDialogOpen(true); }}>
-                                  Assign
+                                <>
+                                  <Button size="sm" onClick={() => { setSelectedFile(file); setAssignDialogOpen(true); }}>
+                                    Assign
+                                  </Button>
+                                  <Button size="sm" variant="outline" onClick={() => { setSelectedFile(file); setAcknowledgeDialogOpen(true); }}>
+                                    Work on File
+                                  </Button>
+                                </>
+                              )}
+                              {user?.role === 'declarant' && file.status === 'WAITING_FOR_DECLARATION' && !file.assignedDeclarantId && (
+                                <Button size="sm" onClick={() => { setSelectedFile(file); setAcknowledgeDialogOpen(true); }}>
+                                  Acknowledge & Work
                                 </Button>
                               )}
-                              {canManipulate && user?.role === 'declarant' && file.status === 'ASSIGNED_TO_DECLARANT' && (
+                              {canManipulate && user?.role === 'declarant' && file.status === 'ASSIGNED_TO_DECLARANT' && file.assignedDeclarantId === user.id && (
                                 <Button size="sm" onClick={() => { setSelectedFile(file); setAcknowledgeDialogOpen(true); }}>
                                   Acknowledge
                                 </Button>
                               )}
-                              {canManipulate && user?.role === 'declarant' && file.status === 'DECLARANT_ACKNOWLEDGED' && (
+                              {canManipulate && (user?.role === 'declarant' || user?.role === 'declaration_manager') && file.status === 'DECLARANT_ACKNOWLEDGED' && (
                                 <>
                                   <Button size="sm" variant="outline" onClick={() => { setSelectedFile(file); setUploadDialogOpen(true); }}>
                                     Upload Docs
@@ -576,7 +611,7 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
                                   </Button>
                                 </>
                               )}
-                              {hasPermission('create_petty_cash_request') && (
+                              {(user?.role === 'declarant' || user?.role === 'declaration_manager') && hasPermission('create_petty_cash_request') && (
                                 <Button size="sm" variant="outline" onClick={() => { setSelectedFile(file); setPettyCashDialogOpen(true); }}>
                                   <DollarSign className="w-3 h-3 mr-1" />
                                   Petty Cash
@@ -675,7 +710,11 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
       <Dialog open={acknowledgeDialogOpen} onOpenChange={setAcknowledgeDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Acknowledge File Receipt</DialogTitle>
+            <DialogTitle>
+              {selectedFile && !selectedFile.assignedDeclarantId && user?.role === 'declarant' 
+                ? 'Acknowledge & Start Working' 
+                : 'Acknowledge File Receipt'}
+            </DialogTitle>
             <DialogDescription>
               {selectedFile && `Acknowledge receipt of file ${selectedFile.fileNumber}`}
             </DialogDescription>
@@ -685,9 +724,15 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
             <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
               <CheckCircle className="w-8 h-8 text-blue-600 flex-shrink-0" />
               <div>
-                <p className="font-medium text-blue-900">Confirm Receipt</p>
+                <p className="font-medium text-blue-900">
+                  {selectedFile && !selectedFile.assignedDeclarantId && user?.role === 'declarant'
+                    ? 'Self-Acknowledge File'
+                    : 'Confirm Receipt'}
+                </p>
                 <p className="text-sm text-blue-700 mt-1">
-                  By acknowledging, you confirm that you have received this file and will begin working on the declaration process.
+                  {selectedFile && !selectedFile.assignedDeclarantId && user?.role === 'declarant'
+                    ? 'By acknowledging, you will be assigned to this file and the Declaration Manager will be notified. You can then begin working on the declaration process.'
+                    : 'By acknowledging, you confirm that you have received this file and will begin working on the declaration process.'}
                 </p>
               </div>
             </div>
@@ -723,7 +768,9 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
             </Button>
             <Button onClick={handleAcknowledge}>
               <CheckCircle className="w-4 h-4 mr-2" />
-              Acknowledge Receipt
+              {selectedFile && !selectedFile.assignedDeclarantId && user?.role === 'declarant'
+                ? 'Acknowledge & Start'
+                : 'Acknowledge Receipt'}
             </Button>
           </DialogFooter>
         </DialogContent>
