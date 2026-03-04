@@ -41,11 +41,20 @@ interface FileState {
   getActivityLogs: (fileId: string) => ActivityLog[];
 }
 
-const generateFileNumber = (shipmentType: ShipmentType): string => {
-  const prefix = shipmentType.substring(0, 3);
+const generateFileNumber = (shipmentType: ShipmentType, transportMode: TransportMode, existingFiles: ShipmentFile[]): string => {
+  // Get abbreviations
+  const shipmentAbbr = shipmentType.substring(0, 3).toUpperCase(); // IMP, EXP, TRA, TRA
+  const transportAbbr = transportMode.substring(0, 3).toUpperCase(); // AIR, SEA, ROA, RAI
   const year = new Date().getFullYear();
-  const random = Math.floor(Math.random() * 9000) + 1000;
-  return `${prefix}-${year}-${random}`;
+  
+  // Calculate sequential number based on existing files
+  const currentYearFiles = existingFiles.filter(f => {
+    const fileYear = f.fileNumber.split('-')[2];
+    return fileYear === year.toString();
+  });
+  const sequential = (currentYearFiles.length + 1).toString().padStart(4, '0');
+  
+  return `${shipmentAbbr}-${transportAbbr}-${year}-${sequential}`;
 };
 
 // Load state from localStorage or use defaults
@@ -151,7 +160,7 @@ export const useFileStore = (): FileState => {
     createFile: (data) => {
       const newFile: ShipmentFile = {
         id: Math.random().toString(36).substr(2, 9),
-        fileNumber: generateFileNumber(data.shipmentType),
+        fileNumber: generateFileNumber(data.shipmentType, data.transportMode, state.files),
         clientId: data.clientId || data.client?.id || '',
         client: data.client,
         shipmentType: data.shipmentType,
@@ -507,6 +516,10 @@ export const useFileStore = (): FileState => {
     getActivityLogs: (fileId) => {
       return state.activityLogs
         .filter(log => log.fileId === fileId)
+        .map(log => ({
+          ...log,
+          user: getUserById(log.userId),
+        }))
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     },
   };

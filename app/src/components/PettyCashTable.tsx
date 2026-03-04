@@ -1,8 +1,9 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, Receipt, RefreshCw, Trash2, Clock, DollarSign } from 'lucide-react';
+import { CheckCircle, XCircle, Receipt, RefreshCw, Trash2, Clock, DollarSign, Download, FileText } from 'lucide-react';
 import type { PettyCashRequest, User } from '@/types';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface PettyCashTableProps {
   requests: PettyCashRequest[];
@@ -69,6 +70,12 @@ export function PettyCashTable({
             <tr key={request.id} className="border-b hover:bg-gray-50 transition-colors">
               <td className="py-4 px-4">
                 <p className="font-mono font-medium text-blue-600">{request.requestNumber}</p>
+                {request.attachmentUrl && (
+                  <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                    <FileText className="w-3 h-3" />
+                    <span>Has attachment</span>
+                  </div>
+                )}
               </td>
               <td className="py-4 px-4">
                 <p className="font-medium text-gray-900">{request.requester?.name}</p>
@@ -102,6 +109,25 @@ export function PettyCashTable({
                   >
                     View
                   </Button>
+
+                  {/* Download attachment button - visible to all users */}
+                  {request.attachmentUrl && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.href = request.attachmentUrl || '';
+                        link.download = request.attachmentUrl?.split('/').pop() || 'attachment';
+                        link.click();
+                        toast.success('Download started');
+                      }}
+                      className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                      title="Download attachment"
+                    >
+                      <Download className="w-4 h-4" />
+                    </Button>
+                  )}
 
                   {/* Approve/Reject buttons for managers */}
                   {showApproveReject && onApprove && onReject && (
@@ -150,16 +176,19 @@ export function PettyCashTable({
                     </>
                   )}
 
-                  {/* Cashier: PAID button */}
+                  {/* Cashier: PAID button - only enabled for PENDING_PAYMENT status */}
                   {showPaidButton && onPaid && (
-                    <Button 
-                      size="sm" 
-                      className="bg-green-600 hover:bg-green-700 text-white" 
-                      onClick={() => onPaid(request)}
-                    >
-                      <DollarSign className="w-4 h-4 mr-1" />
-                      Mark as Paid
-                    </Button>
+                    request.status !== 'PAID' && (
+                      <Button 
+                        size="sm" 
+                        className="bg-green-600 hover:bg-green-700 text-white" 
+                        onClick={() => onPaid(request)}
+                        disabled={request.status !== 'PENDING_PAYMENT'}
+                      >
+                        <DollarSign className="w-4 h-4 mr-1" />
+                        {request.status === 'PENDING_PAYMENT' ? 'Mark as Paid' : 'Awaiting Approval'}
+                      </Button>
+                    )
                   )}
 
                   {/* Process button */}

@@ -61,7 +61,7 @@ function App() {
       case 'operations':
         return <OperationsPage navigate={navigate} />;
       case 'petty-cash':
-        return <PettyCashPage navigate={navigate} />;
+        return <PettyCashPage navigate={navigate} fileId={routeParams.fileId} />;
       case 'petty-cash/history':
         return <PettyCashHistoryPage navigate={navigate} />;
       case 'reports':

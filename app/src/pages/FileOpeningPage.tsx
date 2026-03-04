@@ -86,6 +86,7 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
     currency: 'TZS',
     description: '',
   });
+  const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
 
   // Client state
   const [clientType, setClientType] = useState<'new' | 'existing'>('existing');
@@ -127,6 +128,13 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
       ...prev,
       [docType]: [...(prev[docType] || []), ...pdfFiles],
     }));
+    
+    // Clear validation error for this document type
+    setValidationErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[docType];
+      return newErrors;
+    });
   };
 
   const removeUploadedFile = (docType: DocumentType, index: number) => {
@@ -137,35 +145,53 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
   };
 
   const validateStep = () => {
+    const errors: Record<string, boolean> = {};
+    
     switch (step) {
       case 1:
         if (clientType === 'existing') {
           if (!selectedClient) {
+            errors.selectedClient = true;
             toast.error('Please select a client');
+            setValidationErrors(errors);
             return false;
           }
         } else {
-          if (!newClient.name || !newClient.mobile || !newClient.tin) {
-            toast.error('Please fill in all required client fields');
+          if (!newClient.name) errors.clientName = true;
+          if (!newClient.mobile) errors.clientMobile = true;
+          if (!newClient.tin) errors.clientTin = true;
+          
+          if (Object.keys(errors).length > 0) {
+            toast.error('Please fill in all required client fields (highlighted in red)');
+            setValidationErrors(errors);
             return false;
           }
         }
+        setValidationErrors({});
         return true;
       case 2:
-        if (selectedDocuments.length === 0) {
-          toast.error('Please select at least one document type');
-          return false;
-        }
+        // Documents are now optional - no validation needed
+        setValidationErrors({});
         return true;
       case 3:
-        for (const docType of selectedDocuments) {
-          if (!uploadedFiles[docType] || uploadedFiles[docType].length === 0) {
-            toast.error(`Please upload ${documentTypes.find(d => d.value === docType)?.label}`);
+        // Only validate if documents were selected
+        if (selectedDocuments.length > 0) {
+          for (const docType of selectedDocuments) {
+            if (!uploadedFiles[docType] || uploadedFiles[docType].length === 0) {
+              errors[docType] = true;
+            }
+          }
+          
+          if (Object.keys(errors).length > 0) {
+            toast.error(`Please upload all selected documents (highlighted in red)`);
+            setValidationErrors(errors);
             return false;
           }
         }
+        setValidationErrors({});
         return true;
       default:
+        setValidationErrors({});
         return true;
     }
   };
@@ -291,9 +317,9 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
 
       {clientType === 'existing' ? (
         <div className="space-y-2">
-          <Label htmlFor="client">Select Client</Label>
-          <Select value={selectedClient} onValueChange={setSelectedClient}>
-            <SelectTrigger className="h-12">
+          <Label htmlFor="client">Select Client *</Label>
+          <Select value={selectedClient} onValueChange={(v) => { setSelectedClient(v); setValidationErrors({}); }}>
+            <SelectTrigger className={cn("h-12", validationErrors.selectedClient && "border-red-500 border-2")}>
               <div className="flex items-center gap-2">
                 <Search className="w-4 h-4 text-gray-400" />
                 <SelectValue placeholder="Search and select client" />
@@ -310,6 +336,9 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
               ))}
             </SelectContent>
           </Select>
+          {validationErrors.selectedClient && (
+            <p className="text-sm text-red-500">Please select a client</p>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
@@ -320,9 +349,12 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
                 id="name"
                 placeholder="Enter client name"
                 value={newClient.name}
-                onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
-                className="h-12"
+                onChange={(e) => { setNewClient({ ...newClient, name: e.target.value }); setValidationErrors({}); }}
+                className={cn("h-12", validationErrors.clientName && "border-red-500 border-2")}
               />
+              {validationErrors.clientName && (
+                <p className="text-sm text-red-500">Client name is required</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="mobile">Mobile Number *</Label>
@@ -330,9 +362,12 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
                 id="mobile"
                 placeholder="+255 XXX XXX XXX"
                 value={newClient.mobile}
-                onChange={(e) => setNewClient({ ...newClient, mobile: e.target.value })}
-                className="h-12"
+                onChange={(e) => { setNewClient({ ...newClient, mobile: e.target.value }); setValidationErrors({}); }}
+                className={cn("h-12", validationErrors.clientMobile && "border-red-500 border-2")}
               />
+              {validationErrors.clientMobile && (
+                <p className="text-sm text-red-500">Mobile number is required</p>
+              )}
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -353,9 +388,12 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
                 id="tin"
                 placeholder="XXX-XXX-XXX"
                 value={newClient.tin}
-                onChange={(e) => setNewClient({ ...newClient, tin: e.target.value })}
-                className="h-12"
+                onChange={(e) => { setNewClient({ ...newClient, tin: e.target.value }); setValidationErrors({}); }}
+                className={cn("h-12", validationErrors.clientTin && "border-red-500 border-2")}
               />
+              {validationErrors.clientTin && (
+                <p className="text-sm text-red-500">TIN number is required</p>
+              )}
             </div>
           </div>
         </div>
@@ -455,12 +493,15 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
             const files = uploadedFiles[docType] || [];
             
             return (
-              <Card key={docType} className="border-2">
+              <Card key={docType} className={cn("border-2", validationErrors[docType] && "border-red-500")}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <FileText className="w-5 h-5 text-blue-600" />
                       <span className="font-medium">{docInfo?.label}</span>
+                      {validationErrors[docType] && (
+                        <Badge variant="destructive" className="text-xs">Required</Badge>
+                      )}
                     </div>
                     <Badge variant={files.length > 0 ? 'default' : 'secondary'}>
                       {files.length} file(s)

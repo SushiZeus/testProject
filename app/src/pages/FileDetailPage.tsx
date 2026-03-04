@@ -10,6 +10,7 @@ import {
   Printer,
   Share2,
   User as UserIcon,
+  Upload,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,12 +19,29 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useFileStore } from '@/store/fileStore';
 import { useAuthStore } from '@/store/authStore';
-import type { FileStatus, ShippingDocument } from '@/types';
+import type { ShippingDocument } from '@/types';
 import type { AppRoute } from '@/App';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { statusColors } from '@/utils/statusColors';
 
 interface TimelineItemProps {
   status: string;
@@ -76,7 +94,18 @@ interface DocumentCardProps {
   document: ShippingDocument;
 }
 
-function DocumentCard({ document }: DocumentCardProps) {
+function DocumentCard({ document: doc }: DocumentCardProps) {
+  const handleDownload = () => {
+    // In production, this would download from server
+    // For now, we'll open in new tab or trigger download
+    const link = window.document.createElement('a');
+    link.href = doc.fileUrl;
+    link.download = doc.documentName;
+    link.target = '_blank';
+    link.click();
+    toast.success(`Downloading ${doc.documentName}`);
+  };
+
   return (
     <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
       <div className="flex items-center gap-3">
@@ -84,13 +113,13 @@ function DocumentCard({ document }: DocumentCardProps) {
           <FileText className="w-5 h-5 text-red-600" />
         </div>
         <div>
-          <p className="font-medium">{document.documentName}</p>
+          <p className="font-medium">{doc.documentName}</p>
           <p className="text-sm text-gray-500 capitalize">
-            {document.documentType.replace(/_/g, ' ')}
+            {doc.documentType.replace(/_/g, ' ')}
           </p>
         </div>
       </div>
-      <Button variant="ghost" size="sm" onClick={() => window.open(document.fileUrl, '_blank')}>
+      <Button variant="ghost" size="sm" onClick={handleDownload}>
         <Download className="w-4 h-4 mr-2" />
         Download
       </Button>
@@ -105,10 +134,13 @@ interface FileDetailPageProps {
 
 export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
   const { user, isExecutive } = useAuthStore();
-  const { getFileById, getActivityLogs, addComment } = useFileStore();
+  const { getFileById, getActivityLogs, addComment, addDocument } = useFileStore();
 
   const [comment, setComment] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [selectedDocType, setSelectedDocType] = useState<string>('other');
 
   const file = fileId ? getFileById(fileId) : null;
   const activityLogs = fileId ? getActivityLogs(fileId) : [];
@@ -127,49 +159,47 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
     );
   }
 
-  const statusColors: Record<FileStatus, string> = {
-    WAITING_FOR_DECLARATION: 'bg-amber-100 text-amber-700',
-    ASSIGNED_TO_DECLARANT: 'bg-blue-100 text-blue-700',
-    DECLARANT_ACKNOWLEDGED: 'bg-green-100 text-green-700',
-    WAITING_FOR_FINAL_ASSESSMENT: 'bg-purple-100 text-purple-700',
-    DECLARATION_DONE: 'bg-green-100 text-green-700',
-    WAITING_FOR_TAX_PAYMENT: 'bg-amber-100 text-amber-700',
-    TAXES_PAID: 'bg-green-100 text-green-700',
-    READY_FOR_OPERATIONS: 'bg-blue-100 text-blue-700',
-    RECEIVED_BY_CLERK: 'bg-blue-100 text-blue-700',
-    CLERK_WORKING_ON_FILE: 'bg-blue-100 text-blue-700',
-    SHIPMENT_UNDER_VERIFICATION: 'bg-purple-100 text-purple-700',
-    WAITING_FOR_PERMIT_PAYMENTS: 'bg-amber-100 text-amber-700',
-    PERMIT_PAYMENTS_DONE: 'bg-green-100 text-green-700',
-    RELEASE_ORDER_UPLOADED: 'bg-green-100 text-green-700',
-    PROCESSING_DELIVERY_ORDER: 'bg-blue-100 text-blue-700',
-    WAITING_FOR_DO_PAYMENT: 'bg-amber-100 text-amber-700',
-    DELIVERY_ORDER_PAYMENTS_DONE: 'bg-green-100 text-green-700',
-    DELIVERY_ORDER_READY: 'bg-green-100 text-green-700',
-    DELIVERY_ORDER_COLLECTED: 'bg-blue-100 text-blue-700',
-    WAITING_FOR_PORT_CHARGES: 'bg-amber-100 text-amber-700',
-    WAITING_FOR_PORT_PAYMENT: 'bg-amber-100 text-amber-700',
-    PORT_CHARGES_PAID: 'bg-green-100 text-green-700',
-    WAITING_FOR_PAYMENTS: 'bg-amber-100 text-amber-700',
-    WAITING_FOR_SWISSPORT_PAYMENTS: 'bg-amber-100 text-amber-700',
-    SWISSPORT_CHARGES_PAID: 'bg-green-100 text-green-700',
-    DRIVER_REQUESTED: 'bg-blue-100 text-blue-700',
-    DRIVER_ASSIGNED: 'bg-blue-100 text-blue-700',
-    DRIVER_COLLECTING_CARGO: 'bg-purple-100 text-purple-700',
-    CARGO_COLLECTED_FROM_ICD: 'bg-green-100 text-green-700',
-    CARGO_COLLECTED_FROM_AIRPORT: 'bg-green-100 text-green-700',
-    DELIVERED_TO_CLIENT: 'bg-green-100 text-green-700',
-    SHIPMENT_AT_WAREHOUSE: 'bg-blue-100 text-blue-700',
-    COMPLETED: 'bg-green-100 text-green-700',
-    CANCELLED: 'bg-red-100 text-red-700',
-  };
-
   const handleAddComment = () => {
     if (!comment.trim() || !user || !fileId) return;
 
     addComment(fileId, user.id, comment);
     toast.success('Comment added');
     setComment('');
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setUploadedFiles([...uploadedFiles, ...newFiles]);
+    }
+  };
+
+  const handleUploadDocuments = () => {
+    if (!file || !user || !fileId) return;
+
+    if (uploadedFiles.length === 0) {
+      toast.error('Please select at least one document to upload');
+      return;
+    }
+
+    // Add uploaded documents to the file
+    uploadedFiles.forEach((uploadFile) => {
+      const document = {
+        id: Math.random().toString(36).substr(2, 9),
+        fileId: file.id,
+        documentType: selectedDocType as any,
+        documentName: uploadFile.name,
+        fileUrl: URL.createObjectURL(uploadFile),
+        uploadedBy: user.id,
+        uploadedAt: new Date(),
+      };
+      addDocument(file.id, document);
+    });
+
+    toast.success(`${uploadedFiles.length} document(s) uploaded successfully`);
+    setUploadDialogOpen(false);
+    setUploadedFiles([]);
+    setSelectedDocType('other');
   };
 
   const getStatusProgress = () => {
@@ -353,6 +383,107 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
                       )}
                     </div>
                   </div>
+
+                  {/* Arrival Dates Section */}
+                  {(file.eta || file.etb || file.carryInDate || file.manifestComparisonDate || file.wharfageDate) && (
+                    <>
+                      <Separator />
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-500 mb-3">
+                          Arrival Dates {file.transportMode === 'SEA' ? '🚢' : '✈️'}
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          {file.eta && (
+                            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                              <p className="text-sm text-gray-500">ETA (Estimated Time of Arrival)</p>
+                              <p className="font-medium">{new Date(file.eta).toLocaleDateString()}</p>
+                            </div>
+                          )}
+                          {file.etb && file.transportMode === 'SEA' && (
+                            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                              <p className="text-sm text-gray-500">ETB (Estimated Time of Berthing)</p>
+                              <p className="font-medium">{new Date(file.etb).toLocaleDateString()}</p>
+                            </div>
+                          )}
+                          {file.carryInDate && (
+                            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                              <p className="text-sm text-gray-500">Carry In Date</p>
+                              <p className="font-medium">{new Date(file.carryInDate).toLocaleDateString()}</p>
+                            </div>
+                          )}
+                          {file.manifestComparisonDate && (
+                            <div className={cn(
+                              "p-4 rounded-lg border",
+                              file.transportMode === 'AIR' 
+                                ? "bg-green-50 border-green-300" 
+                                : "bg-blue-50 border-blue-200"
+                            )}>
+                              <p className="text-sm text-gray-500 flex items-center gap-1">
+                                Manifest Comparison Date
+                                {file.transportMode === 'AIR' && <span className="text-green-600 font-semibold">⚠️ CRITICAL</span>}
+                              </p>
+                              <p className="font-medium">{new Date(file.manifestComparisonDate).toLocaleDateString()}</p>
+                            </div>
+                          )}
+                          {file.wharfageDate && file.transportMode === 'SEA' && (
+                            <div className="p-4 bg-green-50 rounded-lg border border-green-300">
+                              <p className="text-sm text-gray-500 flex items-center gap-1">
+                                Wharfage Date
+                                <span className="text-green-600 font-semibold">⚠️ CRITICAL</span>
+                              </p>
+                              <p className="font-medium">{new Date(file.wharfageDate).toLocaleDateString()}</p>
+                            </div>
+                          )}
+                        </div>
+                        {file.arrivalStatusFilled && (
+                          <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                            <p className="text-sm text-green-700 flex items-center gap-2">
+                              <CheckCircle className="w-4 h-4" />
+                              Critical arrival date filled - Declaration can proceed
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  {/* Payment Dates Section */}
+                  {(file.taxPaymentConfirmedAt || file.wharfagePaymentConfirmedAt) && (
+                    <>
+                      <Separator />
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-500 mb-3">
+                          Payment Confirmation Dates 💰
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          {file.taxPaymentConfirmedAt && (
+                            <div className="p-4 bg-green-50 rounded-lg border border-green-300">
+                              <p className="text-sm text-gray-500 flex items-center gap-1">
+                                <CheckCircle className="w-4 h-4 text-green-600" />
+                                Tax Payment Confirmed
+                              </p>
+                              <p className="font-medium">{new Date(file.taxPaymentConfirmedAt).toLocaleDateString()}</p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {new Date(file.taxPaymentConfirmedAt).toLocaleTimeString()}
+                              </p>
+                            </div>
+                          )}
+                          {file.wharfagePaymentConfirmedAt && file.transportMode === 'SEA' && (
+                            <div className="p-4 bg-green-50 rounded-lg border border-green-300">
+                              <p className="text-sm text-gray-500 flex items-center gap-1">
+                                <CheckCircle className="w-4 h-4 text-green-600" />
+                                Wharfage Payment Confirmed
+                              </p>
+                              <p className="font-medium">{new Date(file.wharfagePaymentConfirmedAt).toLocaleDateString()}</p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {new Date(file.wharfagePaymentConfirmedAt).toLocaleTimeString()}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -360,10 +491,20 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
             <TabsContent value="documents">
               <Card>
                 <CardHeader>
-                  <CardTitle>Uploaded Documents</CardTitle>
-                  <CardDescription>
-                    {file.documents.length} document(s) uploaded
-                  </CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Uploaded Documents</CardTitle>
+                      <CardDescription>
+                        {file.documents.length} document(s) uploaded
+                      </CardDescription>
+                    </div>
+                    {user?.role === 'documentation_officer' && (
+                      <Button onClick={() => setUploadDialogOpen(true)} size="sm">
+                        <Upload className="w-4 h-4 mr-2" />
+                        Upload Documents
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
@@ -371,6 +512,12 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
                       <div className="text-center py-8 text-gray-500">
                         <Paperclip className="w-12 h-12 mx-auto mb-3 opacity-50" />
                         <p>No documents uploaded</p>
+                        {user?.role === 'documentation_officer' && (
+                          <Button onClick={() => setUploadDialogOpen(true)} variant="outline" className="mt-4">
+                            <Upload className="w-4 h-4 mr-2" />
+                            Upload First Document
+                          </Button>
+                        )}
                       </div>
                     ) : (
                       file.documents.map((doc: ShippingDocument) => (
@@ -490,6 +637,22 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
                   <span className="text-gray-500">Last Updated</span>
                   <span>{new Date(file.updatedAt).toLocaleDateString()}</span>
                 </div>
+                {file.taxPaymentConfirmedAt && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Tax Paid</span>
+                    <span className="text-green-600 font-medium">
+                      {new Date(file.taxPaymentConfirmedAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
+                {file.wharfagePaymentConfirmedAt && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Wharfage Paid</span>
+                    <span className="text-green-600 font-medium">
+                      {new Date(file.wharfagePaymentConfirmedAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <Separator />
@@ -516,6 +679,101 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
           </Card>
         </div>
       </div>
+
+      {/* Upload Documents Dialog */}
+      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Upload Documents</DialogTitle>
+            <DialogDescription>
+              Upload additional documents to file {file.fileNumber}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Document Type</Label>
+              <Select value={selectedDocType} onValueChange={setSelectedDocType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="commercial_invoice">Commercial Invoice</SelectItem>
+                  <SelectItem value="packing_list">Packing List</SelectItem>
+                  <SelectItem value="bill_of_lading">Bill of Lading</SelectItem>
+                  <SelectItem value="airway_bill">Airway Bill</SelectItem>
+                  <SelectItem value="road_consignment_note">Road Consignment Note</SelectItem>
+                  <SelectItem value="coc">Certificate of Conformity (COC)</SelectItem>
+                  <SelectItem value="coo">Certificate of Origin (COO)</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Select Documents to Upload</Label>
+              <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center hover:border-blue-400 transition-colors cursor-pointer">
+                <input
+                  type="file"
+                  multiple
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  id="doc-file-upload"
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls"
+                />
+                <label htmlFor="doc-file-upload" className="cursor-pointer">
+                  <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                  <p className="text-sm text-gray-500">
+                    Click to upload documents
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Supported: PDF, DOC, Images, Excel
+                  </p>
+                </label>
+              </div>
+              
+              {uploadedFiles.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-sm font-medium">Selected Files ({uploadedFiles.length}):</p>
+                  {uploadedFiles.map((uploadFile, index) => (
+                    <div key={index} className="flex items-center gap-2 p-2 bg-green-50 rounded text-sm">
+                      <FileText className="w-4 h-4 text-green-600" />
+                      <span className="flex-1">{uploadFile.name}</span>
+                      <span className="text-xs text-gray-500">
+                        {(uploadFile.size / 1024).toFixed(1)} KB
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setUploadedFiles(uploadedFiles.filter((_, i) => i !== index))}
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setUploadDialogOpen(false);
+              setUploadedFiles([]);
+              setSelectedDocType('other');
+            }}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleUploadDocuments}
+              disabled={uploadedFiles.length === 0}
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Upload {uploadedFiles.length > 0 && `(${uploadedFiles.length})`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -9,6 +9,8 @@ import {
   Truck,
   ArrowRight,
   Calendar,
+  Ship,
+  AlertCircle,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,9 +19,10 @@ import { Progress } from '@/components/ui/progress';
 import { useAuthStore } from '@/store/authStore';
 import { useFileStore } from '@/store/fileStore';
 import { usePettyCashStore } from '@/store/pettyCashStore';
-import type { ShipmentFile, FileStatus } from '@/types';
+import type { ShipmentFile } from '@/types';
 import type { AppRoute } from '@/App';
 import { cn } from '@/lib/utils';
+import { statusColors } from '@/utils/statusColors';
 
 interface StatCardProps {
   title: string;
@@ -74,43 +77,6 @@ interface RecentFileCardProps {
 }
 
 function RecentFileCard({ file, onClick }: RecentFileCardProps) {
-  const statusColors: Record<FileStatus, string> = {
-    WAITING_FOR_DECLARATION: 'bg-amber-100 text-amber-700',
-    ASSIGNED_TO_DECLARANT: 'bg-blue-100 text-blue-700',
-    DECLARANT_ACKNOWLEDGED: 'bg-green-100 text-green-700',
-    WAITING_FOR_FINAL_ASSESSMENT: 'bg-purple-100 text-purple-700',
-    DECLARATION_DONE: 'bg-green-100 text-green-700',
-    WAITING_FOR_TAX_PAYMENT: 'bg-amber-100 text-amber-700',
-    TAXES_PAID: 'bg-green-100 text-green-700',
-    READY_FOR_OPERATIONS: 'bg-blue-100 text-blue-700',
-    RECEIVED_BY_CLERK: 'bg-blue-100 text-blue-700',
-    CLERK_WORKING_ON_FILE: 'bg-blue-100 text-blue-700',
-    SHIPMENT_UNDER_VERIFICATION: 'bg-purple-100 text-purple-700',
-    WAITING_FOR_PERMIT_PAYMENTS: 'bg-amber-100 text-amber-700',
-    PERMIT_PAYMENTS_DONE: 'bg-green-100 text-green-700',
-    RELEASE_ORDER_UPLOADED: 'bg-green-100 text-green-700',
-    PROCESSING_DELIVERY_ORDER: 'bg-blue-100 text-blue-700',
-    WAITING_FOR_DO_PAYMENT: 'bg-amber-100 text-amber-700',
-    DELIVERY_ORDER_PAYMENTS_DONE: 'bg-green-100 text-green-700',
-    DELIVERY_ORDER_READY: 'bg-green-100 text-green-700',
-    DELIVERY_ORDER_COLLECTED: 'bg-blue-100 text-blue-700',
-    WAITING_FOR_PORT_CHARGES: 'bg-amber-100 text-amber-700',
-    WAITING_FOR_PORT_PAYMENT: 'bg-amber-100 text-amber-700',
-    PORT_CHARGES_PAID: 'bg-green-100 text-green-700',
-    WAITING_FOR_PAYMENTS: 'bg-amber-100 text-amber-700',
-    WAITING_FOR_SWISSPORT_PAYMENTS: 'bg-amber-100 text-amber-700',
-    SWISSPORT_CHARGES_PAID: 'bg-green-100 text-green-700',
-    DRIVER_REQUESTED: 'bg-blue-100 text-blue-700',
-    DRIVER_ASSIGNED: 'bg-blue-100 text-blue-700',
-    DRIVER_COLLECTING_CARGO: 'bg-purple-100 text-purple-700',
-    CARGO_COLLECTED_FROM_ICD: 'bg-green-100 text-green-700',
-    CARGO_COLLECTED_FROM_AIRPORT: 'bg-green-100 text-green-700',
-    DELIVERED_TO_CLIENT: 'bg-green-100 text-green-700',
-    SHIPMENT_AT_WAREHOUSE: 'bg-blue-100 text-blue-700',
-    COMPLETED: 'bg-green-100 text-green-700',
-    CANCELLED: 'bg-red-100 text-red-700',
-  };
-
   return (
     <div
       onClick={onClick}
@@ -142,7 +108,7 @@ interface DashboardPageProps {
 export function DashboardPage({ navigate }: DashboardPageProps) {
   const { user } = useAuthStore();
   const { files, getFilesByStatus } = useFileStore();
-  const { getPendingApprovalsForManager, getPendingApprovalsForCOO, getPendingPayments } = usePettyCashStore();
+  const { getPendingApprovalsForManager, getPendingApprovalsForCOO, getPendingPayments, requests: pettyCashRequests } = usePettyCashStore();
 
   const [stats, setStats] = useState({
     totalFiles: 0,
@@ -187,12 +153,28 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
       myAssignedFiles = files.filter((f: ShipmentFile) => f.assignedDriverId === user.id).length;
     }
 
+    // Calculate pending approvals for all users based on their role
     if (user.role === 'operations_manager') {
       pendingApprovals = getPendingApprovalsForManager(user.id).length;
+    } else if (user.role === 'declaration_manager') {
+      const declarationRequests = pettyCashRequests.filter(
+        (r: any) => r.status === 'PENDING_DECLARATION_MANAGER_APPROVAL'
+      );
+      pendingApprovals = declarationRequests.length;
+    } else if (user.role === 'hr_manager') {
+      const hrRequests = pettyCashRequests.filter(
+        (r: any) => r.status === 'PENDING_HR_APPROVAL'
+      );
+      pendingApprovals = hrRequests.length;
     } else if (user.role === 'coo') {
       pendingApprovals = getPendingApprovalsForCOO().length;
     } else if (user.role === 'cashier') {
       pendingApprovals = getPendingPayments().length;
+    } else if (user.role === 'finance_manager') {
+      const financeRequests = pettyCashRequests.filter(
+        (r: any) => r.status === 'PENDING_FINANCE_APPROVAL' || r.status === 'COO_DIRECT_TO_FINANCE'
+      );
+      pendingApprovals = financeRequests.length;
     }
 
     setStats({
@@ -203,7 +185,7 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
       myAssignedFiles,
       pendingApprovals,
     });
-  }, [files, user, getFilesByStatus, getPendingApprovalsForManager, getPendingApprovalsForCOO, getPendingPayments]);
+  }, [files, user, getFilesByStatus, getPendingApprovalsForManager, getPendingApprovalsForCOO, getPendingPayments, pettyCashRequests]);
 
   const getRoleSpecificStats = () => {
     if (!user) return [];
@@ -236,6 +218,46 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
     ];
 
     switch (user.role) {
+      case 'documentation_officer':
+        // Show transport mode statistics
+        const seaFiles = files.filter((f: ShipmentFile) => f.transportMode === 'SEA').length;
+        const airFiles = files.filter((f: ShipmentFile) => f.transportMode === 'AIR').length;
+        const roadFiles = files.filter((f: ShipmentFile) => f.transportMode === 'ROAD').length;
+        const railFiles = files.filter((f: ShipmentFile) => f.transportMode === 'RAIL').length;
+        const filesWithoutDocs = files.filter((f: ShipmentFile) => f.documents.length === 0).length;
+        
+        return [
+          {
+            title: 'SEA Shipments',
+            value: seaFiles,
+            icon: Ship,
+            color: 'blue' as const,
+          },
+          {
+            title: 'AIR Shipments',
+            value: airFiles,
+            icon: FileText,
+            color: 'purple' as const,
+          },
+          {
+            title: 'ROAD Shipments',
+            value: roadFiles,
+            icon: Truck,
+            color: 'green' as const,
+          },
+          {
+            title: 'RAIL Shipments',
+            value: railFiles,
+            icon: TrendingUp,
+            color: 'amber' as const,
+          },
+          {
+            title: 'Files Without Documents',
+            value: filesWithoutDocs,
+            icon: AlertCircle,
+            color: 'red' as const,
+          },
+        ];
       case 'declaration_manager':
         return [
           ...commonStats,
@@ -244,6 +266,12 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
             value: stats.waitingFiles,
             icon: FileText,
             color: 'red' as const,
+          },
+          {
+            title: 'Pending Approvals',
+            value: stats.pendingApprovals,
+            icon: DollarSign,
+            color: 'amber' as const,
           },
         ];
       case 'declarant':
@@ -267,7 +295,7 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
             title: 'Declaration Done',
             value: files.filter((f: ShipmentFile) => 
               f.assignedDeclarantId === user.id && 
-              f.status === 'DECLARATION_DONE'
+              (f.status === 'TAXES_PAID' || f.status === 'READY_FOR_OPERATIONS')
             ).length,
             icon: CheckCircle,
             color: 'green' as const,
@@ -344,6 +372,32 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
             title: 'Pending Requests',
             value: files.filter((f: ShipmentFile) => f.status === 'DRIVER_REQUESTED').length,
             icon: FileText,
+            color: 'red' as const,
+          },
+          {
+            title: 'Pending Approvals',
+            value: stats.pendingApprovals,
+            icon: DollarSign,
+            color: 'purple' as const,
+          },
+        ];
+      case 'finance_manager':
+        return [
+          ...commonStats,
+          {
+            title: 'Pending Approvals',
+            value: stats.pendingApprovals,
+            icon: DollarSign,
+            color: 'red' as const,
+          },
+        ];
+      case 'cashier':
+        return [
+          ...commonStats,
+          {
+            title: 'Pending Payments',
+            value: stats.pendingApprovals,
+            icon: DollarSign,
             color: 'red' as const,
           },
         ];

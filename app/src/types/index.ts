@@ -44,22 +44,29 @@ export type FileStatus =
   | 'WAITING_FOR_FINAL_ASSESSMENT'
   | 'DECLARATION_DONE'
   | 'WAITING_FOR_TAX_PAYMENT'
+  | 'WAITING_FOR_PAYMENTS' // NEW: After tax and wharfage docs uploaded
   | 'TAXES_PAID'
   | 'READY_FOR_OPERATIONS'
   | 'RECEIVED_BY_CLERK'
   | 'CLERK_WORKING_ON_FILE'
   | 'SHIPMENT_UNDER_VERIFICATION'
+  | 'WAITING_FOR_PERMITS'
   | 'WAITING_FOR_PERMIT_PAYMENTS'
   | 'PERMIT_PAYMENTS_DONE'
+  | 'PERMITS_DONE'
   | 'RELEASE_ORDER_UPLOADED'
   | 'PROCESSING_DELIVERY_ORDER'
   | 'WAITING_FOR_DO_PAYMENT'
   | 'DELIVERY_ORDER_PAYMENTS_DONE'
+  | 'WAITING_FOR_DELIVERY_ORDER_SUBMISSION'
+  | 'DELIVERY_ORDER_SUBMITTED'
   | 'DELIVERY_ORDER_READY'
   | 'DELIVERY_ORDER_COLLECTED'
   | 'WAITING_FOR_PORT_CHARGES'
   | 'WAITING_FOR_PORT_PAYMENT'
   | 'PORT_CHARGES_PAID'
+  | 'WAITING_FOR_PORT_CHARGES_PAYMENT'
+  | 'WAITING_FOR_SWISSPORT_CHARGES_PAYMENT'
   | 'WAITING_FOR_PAYMENTS'
   | 'WAITING_FOR_SWISSPORT_PAYMENTS'
   | 'SWISSPORT_CHARGES_PAID'
@@ -157,8 +164,26 @@ export interface ShipmentFile {
   assignedDeclarantId?: string;
   assignedDeclarant?: User;
   taxAssessmentUrl?: string;
+  taxDocumentUrl?: string; // NEW: Separate tax document upload
+  wharfageDocumentUrl?: string; // NEW: Separate wharfage document upload (SEA only)
+  taxDocumentUploadedAt?: Date; // NEW: Tax document upload timestamp
+  wharfageDocumentUploadedAt?: Date; // NEW: Wharfage document upload timestamp
+  taxPaymentConfirmed?: boolean; // NEW: Tax payment confirmed
+  wharfagePaymentConfirmed?: boolean; // NEW: Wharfage payment confirmed (SEA only)
+  taxPaymentConfirmedAt?: Date; // NEW: Tax payment confirmation timestamp
+  wharfagePaymentConfirmedAt?: Date; // NEW: Wharfage payment confirmation timestamp
   declarationDoneAt?: Date;
   taxesPaidAt?: Date;
+  
+  // Arrival Status fields
+  arrivalStatusFilled?: boolean;
+  // SEA shipment arrival dates
+  eta?: Date; // Estimated Time of Arrival
+  etb?: Date; // Estimated Time of Berthing
+  carryInDate?: Date;
+  manifestComparisonDate?: Date;
+  wharfageDate?: Date;
+  // AIR shipment arrival dates (eta, carryInDate, manifestComparisonDate reused)
   
   // Operations fields
   assignedOperationClerkId?: string;
@@ -171,21 +196,28 @@ export interface ShipmentFile {
   
   // Permits fields
   assignedPermitsClerkId?: string;
+  assignedPermitsClerk?: User;
   permitPaymentOption?: PaymentOption;
   permitInvoiceUrl?: string;
   permitDocumentUrl?: string;
   permitPaymentsDoneAt?: Date;
+  permitsDoneAt?: Date; // When permits clerk marks permits as done
   
   // Shipping line fields (SEA only)
   assignedShippingLineClerkId?: string;
+  assignedShippingLineClerk?: User;
   deliveryOrderApplicationAt?: Date;
   deliveryOrderInvoiceUrl?: string;
   deliveryOrderDocumentUrl?: string;
   deliveryOrderPaymentsDoneAt?: Date;
+  deliveryOrderSubmittedAt?: Date; // When shipping line clerk submits DO
   
   // Port charges fields
   portChargesInvoiceUrl?: string;
+  portChargesUrl?: string; // NEW: Port charges document (SEA)
   portChargesPaidAt?: Date;
+  swissportChargesUrl?: string; // NEW: Swissport charges document (AIR)
+  swissportChargesPaidAt?: Date; // NEW: Swissport charges paid timestamp
   
   // Delivery fields
   assignedDeliveryClerkId?: string;

@@ -37,11 +37,12 @@ import { useAuthStore } from '@/store/authStore';
 import { useFileStore } from '@/store/fileStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { usePettyCashStore } from '@/store/pettyCashStore';
-import type { ShipmentFile, FileStatus, User } from '@/types';
+import type { ShipmentFile, User } from '@/types';
 import type { AppRoute } from '@/App';
 import { mockUsers, getDeclarantWorkload } from '@/data/mockData';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { statusColors } from '@/utils/statusColors';
 
 interface WorkloadCardProps {
   declarant: User;
@@ -128,7 +129,7 @@ interface DeclarationPageProps {
 
 export function DeclarationPage({ navigate }: DeclarationPageProps) {
   const { user, hasPermission, isExecutive, canManipulateDeclarationModule } = useAuthStore();
-  const { files, assignDeclarant, updateFileStatus, addDocument } = useFileStore();
+  const { files, assignDeclarant, updateFileStatus } = useFileStore();
   const { addNotification } = useNotificationStore();
   const { createRequest } = usePettyCashStore();
 
@@ -137,11 +138,21 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
   const [selectedFile, setSelectedFile] = useState<ShipmentFile | null>(null);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [acknowledgeDialogOpen, setAcknowledgeDialogOpen] = useState(false);
-  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [taxUploadDialogOpen, setTaxUploadDialogOpen] = useState(false);
+  const [wharfageUploadDialogOpen, setWharfageUploadDialogOpen] = useState(false);
   const [declarationDoneDialogOpen, setDeclarationDoneDialogOpen] = useState(false);
   const [pettyCashDialogOpen, setPettyCashDialogOpen] = useState(false);
+  const [arrivalStatusDialogOpen, setArrivalStatusDialogOpen] = useState(false);
   const [selectedDeclarant, setSelectedDeclarant] = useState('');
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [taxDocumentFiles, setTaxDocumentFiles] = useState<File[]>([]);
+  const [wharfageDocumentFiles, setWharfageDocumentFiles] = useState<File[]>([]);
+  const [arrivalDates, setArrivalDates] = useState({
+    eta: '',
+    etb: '',
+    carryInDate: '',
+    manifestComparisonDate: '',
+    wharfageDate: '',
+  });
   const [pettyCashForm, setPettyCashForm] = useState({
     amount: '',
     currency: 'TZS',
@@ -159,9 +170,20 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
     
     if (activeTab === 'all') return matchesSearch;
     if (activeTab === 'waiting') return matchesSearch && file.status === 'WAITING_FOR_DECLARATION';
-    if (activeTab === 'assigned') return matchesSearch && (file.status === 'ASSIGNED_TO_DECLARANT' || file.status === 'DECLARANT_ACKNOWLEDGED');
+    if (activeTab === 'assigned') return matchesSearch && (
+      file.status === 'ASSIGNED_TO_DECLARANT' || 
+      file.status === 'DECLARANT_ACKNOWLEDGED' ||
+      file.status === 'WAITING_FOR_FINAL_ASSESSMENT' ||
+      file.status === 'WAITING_FOR_TAX_PAYMENT'
+    );
     if (activeTab === 'assessment') return matchesSearch && file.status === 'WAITING_FOR_FINAL_ASSESSMENT';
-    if (activeTab === 'myfiles') return matchesSearch && file.assignedDeclarantId === user?.id;
+    if (activeTab === 'myfiles') {
+      // Declarants can see their own files
+      if (user?.role === 'declarant') {
+        return matchesSearch && file.assignedDeclarantId === user?.id;
+      }
+      return matchesSearch && file.assignedDeclarantId === user?.id;
+    }
     return matchesSearch;
   });
 
@@ -191,10 +213,17 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
     setSelectedDeclarant('');
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTaxFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
-      setUploadedFiles([...uploadedFiles, ...newFiles]);
+      setTaxDocumentFiles([...taxDocumentFiles, ...newFiles]);
+    }
+  };
+
+  const handleWharfageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setWharfageDocumentFiles([...wharfageDocumentFiles, ...newFiles]);
     }
   };
 
@@ -207,6 +236,13 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
     if (isSelfAcknowledge) {
       // Self-acknowledge: assign to self and notify declaration manager
       assignDeclarant(selectedFile.id, user.id, user.id);
+      
+      // Update status to WAITING_FOR_FINAL_ASSESSMENT (ASSESSMENT)
+      updateFileStatus(
+        selectedFile.id,
+        'WAITING_FOR_FINAL_ASSESSMENT',
+        user.id
+      );
       
       // Notify declaration manager
       const declarationManager = mockUsers.find(u => u.role === 'declaration_manager');
@@ -221,54 +257,205 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
         });
       }
 
-      toast.success('File acknowledged - You are now assigned to this file');
+      toast.success('File acknowledged - Status updated to ASSESSMENT');
     } else {
-      // Regular acknowledge (already assigned)
+      // Regular acknowledge (already assigned) - Update to ASSESSMENT
       updateFileStatus(
         selectedFile.id,
-        'DECLARANT_ACKNOWLEDGED',
+        'WAITING_FOR_FINAL_ASSESSMENT',
         user.id
       );
 
-      toast.success('File acknowledged - You can now work on this file');
+      toast.success('File acknowledged - Status updated to ASSESSMENT');
     }
 
     setAcknowledgeDialogOpen(false);
     setSelectedFile(null);
   };
 
-  const handleUploadDocuments = () => {
+  const handleUploadTaxDocuments = () => {
     if (!selectedFile || !user) return;
 
-    if (uploadedFiles.length === 0) {
-      toast.error('Please select at least one document to upload');
+    if (taxDocumentFiles.length === 0) {
+      toast.error('Please select at least one tax document to upload');
       return;
     }
 
-    // Add uploaded documents to the file
-    uploadedFiles.forEach((file) => {
-      const document = {
-        id: Math.random().toString(36).substr(2, 9),
-        fileId: selectedFile.id,
-        documentType: 'other' as const,
-        documentName: file.name,
-        fileUrl: URL.createObjectURL(file),
-        uploadedBy: user.id,
-        uploadedAt: new Date(),
-      };
-      addDocument(selectedFile.id, document);
-    });
+    // Update file with tax document URL and timestamp
+    updateFileStatus(
+      selectedFile.id,
+      selectedFile.status, // Keep current status
+      user.id,
+      {
+        taxDocumentUrl: URL.createObjectURL(taxDocumentFiles[0]),
+        taxDocumentUploadedAt: new Date(),
+      }
+    );
 
-    toast.success(`${uploadedFiles.length} document(s) uploaded successfully - Available to all users`);
-    setUploadDialogOpen(false);
+    toast.success('Tax documents uploaded successfully');
+    setTaxUploadDialogOpen(false);
     setSelectedFile(null);
-    setUploadedFiles([]);
+    setTaxDocumentFiles([]);
+  };
+
+  const handleUploadWharfageDocuments = () => {
+    if (!selectedFile || !user) return;
+
+    if (wharfageDocumentFiles.length === 0) {
+      toast.error('Please select at least one wharfage document to upload');
+      return;
+    }
+
+    // Update file with wharfage document URL and timestamp
+    const updateData: any = {
+      wharfageDocumentUrl: URL.createObjectURL(wharfageDocumentFiles[0]),
+      wharfageDocumentUploadedAt: new Date(),
+    };
+
+    // If both tax and wharfage are now uploaded, change status to WAITING_FOR_PAYMENTS
+    if (selectedFile.taxDocumentUrl) {
+      updateFileStatus(
+        selectedFile.id,
+        'WAITING_FOR_PAYMENTS',
+        user.id,
+        updateData
+      );
+      toast.success('Wharfage documents uploaded - Status: WAITING FOR PAYMENTS');
+    } else {
+      updateFileStatus(
+        selectedFile.id,
+        selectedFile.status,
+        user.id,
+        updateData
+      );
+      toast.success('Wharfage documents uploaded - Please upload tax documents');
+    }
+
+    setWharfageUploadDialogOpen(false);
+    setSelectedFile(null);
+    setWharfageDocumentFiles([]);
+  };
+
+  const handleTaxPaid = () => {
+    if (!selectedFile || !user) return;
+
+    updateFileStatus(
+      selectedFile.id,
+      selectedFile.status, // Keep WAITING_FOR_PAYMENTS status
+      user.id,
+      {
+        taxPaymentConfirmed: true,
+        taxPaymentConfirmedAt: new Date(),
+      }
+    );
+
+    toast.success('Tax payment confirmed');
+    setSelectedFile(null);
+  };
+
+  const handleWharfagePaid = () => {
+    if (!selectedFile || !user) return;
+
+    updateFileStatus(
+      selectedFile.id,
+      selectedFile.status, // Keep WAITING_FOR_PAYMENTS status
+      user.id,
+      {
+        wharfagePaymentConfirmed: true,
+        wharfagePaymentConfirmedAt: new Date(),
+      }
+    );
+
+    toast.success('Wharfage payment confirmed');
+    setSelectedFile(null);
+  };
+
+  const handleArrivalStatus = () => {
+    if (!selectedFile || !user) return;
+
+    // For SEA shipments: Allow saving other dates, but wharfage is critical
+    // For AIR shipments: Allow saving other dates, but manifest comparison is critical
+    
+    // Update file with arrival dates (allow partial saves) - Declarant only fills carry-in, manifest, wharfage
+    const updateData: any = {
+      carryInDate: arrivalDates.carryInDate ? new Date(arrivalDates.carryInDate) : selectedFile.carryInDate,
+      manifestComparisonDate: arrivalDates.manifestComparisonDate ? new Date(arrivalDates.manifestComparisonDate) : selectedFile.manifestComparisonDate,
+    };
+
+    if (selectedFile.transportMode === 'SEA') {
+      updateData.wharfageDate = arrivalDates.wharfageDate ? new Date(arrivalDates.wharfageDate) : selectedFile.wharfageDate;
+      
+      // Set arrivalStatusFilled only if wharfage date is filled (critical for SEA)
+      updateData.arrivalStatusFilled = !!arrivalDates.wharfageDate || !!selectedFile.wharfageDate;
+    } else if (selectedFile.transportMode === 'AIR') {
+      // Set arrivalStatusFilled only if manifest comparison date is filled (critical for AIR)
+      updateData.arrivalStatusFilled = !!arrivalDates.manifestComparisonDate || !!selectedFile.manifestComparisonDate;
+    }
+
+    updateFileStatus(
+      selectedFile.id,
+      selectedFile.status, // Keep current status
+      user.id,
+      updateData
+    );
+
+    const criticalDateFilled = selectedFile.transportMode === 'SEA' 
+      ? (arrivalDates.wharfageDate || selectedFile.wharfageDate)
+      : (arrivalDates.manifestComparisonDate || selectedFile.manifestComparisonDate);
+
+    if (criticalDateFilled) {
+      toast.success('Arrival status completed - Declaration Done is now available');
+    } else {
+      const criticalField = selectedFile.transportMode === 'SEA' ? 'Wharfage Date' : 'Manifest Comparison Date';
+      toast.info(`Arrival dates saved. Fill ${criticalField} to enable Declaration Done`);
+    }
+
+    setArrivalStatusDialogOpen(false);
+    setSelectedFile(null);
+    setArrivalDates({
+      eta: '',
+      etb: '',
+      carryInDate: '',
+      manifestComparisonDate: '',
+      wharfageDate: '',
+    });
   };
 
   const handleDeclarationDone = () => {
     if (!selectedFile || !user) return;
 
-    // Move to READY_FOR_OPERATIONS
+    // Check if arrival status is filled
+    if (!selectedFile.arrivalStatusFilled) {
+      toast.error('Please fill arrival status before marking declaration as done');
+      return;
+    }
+
+    // Check if tax documents are uploaded
+    if (!selectedFile.taxDocumentUrl) {
+      toast.error('Please upload tax documents before marking declaration as done');
+      return;
+    }
+
+    // Check if tax payment is confirmed
+    if (!selectedFile.taxPaymentConfirmed) {
+      toast.error('Please confirm tax payment before marking declaration as done');
+      return;
+    }
+
+    // For SEA shipments, check wharfage requirements
+    if (selectedFile.transportMode === 'SEA') {
+      if (!selectedFile.wharfageDocumentUrl) {
+        toast.error('Please upload wharfage documents before marking declaration as done');
+        return;
+      }
+
+      if (!selectedFile.wharfagePaymentConfirmed) {
+        toast.error('Please confirm wharfage payment before marking declaration as done');
+        return;
+      }
+    }
+
+    // Move directly to READY_FOR_OPERATIONS (skip TAXES_PAID)
     updateFileStatus(
       selectedFile.id,
       'READY_FOR_OPERATIONS',
@@ -279,13 +466,13 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
     addNotification({
       userId: '5',
       title: 'Declaration Complete - Ready for Operations',
-      message: `File ${selectedFile.fileNumber} declaration is complete and ready for operations assignment`,
+      message: `File ${selectedFile.fileNumber} declaration complete and ready for operations assignment`,
       type: 'success',
       fileId: selectedFile.id,
       link: '/operations',
     });
 
-    toast.success('Declaration marked as complete - File moved to Operations Department');
+    toast.success('Declaration complete - Status: READY FOR OPERATIONS');
     setDeclarationDoneDialogOpen(false);
     setSelectedFile(null);
   };
@@ -326,46 +513,14 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
     setSelectedFile(null);
   };
 
-  const statusColors: Record<FileStatus, string> = {
-    WAITING_FOR_DECLARATION: 'bg-amber-100 text-amber-700',
-    ASSIGNED_TO_DECLARANT: 'bg-blue-100 text-blue-700',
-    DECLARANT_ACKNOWLEDGED: 'bg-green-100 text-green-700',
-    WAITING_FOR_FINAL_ASSESSMENT: 'bg-purple-100 text-purple-700',
-    DECLARATION_DONE: 'bg-green-100 text-green-700',
-    WAITING_FOR_TAX_PAYMENT: 'bg-amber-100 text-amber-700',
-    TAXES_PAID: 'bg-green-100 text-green-700',
-    READY_FOR_OPERATIONS: 'bg-blue-100 text-blue-700',
-    RECEIVED_BY_CLERK: 'bg-blue-100 text-blue-700',
-    CLERK_WORKING_ON_FILE: 'bg-blue-100 text-blue-700',
-    SHIPMENT_UNDER_VERIFICATION: 'bg-purple-100 text-purple-700',
-    WAITING_FOR_PERMIT_PAYMENTS: 'bg-amber-100 text-amber-700',
-    PERMIT_PAYMENTS_DONE: 'bg-green-100 text-green-700',
-    RELEASE_ORDER_UPLOADED: 'bg-green-100 text-green-700',
-    PROCESSING_DELIVERY_ORDER: 'bg-blue-100 text-blue-700',
-    WAITING_FOR_DO_PAYMENT: 'bg-amber-100 text-amber-700',
-    DELIVERY_ORDER_PAYMENTS_DONE: 'bg-green-100 text-green-700',
-    DELIVERY_ORDER_READY: 'bg-green-100 text-green-700',
-    DELIVERY_ORDER_COLLECTED: 'bg-blue-100 text-blue-700',
-    WAITING_FOR_PORT_CHARGES: 'bg-amber-100 text-amber-700',
-    WAITING_FOR_PORT_PAYMENT: 'bg-amber-100 text-amber-700',
-    PORT_CHARGES_PAID: 'bg-green-100 text-green-700',
-    WAITING_FOR_PAYMENTS: 'bg-amber-100 text-amber-700',
-    WAITING_FOR_SWISSPORT_PAYMENTS: 'bg-amber-100 text-amber-700',
-    SWISSPORT_CHARGES_PAID: 'bg-green-100 text-green-700',
-    DRIVER_REQUESTED: 'bg-blue-100 text-blue-700',
-    DRIVER_ASSIGNED: 'bg-blue-100 text-blue-700',
-    DRIVER_COLLECTING_CARGO: 'bg-purple-100 text-purple-700',
-    CARGO_COLLECTED_FROM_ICD: 'bg-green-100 text-green-700',
-    CARGO_COLLECTED_FROM_AIRPORT: 'bg-green-100 text-green-700',
-    DELIVERED_TO_CLIENT: 'bg-green-100 text-green-700',
-    SHIPMENT_AT_WAREHOUSE: 'bg-blue-100 text-blue-700',
-    COMPLETED: 'bg-green-100 text-green-700',
-    CANCELLED: 'bg-red-100 text-red-700',
-  };
-
   const stats = {
     waiting: files.filter((f: ShipmentFile) => f.status === 'WAITING_FOR_DECLARATION').length,
-    assigned: files.filter((f: ShipmentFile) => f.status === 'ASSIGNED_TO_DECLARANT' || f.status === 'DECLARANT_ACKNOWLEDGED').length,
+    assigned: files.filter((f: ShipmentFile) => 
+      f.status === 'ASSIGNED_TO_DECLARANT' || 
+      f.status === 'DECLARANT_ACKNOWLEDGED' ||
+      f.status === 'WAITING_FOR_FINAL_ASSESSMENT' ||
+      f.status === 'WAITING_FOR_TAX_PAYMENT'
+    ).length,
     assessment: files.filter((f: ShipmentFile) => f.status === 'WAITING_FOR_FINAL_ASSESSMENT').length,
     myFiles: user?.role === 'declarant' 
       ? files.filter((f: ShipmentFile) => f.assignedDeclarantId === user.id).length 
@@ -446,7 +601,7 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
         )}
       </div>
 
-      {!canManipulate && user && (
+      {!canManipulate && user && user.role !== 'declarant' && (
         <Card className="bg-gradient-to-r from-orange-50 to-blue-50 border-orange-200">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
@@ -577,10 +732,12 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
                             )}
                           </td>
                           <td className="py-4 px-4">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <Button variant="ghost" size="sm" onClick={() => navigate('files/:id', { id: file.id })}>
                                 View
                               </Button>
+                              
+                              {/* Declaration Manager Actions */}
                               {canManipulate && user?.role === 'declaration_manager' && file.status === 'WAITING_FOR_DECLARATION' && (
                                 <>
                                   <Button size="sm" onClick={() => { setSelectedFile(file); setAssignDialogOpen(true); }}>
@@ -591,33 +748,167 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
                                   </Button>
                                 </>
                               )}
+                              
+                              {/* Declaration Manager: Reassign if declarant hasn't acknowledged or worked on file */}
+                              {canManipulate && user?.role === 'declaration_manager' && (
+                                file.status === 'ASSIGNED_TO_DECLARANT' || 
+                                file.status === 'DECLARANT_ACKNOWLEDGED' ||
+                                file.status === 'WAITING_FOR_FINAL_ASSESSMENT'
+                              ) && (
+                                <Button size="sm" variant="outline" onClick={() => { setSelectedFile(file); setAssignDialogOpen(true); }}>
+                                  Reassign
+                                </Button>
+                              )}
+                              
+                              {/* Declarant: Self-acknowledge unassigned files */}
                               {user?.role === 'declarant' && file.status === 'WAITING_FOR_DECLARATION' && !file.assignedDeclarantId && (
                                 <Button size="sm" onClick={() => { setSelectedFile(file); setAcknowledgeDialogOpen(true); }}>
                                   Acknowledge & Work
                                 </Button>
                               )}
-                              {canManipulate && user?.role === 'declarant' && file.status === 'ASSIGNED_TO_DECLARANT' && file.assignedDeclarantId === user.id && (
+                              
+                              {/* Declarant: Acknowledge assigned files */}
+                              {user?.role === 'declarant' && file.status === 'ASSIGNED_TO_DECLARANT' && file.assignedDeclarantId === user.id && (
                                 <Button size="sm" onClick={() => { setSelectedFile(file); setAcknowledgeDialogOpen(true); }}>
                                   Acknowledge
                                 </Button>
                               )}
-                              {canManipulate && (user?.role === 'declarant' || user?.role === 'declaration_manager') && file.status === 'DECLARANT_ACKNOWLEDGED' && (
+                              
+                              {/* Declarant & Declaration Manager: Work on acknowledged files */}
+                              {(user?.role === 'declarant' || user?.role === 'declaration_manager') && file.status === 'WAITING_FOR_FINAL_ASSESSMENT' && (
                                 <>
-                                  <Button size="sm" variant="outline" onClick={() => { setSelectedFile(file); setUploadDialogOpen(true); }}>
-                                    Upload Docs
+                                  {/* Only show Arrival Status button if user is the assigned declarant or declaration manager */}
+                                  {(file.assignedDeclarantId === user.id || user.role === 'declaration_manager') && (
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      className={file.arrivalStatusFilled ? 'bg-green-50 border-green-300' : ''}
+                                      onClick={() => { 
+                                        setSelectedFile(file); 
+                                        setArrivalStatusDialogOpen(true); 
+                                      }}
+                                    >
+                                      {file.arrivalStatusFilled ? '✓ Arrival Status' : 'Arrival Status'}
+                                    </Button>
+                                  )}
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    className={file.taxDocumentUrl ? 'bg-green-50 border-green-300' : ''}
+                                    onClick={() => { setSelectedFile(file); setTaxUploadDialogOpen(true); }}
+                                  >
+                                    <Upload className="w-3 h-3 mr-1" />
+                                    {file.taxDocumentUrl ? '✓ Tax Docs' : 'Upload Tax'}
                                   </Button>
-                                  <Button size="sm" onClick={() => { setSelectedFile(file); setDeclarationDoneDialogOpen(true); }}>
-                                    Declaration Done
-                                  </Button>
+                                  {/* Wharfage upload only for SEA shipments */}
+                                  {file.transportMode === 'SEA' && (
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      className={file.wharfageDocumentUrl ? 'bg-green-50 border-green-300' : ''}
+                                      onClick={() => { setSelectedFile(file); setWharfageUploadDialogOpen(true); }}
+                                    >
+                                      <Upload className="w-3 h-3 mr-1" />
+                                      {file.wharfageDocumentUrl ? '✓ Wharfage' : 'Upload Wharfage'}
+                                    </Button>
+                                  )}
                                 </>
                               )}
+                              
+                              {/* Show payment buttons and status in WAITING_FOR_PAYMENTS */}
+                              {(user?.role === 'declarant' || user?.role === 'declaration_manager') && file.status === 'WAITING_FOR_PAYMENTS' && (
+                                <>
+                                  {/* Only show Arrival Status button if user is the assigned declarant or declaration manager */}
+                                  {(file.assignedDeclarantId === user.id || user.role === 'declaration_manager') && (
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      className={file.arrivalStatusFilled ? 'bg-green-50 border-green-300' : ''}
+                                      onClick={() => { 
+                                        setSelectedFile(file); 
+                                        setArrivalStatusDialogOpen(true); 
+                                      }}
+                                    >
+                                      {file.arrivalStatusFilled ? '✓ Arrival Status' : 'Arrival Status'}
+                                    </Button>
+                                  )}
+                                  
+                                  {/* TAX PAID Button */}
+                                  {file.taxDocumentUrl && !file.taxPaymentConfirmed && (
+                                    <Button 
+                                      size="sm" 
+                                      onClick={() => { setSelectedFile(file); handleTaxPaid(); }}
+                                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                                    >
+                                      <DollarSign className="w-3 h-3 mr-1" />
+                                      TAX PAID
+                                    </Button>
+                                  )}
+                                  {file.taxPaymentConfirmed && (
+                                    <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                                      ✓ Tax Paid
+                                    </Badge>
+                                  )}
+                                  
+                                  {/* WHARFAGE PAID Button (SEA only) */}
+                                  {file.transportMode === 'SEA' && file.wharfageDocumentUrl && !file.wharfagePaymentConfirmed && (
+                                    <Button 
+                                      size="sm" 
+                                      onClick={() => { setSelectedFile(file); handleWharfagePaid(); }}
+                                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                                    >
+                                      <DollarSign className="w-3 h-3 mr-1" />
+                                      WHARFAGE PAID
+                                    </Button>
+                                  )}
+                                  {file.transportMode === 'SEA' && file.wharfagePaymentConfirmed && (
+                                    <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                                      ✓ Wharfage Paid
+                                    </Badge>
+                                  )}
+                                </>
+                              )}
+                              
+                              {/* Declaration Done button - only show after all payments confirmed */}
+                              {(user?.role === 'declarant' || user?.role === 'declaration_manager') && file.status === 'WAITING_FOR_PAYMENTS' && (
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => { setSelectedFile(file); setDeclarationDoneDialogOpen(true); }}
+                                  disabled={
+                                    !file.arrivalStatusFilled || 
+                                    !file.taxPaymentConfirmed || 
+                                    (file.transportMode === 'SEA' && !file.wharfagePaymentConfirmed)
+                                  }
+                                  title={
+                                    !file.arrivalStatusFilled ? 'Please fill arrival status first' : 
+                                    !file.taxPaymentConfirmed ? 'Please confirm tax payment' :
+                                    (file.transportMode === 'SEA' && !file.wharfagePaymentConfirmed) ? 'Please confirm wharfage payment' :
+                                    'Mark declaration as done'
+                                  }
+                                  className={
+                                    (!file.arrivalStatusFilled || !file.taxPaymentConfirmed || (file.transportMode === 'SEA' && !file.wharfagePaymentConfirmed)) 
+                                    ? 'opacity-50 cursor-not-allowed' 
+                                    : 'bg-green-600 hover:bg-green-700 text-white'
+                                  }
+                                >
+                                  Declaration Done
+                                </Button>
+                              )}
+                              
+                              {/* Petty Cash button for declarants and declaration manager - Navigate with file pre-selected */}
                               {(user?.role === 'declarant' || user?.role === 'declaration_manager') && hasPermission('create_petty_cash_request') && (
-                                <Button size="sm" variant="outline" onClick={() => { setSelectedFile(file); setPettyCashDialogOpen(true); }}>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  onClick={() => navigate('petty-cash', { fileId: file.id })}
+                                >
                                   <DollarSign className="w-3 h-3 mr-1" />
                                   Petty Cash
                                 </Button>
                               )}
-                              {!canManipulate && (
+                              
+                              {/* View Only badge for executives */}
+                              {!canManipulate && user?.role !== 'declarant' && (
                                 <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-700">
                                   View Only
                                 </Badge>
@@ -776,23 +1067,24 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+      {/* Upload Tax Documents Dialog */}
+      <Dialog open={taxUploadDialogOpen} onOpenChange={setTaxUploadDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Upload Tax Documents</DialogTitle>
             <DialogDescription>
-              {selectedFile && `Upload tax and customs documents for file ${selectedFile.fileNumber}`}
+              {selectedFile && `Upload tax documents for file ${selectedFile.fileNumber}`}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Select Documents to Upload</Label>
+              <Label>Select Tax Documents to Upload</Label>
               <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center hover:border-blue-400 transition-colors cursor-pointer">
                 <input
                   type="file"
                   multiple
-                  onChange={handleFileUpload}
+                  onChange={handleTaxFileUpload}
                   className="hidden"
                   id="tax-file-upload"
                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls"
@@ -811,10 +1103,10 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
                 </label>
               </div>
               
-              {uploadedFiles.length > 0 && (
+              {taxDocumentFiles.length > 0 && (
                 <div className="mt-3 space-y-2">
-                  <p className="text-sm font-medium">Selected Files ({uploadedFiles.length}):</p>
-                  {uploadedFiles.map((file, index) => (
+                  <p className="text-sm font-medium">Selected Files ({taxDocumentFiles.length}):</p>
+                  {taxDocumentFiles.map((file, index) => (
                     <div key={index} className="flex items-center gap-2 p-2 bg-green-50 rounded text-sm">
                       <FileText className="w-4 h-4 text-green-600" />
                       <span className="flex-1">{file.name}</span>
@@ -824,7 +1116,7 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => setUploadedFiles(uploadedFiles.filter((_, i) => i !== index))}
+                        onClick={() => setTaxDocumentFiles(taxDocumentFiles.filter((_, i) => i !== index))}
                       >
                         ×
                       </Button>
@@ -837,24 +1129,103 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
             <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
               <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
               <p className="text-sm text-blue-700">
-                All uploaded documents will be accessible to all users in their respective modules for download.
+                Tax documents will be accessible to authorized users for download.
               </p>
             </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => {
-              setUploadDialogOpen(false);
-              setUploadedFiles([]);
+              setTaxUploadDialogOpen(false);
+              setTaxDocumentFiles([]);
             }}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleUploadDocuments}
-              disabled={uploadedFiles.length === 0}
-            >
+            <Button onClick={handleUploadTaxDocuments} disabled={taxDocumentFiles.length === 0}>
               <Upload className="w-4 h-4 mr-2" />
-              Upload {uploadedFiles.length > 0 && `(${uploadedFiles.length})`}
+              Upload Tax Documents
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Upload Wharfage Documents Dialog */}
+      <Dialog open={wharfageUploadDialogOpen} onOpenChange={setWharfageUploadDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Upload Wharfage Documents</DialogTitle>
+            <DialogDescription>
+              {selectedFile && `Upload wharfage documents for file ${selectedFile.fileNumber}`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Select Wharfage Documents to Upload</Label>
+              <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center hover:border-blue-400 transition-colors cursor-pointer">
+                <input
+                  type="file"
+                  multiple
+                  onChange={handleWharfageFileUpload}
+                  className="hidden"
+                  id="wharfage-file-upload"
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls"
+                />
+                <label htmlFor="wharfage-file-upload" className="cursor-pointer">
+                  <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                  <p className="text-sm text-gray-500">
+                    Click to upload wharfage documents
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Wharfage receipts, port charges, etc.
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Supported: PDF, DOC, Images, Excel
+                  </p>
+                </label>
+              </div>
+              
+              {wharfageDocumentFiles.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-sm font-medium">Selected Files ({wharfageDocumentFiles.length}):</p>
+                  {wharfageDocumentFiles.map((file, index) => (
+                    <div key={index} className="flex items-center gap-2 p-2 bg-green-50 rounded text-sm">
+                      <FileText className="w-4 h-4 text-green-600" />
+                      <span className="flex-1">{file.name}</span>
+                      <span className="text-xs text-gray-500">
+                        {(file.size / 1024).toFixed(1)} KB
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setWharfageDocumentFiles(wharfageDocumentFiles.filter((_, i) => i !== index))}
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
+              <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
+              <p className="text-sm text-blue-700">
+                Wharfage documents will be accessible to authorized users for download.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setWharfageUploadDialogOpen(false);
+              setWharfageDocumentFiles([]);
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={handleUploadWharfageDocuments} disabled={wharfageDocumentFiles.length === 0}>
+              <Upload className="w-4 h-4 mr-2" />
+              Upload Wharfage Documents
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1006,6 +1377,122 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
             >
               <DollarSign className="w-4 h-4 mr-2" />
               Submit Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={arrivalStatusDialogOpen} onOpenChange={setArrivalStatusDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Arrival Status - Declarant Fields</DialogTitle>
+            <DialogDescription>
+              {selectedFile && `Fill arrival dates for file ${selectedFile.fileNumber} (${selectedFile.transportMode} shipment)`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {selectedFile && (
+              <>
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm font-medium text-blue-900">
+                    {selectedFile.transportMode === 'SEA' 
+                      ? '🚢 SEA Shipment - Wharfage Date is CRITICAL' 
+                      : '✈️ AIR Shipment - Manifest Comparison Date is CRITICAL'}
+                  </p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    {selectedFile.transportMode === 'SEA'
+                      ? 'You can save other dates, but Declaration Done requires Wharfage Date. ETA/ETB are filled by Shipping Line Clerk.'
+                      : 'You can save other dates, but Declaration Done requires Manifest Comparison Date. ETA is filled by Shipping Line Clerk.'}
+                  </p>
+                </div>
+
+                {/* Declarant-specific fields only */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Carry In Date</Label>
+                    <Input
+                      type="date"
+                      value={arrivalDates.carryInDate}
+                      onChange={(e) => setArrivalDates({ ...arrivalDates, carryInDate: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className={selectedFile.transportMode === 'AIR' ? 'text-red-600 font-semibold' : ''}>
+                      Manifest Comparison Date {selectedFile.transportMode === 'AIR' && '⚠️ CRITICAL'}
+                    </Label>
+                    <Input
+                      type="date"
+                      value={arrivalDates.manifestComparisonDate}
+                      onChange={(e) => setArrivalDates({ ...arrivalDates, manifestComparisonDate: e.target.value })}
+                      className={selectedFile.transportMode === 'AIR' ? 'border-red-300 focus:border-red-500' : ''}
+                    />
+                  </div>
+
+                  {selectedFile.transportMode === 'SEA' && (
+                    <div className="space-y-2">
+                      <Label className="text-red-600 font-semibold">
+                        Wharfage Date ⚠️ CRITICAL
+                      </Label>
+                      <Input
+                        type="date"
+                        value={arrivalDates.wharfageDate}
+                        onChange={(e) => setArrivalDates({ ...arrivalDates, wharfageDate: e.target.value })}
+                        className="border-red-300 focus:border-red-500"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Show ETA/ETB as read-only if already filled by shipping line clerk */}
+                {(selectedFile.eta || selectedFile.etb) && (
+                  <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Shipping Line Information (Read-only):</p>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      {selectedFile.eta && (
+                        <div>
+                          <span className="text-gray-500">ETA:</span>
+                          <p className="font-medium">{new Date(selectedFile.eta).toLocaleDateString()}</p>
+                        </div>
+                      )}
+                      {selectedFile.etb && selectedFile.transportMode === 'SEA' && (
+                        <div>
+                          <span className="text-gray-500">ETB:</span>
+                          <p className="font-medium">{new Date(selectedFile.etb).toLocaleDateString()}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {selectedFile.arrivalStatusFilled && (
+                  <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                    <p className="text-sm text-green-700">
+                      ✓ Critical date filled - Declaration Done is available
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setArrivalStatusDialogOpen(false);
+              setArrivalDates({
+                eta: '',
+                etb: '',
+                carryInDate: '',
+                manifestComparisonDate: '',
+                wharfageDate: '',
+              });
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={handleArrivalStatus}>
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Save Arrival Dates
             </Button>
           </DialogFooter>
         </DialogContent>

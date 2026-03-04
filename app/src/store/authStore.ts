@@ -19,7 +19,7 @@ interface AuthState {
 const rolePermissions: Record<UserRole, string[]> = {
   // Department Staff - Limited Access
   documentation_officer: ['create_file', 'view_own_files', 'create_petty_cash_request'],
-  declaration_manager: ['assign_declarant', 'view_department_files', 'view_all_declarations', 'create_petty_cash_request'],
+  declaration_manager: ['assign_declarant', 'view_department_files', 'view_all_declarations', 'create_petty_cash_request', 'view_petty_cash_history'],
   declarant: ['process_declaration', 'view_assigned_files', 'create_petty_cash_request'],
   operations_manager: ['assign_operation_clerk', 'approve_petty_cash_manager', 'view_operations', 'create_petty_cash_request'],
   operation_clerk: ['process_operations', 'upload_verification_photos', 'create_petty_cash_request'],
@@ -204,8 +204,11 @@ export const useAuthStore = (): AuthState => {
 
     canManipulateOperationsModule: () => {
       if (!state.user) return false;
-      // Only Operations Manager and Administrator can manipulate operations module
-      return state.user.role === 'operations_manager' || state.user.role === 'administrator';
+      // Operations Manager, Permits Clerk, Shipping Line Clerk, and Administrator can manipulate operations module
+      return state.user.role === 'operations_manager' || 
+             state.user.role === 'permits_clerk' ||
+             state.user.role === 'shipping_line_clerk' ||
+             state.user.role === 'administrator';
     },
 
     canManipulateDriversModule: () => {

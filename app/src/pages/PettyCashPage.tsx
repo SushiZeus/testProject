@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   DollarSign,
   CheckCircle,
@@ -13,6 +13,7 @@ import {
   Calendar,
   Trash2,
   FileText,
+  Download,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -45,9 +46,10 @@ import { resetPettyCashData } from '@/utils/resetPettyCash';
 
 interface PettyCashPageProps {
   navigate: (route: AppRoute, params?: Record<string, string>) => void;
+  fileId?: string; // Pre-selected file ID from navigation
 }
 
-export function PettyCashPage({ navigate }: PettyCashPageProps) {
+export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
   const { user } = useAuthStore();
   const { requests, updateStatus, createRequest, deleteRequest } = usePettyCashStore();
   const { addNotification } = useNotificationStore();
@@ -79,13 +81,20 @@ export function PettyCashPage({ navigate }: PettyCashPageProps) {
   const [resubmitComment, setResubmitComment] = useState('');
   
   const [requestForm, setRequestForm] = useState({
-    hasFile: false,
-    fileId: 'none',
+    hasFile: !!fileId, // Auto-set if fileId is provided
+    fileId: fileId || 'none', // Pre-select the file if provided
     amount: '',
     currency: 'TZS',
     description: '',
     attachment: null as File | null,
   });
+
+  // Auto-open request dialog if fileId is provided
+  useEffect(() => {
+    if (fileId) {
+      setRequestDialogOpen(true);
+    }
+  }, [fileId]);
 
   // Filtering state
   const [filters, setFilters] = useState<PettyCashFilters>({
@@ -171,13 +180,9 @@ export function PettyCashPage({ navigate }: PettyCashPageProps) {
     }
     
     if (user.role === 'cashier') {
-      return (requests || []).filter((r: PettyCashRequest) => 
-        r.status === 'PENDING_PAYMENT' || 
-        r.status === 'PAID' ||
-        r.status === 'APPROVED_BY_COO' ||
-        r.status === 'COO_DIRECT_TO_FINANCE' ||
-        r.status === 'PENDING_FINANCE'
-      );
+      // Cashier can see ALL requests to monitor their status
+      // But can only act on PENDING_PAYMENT requests
+      return requests || [];
     }
     
     // All other users can only see their own requests
@@ -222,14 +227,23 @@ export function PettyCashPage({ navigate }: PettyCashPageProps) {
       return true;
     }
     
-    // COO - all requests pending COO approval
-    if (user.role === 'coo' && r.status === 'PENDING_COO_APPROVAL' && r.requestedBy !== user.id) {
-      return true;
+    // COO - all pending requests (not just COO approval stage)
+    if (user.role === 'coo') {
+      const isPending = r.status === 'PENDING_HR_APPROVAL' ||
+        r.status === 'PENDING_MANAGER_APPROVAL' ||
+        r.status === 'PENDING_DECLARATION_MANAGER_APPROVAL' ||
+        r.status === 'PENDING_COO_APPROVAL';
+      return isPending && r.requestedBy !== user.id;
     }
     
-    // Finance Manager - requests from accounts department
-    if (user.role === 'finance_manager' && r.status === 'PENDING_FINANCE' && r.requestedBy !== user.id) {
-      return true;
+    // Finance Manager - all pending requests (not just finance stage)
+    if (user.role === 'finance_manager') {
+      const isPending = r.status === 'PENDING_HR_APPROVAL' ||
+        r.status === 'PENDING_MANAGER_APPROVAL' ||
+        r.status === 'PENDING_DECLARATION_MANAGER_APPROVAL' ||
+        r.status === 'PENDING_COO_APPROVAL' ||
+        r.status === 'PENDING_FINANCE';
+      return isPending && r.requestedBy !== user.id;
     }
     
     return false;
@@ -246,11 +260,9 @@ export function PettyCashPage({ navigate }: PettyCashPageProps) {
       )
     : [];
 
-  // Cashier: Finance approved requests (for payment)
+  // Cashier: Show all requests but can only act on PENDING_PAYMENT
   const financeApprovedRequests = user?.role === 'cashier'
-    ? visibleRequests.filter((r: PettyCashRequest) => 
-        r.status === 'PENDING_PAYMENT'
-      )
+    ? visibleRequests // Show all requests
     : [];
 
   const filteredRequests = visibleRequests.filter((request: PettyCashRequest) => {
@@ -1004,7 +1016,7 @@ export function PettyCashPage({ navigate }: PettyCashPageProps) {
                     <Label>Select File *</Label>
                     <Select
                       value={requestForm.fileId}
-                      onValueChange={(value) => setRequestForm({ ...requestForm, fileId: value })}
+                      onValueChange={(value: string) => setRequestForm({ ...requestForm, fileId: value })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Choose a file" />
@@ -1039,7 +1051,7 @@ export function PettyCashPage({ navigate }: PettyCashPageProps) {
                     />
                     <Select
                       value={requestForm.currency}
-                      onValueChange={(value) => setRequestForm({ ...requestForm, currency: value })}
+                      onValueChange={(value: string) => setRequestForm({ ...requestForm, currency: value })}
                     >
                       <SelectTrigger className="w-24">
                         <SelectValue />
@@ -1241,9 +1253,27 @@ export function PettyCashPage({ navigate }: PettyCashPageProps) {
                 {selectedRequest.attachmentUrl && (
                   <div>
                     <Label className="text-gray-500">Attachment</Label>
-                    <p className="mt-1 text-blue-600 hover:underline cursor-pointer">
-                      {selectedRequest.attachmentUrl.split('/').pop()}
-                    </p>
+                    <div className="mt-1 flex items-center gap-2 p-3 bg-gray-50 rounded border">
+                      <FileText className="w-4 h-4 text-blue-600" />
+                      <span className="flex-1 text-sm">{selectedRequest.attachmentUrl.split('/').pop()}</span>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          // In production, this would download from server
+                          // For now, we'll open in new tab or trigger download
+                          const link = document.createElement('a');
+                          link.href = selectedRequest.attachmentUrl || '';
+                          link.download = selectedRequest.attachmentUrl?.split('/').pop() || 'attachment';
+                          link.click();
+                          toast.success('Download started');
+                        }}
+                        className="text-blue-600 hover:text-blue-700"
+                      >
+                        <Download className="w-4 h-4 mr-1" />
+                        Download
+                      </Button>
+                    </div>
                   </div>
                 )}
 
