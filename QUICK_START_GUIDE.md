@@ -1,18 +1,27 @@
 # Quick Start Guide - Dow Elef Shipment Management System
 
-## 🚀 Deploy in 3 Steps
+## 🚀 Deploy Locally in 3 Steps
 
+### Windows
 ```bash
-# 1. Build
-cd app
-npm run build
-
-# 2. Preview (optional)
-npm run preview
-
-# 3. Deploy
-netlify deploy --prod --dir=dist
+deploy-local.bat
 ```
+
+### Mac/Linux
+```bash
+chmod +x deploy-local.sh
+./deploy-local.sh
+```
+
+### Manual
+```bash
+cd app
+npm install
+npm run build
+npm run preview
+```
+
+**Access at**: http://localhost:4173/
 
 ## 🔑 Test Accounts (All passwords: password123)
 
