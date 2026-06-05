@@ -56,6 +56,7 @@ The DOW ELEF Shipment Management System is a comprehensive enterprise solution f
 - ✅ Document management
 - ✅ Financial workflows
 - ✅ Transport coordination
+- ✅ Cargo verification form (May 2026)
 
 ---
 
@@ -105,26 +106,36 @@ The DOW ELEF Shipment Management System is a comprehensive enterprise solution f
 
 ---
 
-## 🎯 Latest Features (March 2026)
+## 🎯 Latest Features (May 2026)
 
-### 1. Professional Logo ✅
-- Custom DOW ELEF logo integrated
-- Displayed on login page and throughout application
-- Professional gradient design
+### 1. Cargo Verification Form ✅
+- Mandatory 10-question inspection checklist
+- Required before driver assignment
+- Professional print layout
+- Yes/No questions with remarks
+- Officer signature and station details
 
-### 2. Shipping Line Clerk Role ✅
-- New role for SEA shipment coordination
-- ETA/ETB management
-- Delivery order processing
-- Available in login dropdown
+### 2. AIR Declaration Workflow ✅
+- GREEN "Declaration Done" button after tax paid
+- No wharfage required for AIR shipments
+- Immediate workflow progression
 
-### 3. Enhanced Workflows ✅
-- Port charges with validation (SEA)
+### 3. Operations Manager UI ✅
+- Removed Inventory module from sidebar
+- Removed Outsourcing module from sidebar
+- Cleaner, more focused interface
+
+### 4. Operation Clerk Experience ✅
+- Removed "View Only Access" disclaimer
+- Better user confidence
+- Clear operational access
+
+### 5. Previous Features (March 2026) ✅
+- Professional DOW ELEF logo
+- Shipping line clerk role
+- Port charges validation (SEA)
 - Swissport charges (AIR)
-- Separate tax and wharfage uploads
-- File number format: IMP-SEA-2026-0001
-- Activity timeline with user names
-- Tax/wharfage paid dates display
+- Enhanced workflows
 
 ---
 
@@ -133,7 +144,7 @@ The DOW ELEF Shipment Management System is a comprehensive enterprise solution f
 ### Modules:
 1. **Documentation** - File opening and client management
 2. **Declaration** - Customs declaration and tax processing
-3. **Operations** - Permits, shipping, and delivery coordination
+3. **Operations** - Permits, shipping, cargo verification, and delivery coordination
 4. **Finance** - Petty cash and payment management
 5. **Transport** - Driver and delivery management
 6. **Reports** - Analytics and reporting
@@ -180,16 +191,18 @@ npm run preview
 
 ### Current Build Status:
 - ✅ TypeScript: No errors
-- ✅ Build: Success (10.08s)
-- ✅ Bundle: 1.12 MB (294 KB gzipped)
+- ✅ Build: Success
+- ✅ All features working
 
 ---
 
 ## 📚 Documentation
 
 ### Main Documentation Files:
+- **THREE_FIXES_IMPLEMENTED_MAY_30_2026.md** - Latest fixes (May 2026)
+- **CARGO_VERIFICATION_FORM_COMPLETE_MAY_30_2026.md** - Cargo form details
 - **ALL_RESOURCES_UPDATED.md** - Complete system overview
-- **DEPLOYMENT_SUCCESS_MARCH_2026.md** - Latest deployment details
+- **DEPLOYMENT_SUCCESS_MARCH_2026.md** - Deployment details
 - **IMPLEMENTATION_COMPLETE_FINAL_2026.md** - Feature implementation details
 - **QUICK_ACCESS.md** - Quick reference guide
 - **SHIPPING_LINE_CLERK_GUIDE.md** - New role guide
@@ -282,14 +295,14 @@ npm run preview -- --host
 8. Login as Operations Manager
 9. Assign to operation clerk
 10. Process through operations
-11. Test port charges workflow
+11. Fill cargo verification form
+12. Assign to driver
 
-### Test New Features:
-- ✅ Logo display on all pages
-- ✅ Shipping line clerk login
-- ✅ ETA/ETB functionality
-- ✅ Port charges validation
-- ✅ Activity timeline with users
+### Test New Features (May 2026):
+- ✅ Cargo verification form workflow
+- ✅ AIR declaration green button
+- ✅ Operations manager clean sidebar
+- ✅ Operation clerk (no disclaimer)
 
 ---
 
@@ -303,7 +316,7 @@ npm run preview -- --host
 ### For Feature Questions:
 - See documentation files
 - Check QUICK_ACCESS.md
-- Review SHIPPING_LINE_CLERK_GUIDE.md
+- Review THREE_FIXES_IMPLEMENTED_MAY_30_2026.md
 
 ---
 
@@ -315,10 +328,22 @@ npm run preview -- --host
 - ✅ All 27 accounts configured
 - ✅ Professional branding complete
 - ✅ All workflows functional
+- ✅ Cargo verification form working
+- ✅ AIR/SEA workflows differentiated
 
 ---
 
 ## 📝 Version History
+
+### Version 1.2.0 - May 2026 Release
+- ✅ Cargo verification form implementation
+- ✅ AIR declaration workflow fix
+- ✅ Operations manager sidebar cleanup
+- ✅ Operation clerk UI improvements
+
+### Version 1.1.0 - April 2026 Release
+- ✅ HR modules implementation
+- ✅ Payment workflow enhancements
 
 ### Version 1.0.0 - March 2026 Release
 - ✅ Complete system implementation
@@ -336,11 +361,11 @@ npm run preview -- --host
 1. **Comprehensive** - Covers entire shipment lifecycle
 2. **Role-Based** - 18 different user roles
 3. **Flexible** - Supports 4 transport modes
-4. **Validated** - Complete workflow validation
+4. **Validated** - Complete workflow validation including cargo verification
 5. **Tracked** - Full activity audit trail
 6. **Professional** - Custom branding and UI
 7. **Scalable** - Modular architecture
-8. **User-Friendly** - Intuitive interface
+8. **User-Friendly** - Intuitive interface with role-specific optimizations
 
 ---
 
@@ -357,9 +382,9 @@ http://localhost:4173/
 
 ---
 
-**Last Updated:** March 5, 2026
+**Last Updated:** May 30, 2026
 **Status:** ✅ PRODUCTION READY
-**Version:** 1.0.0
+**Version:** 1.2.0
 
 ---
 
