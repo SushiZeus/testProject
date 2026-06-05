@@ -347,11 +347,12 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
   const handleTaxPaid = () => {
     if (!selectedFile || !user) return;
 
-    // DO NOT change status - just mark tax as paid
-    // Status will only change when DECLARATION DONE is clicked
+    // Mark tax as paid and set appropriate status for Declaration Done button to appear
+    // For SEA: Keep in WAITING_FOR_TAX_PAYMENT if wharfage not paid yet
+    // For AIR: Keep in WAITING_FOR_TAX_PAYMENT (Declaration Done will be enabled)
     updateFileStatus(
       selectedFile.id,
-      selectedFile.status, // Keep current status
+      'WAITING_FOR_TAX_PAYMENT', // Changed from keeping current status
       user.id,
       {
         taxPaymentConfirmed: true,
@@ -359,18 +360,21 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
       }
     );
 
-    toast.success('Tax payment confirmed - Upload wharfage documents and confirm payment');
+    if (selectedFile.transportMode === 'SEA') {
+      toast.success('Tax payment confirmed - Upload and confirm wharfage payment to enable Declaration Done');
+    } else {
+      toast.success('Tax payment confirmed - Declaration Done button is now available (GREEN)');
+    }
     setSelectedFile(null);
   };
 
   const handleWharfagePaid = () => {
     if (!selectedFile || !user) return;
 
-    // DO NOT change status - just mark wharfage as paid
-    // Status will only change when DECLARATION DONE is clicked
+    // Mark wharfage as paid and set status to enable Declaration Done button
     updateFileStatus(
       selectedFile.id,
-      selectedFile.status, // Keep current status
+      'WAITING_FOR_WHARFAGE_PAYMENT', // Changed from keeping current status
       user.id,
       {
         wharfagePaymentConfirmed: true,
@@ -378,7 +382,7 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
       }
     );
 
-    toast.success('Wharfage payment confirmed - Click DECLARATION DONE when ready');
+    toast.success('Wharfage payment confirmed - Declaration Done button is now available (GREEN)');
     setSelectedFile(null);
   };
 
