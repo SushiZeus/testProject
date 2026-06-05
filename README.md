@@ -4,7 +4,7 @@
 
 ### **LOCALHOST ADDRESS:**
 ```
-http://localhost:4173/
+http://localhost:5173/
 ```
 
 **Status:** ✅ LIVE AND RUNNING
@@ -16,7 +16,7 @@ http://localhost:4173/
 ### 1. Access the Application
 Open your browser and navigate to:
 ```
-http://localhost:4173/
+http://localhost:5173/
 ```
 
 ### 2. Login with Test Account
@@ -265,7 +265,7 @@ npm run preview
 
 ### Local Development:
 ```
-http://localhost:4173/
+http://localhost:5173/
 ```
 
 ### Production Deployment:
@@ -309,7 +309,7 @@ npm run preview -- --host
 ## 📞 Support
 
 ### For Technical Issues:
-- Check server status: http://localhost:4173/
+- Check server status: http://localhost:5173/
 - Restart server: `cd app && npm run preview`
 - Rebuild: `cd app && npm run build`
 
@@ -375,7 +375,7 @@ The DOW ELEF Shipment Management System is fully deployed and ready for use.
 
 ### **Start Now:**
 ```
-http://localhost:4173/
+http://localhost:5173/
 ```
 
 **Login with any of the 27 accounts and explore the system!**
