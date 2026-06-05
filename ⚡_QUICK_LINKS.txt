@@ -1,0 +1,48 @@
+═══════════════════════════════════════════════════════════════════════════
+  ⚡ QUICK LINKS - DOW ELEF SYSTEM
+  Updated: May 30, 2026
+═══════════════════════════════════════════════════════════════════════════
+
+🌐 OPEN THE SYSTEM:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   This Computer:     http://localhost:5173/
+
+   Other Devices:     http://192.168.0.114:5173/
+
+═══════════════════════════════════════════════════════════════════════════
+
+👤 QUICK LOGIN:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   Operation Clerk:    clerk1@dowelef.com / password123
+   Finance Manager:    finance@dowelef.com / password123
+   Declarant:          declarant1@dowelef.com / password123
+   Operations Manager: operations@dowelef.com / password123
+   Admin:              admin@dowelef.com / password123
+
+═══════════════════════════════════════════════════════════════════════════
+
+🆕 LATEST: CARGO VERIFICATION FORM (May 30, 2026)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   ✅ Mandatory 10-point inspection before delivery
+   ✅ Digital form with print capability
+   ✅ Integrated into operations workflow
+
+═══════════════════════════════════════════════════════════════════════════
+
+📚 FULL DOCUMENTATION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   🌐_ACCESS_LINKS_MAY_30_2026.txt        - All credentials
+   🎯_MASTER_ACCESS_GUIDE_MAY_30_2026.md  - Complete guide
+   🎯_START_HERE_MAY_30_2026.md           - Quick start
+   🚀_DOUBLE_CLICK_TO_START.bat           - Start server
+
+═══════════════════════════════════════════════════════════════════════════
+
+✅ SERVER STATUS: RUNNING
+   All systems operational!
+
+═══════════════════════════════════════════════════════════════════════════

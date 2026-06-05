@@ -1,0 +1,129 @@
+═══════════════════════════════════════════════════════════════
+  START HERE - MARCH 27, 2026 UPDATES
+═══════════════════════════════════════════════════════════════
+
+ALL CHANGES SAVED! Follow these steps to get your fresh links.
+
+───────────────────────────────────────────────────────────────
+STEP 1: Open Command Prompt
+───────────────────────────────────────────────────────────────
+Press: Windows Key + R
+Type: cmd
+Press: Enter
+
+
+───────────────────────────────────────────────────────────────
+STEP 2: Navigate and Start Server
+───────────────────────────────────────────────────────────────
+Copy and paste these commands:
+
+cd C:\Users\user\Desktop\testproject\app
+npm run dev -- --host
+
+
+───────────────────────────────────────────────────────────────
+STEP 3: Get Your Links
+───────────────────────────────────────────────────────────────
+The server will show:
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://192.168.0.XXX:5173/
+
+USE THESE LINKS! ⬆️
+
+
+───────────────────────────────────────────────────────────────
+STEP 4: Clear Browser Cache (Important!)
+───────────────────────────────────────────────────────────────
+Press: Ctrl + Shift + Delete
+Select: Cached images and files
+Click: Clear data
+
+OR use Incognito mode: Ctrl + Shift + N
+
+
+═══════════════════════════════════════════════════════════════
+  WHAT'S NEW TODAY
+═══════════════════════════════════════════════════════════════
+
+✅ Declaration Done Workflow Fixed
+   - File stays in declaration until DECLARATION DONE clicked
+   - TAX PAID and WHARFAGE PAID don't change status anymore
+   
+✅ Release Order Enforcement
+   - Must upload release order before port/Swissport charges
+   - OPERATIONS DONE only shows with release order
+
+✅ Service Type Selection (NEW!)
+   - Choose: CLEARANCE, DOCUMENT HANDOVER, or TRANSPORTATION
+   - Files automatically routed to correct department
+   - Non-clearance files go to Accounts instead of Declaration
+
+✅ Clear Status Names
+   - "WAITING FOR WHARFAGE PAYMENT"
+   - "WAITING FOR RELEASE ORDER"
+   - "OPERATIONS DONE"
+
+
+═══════════════════════════════════════════════════════════════
+  QUICK TEST LOGINS (Password: password123)
+═══════════════════════════════════════════════════════════════
+
+Test Service Type Selection:
+  doc.officer@dowelef.com
+
+Test Declaration Workflow:
+  michael.brown@dowelef.com
+  
+Test Operations Workflow:
+  lisa.anderson@dowelef.com
+
+Test Accounts (Non-Clearance):
+  finance.manager@dowelef.com
+
+
+═══════════════════════════════════════════════════════════════
+  CRITICAL TESTS
+═══════════════════════════════════════════════════════════════
+
+1. Service Type Selection (NEW!)
+   - Create file with CLEARANCE → Goes to Declaration
+   - Create file with DOCUMENT HANDOVER → Goes to Accounts
+   - Create file with TRANSPORTATION → Goes to Accounts
+
+2. Declaration Workflow (SEA)
+   - Upload tax → Click TAX PAID → Status stays
+   - Upload wharfage → Click WHARFAGE PAID → Status stays
+   - Click DECLARATION DONE → Status changes to READY FOR OPERATIONS
+
+3. Release Order Workflow
+   - Port/Swissport charges disabled without release order
+   - Upload release order → Buttons enabled
+   - OPERATIONS DONE only shows with release order
+
+
+═══════════════════════════════════════════════════════════════
+  COMPLETE DOCUMENTATION
+═══════════════════════════════════════════════════════════════
+
+Read these files for full details:
+
+📄 COMPLETE_SESSION_MARCH_27_2026_FINAL.md
+   - Complete summary of all changes
+   - Full testing checklist
+   - All workflows documented
+
+📄 SERVICE_TYPE_IMPLEMENTATION_MARCH_27.md
+   - Service type feature details
+   - Routing logic explained
+
+📄 DECLARATION_DONE_WORKFLOW_FIX_MARCH_27.md
+   - Declaration workflow fix details
+
+📄 RELEASE_ORDER_WORKFLOW_FIX_MARCH_27.md
+   - Release order enforcement details
+
+
+═══════════════════════════════════════════════════════════════
+
+All changes saved! Just start the server! 🚀

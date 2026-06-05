@@ -11,6 +11,7 @@ import {
   Share2,
   User as UserIcon,
   Upload,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -135,6 +136,9 @@ interface FileDetailPageProps {
 export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
   const { user, isExecutive } = useAuthStore();
   const { getFileById, getActivityLogs, addComment, addDocument } = useFileStore();
+  
+  // Check if user can view client details
+  const canViewClientDetails = user && ['documentation_officer', 'commercial_manager', 'managing_director', 'administrator'].includes(user.role);
 
   const [comment, setComment] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
@@ -299,29 +303,33 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
                   <CardTitle>File Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500 mb-3">Client Information</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 bg-gray-50 rounded-lg">
-                        <p className="text-sm text-gray-500">Client Name</p>
-                        <p className="font-medium">{file.client?.name}</p>
+                  {canViewClientDetails && (
+                    <>
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-500 mb-3">Client Information</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="p-4 bg-gray-50 rounded-lg">
+                            <p className="text-sm text-gray-500">Client Name</p>
+                            <p className="font-medium">{file.client?.name}</p>
+                          </div>
+                          <div className="p-4 bg-gray-50 rounded-lg">
+                            <p className="text-sm text-gray-500">TIN Number</p>
+                            <p className="font-medium">{file.client?.tin}</p>
+                          </div>
+                          <div className="p-4 bg-gray-50 rounded-lg">
+                            <p className="text-sm text-gray-500">Mobile</p>
+                            <p className="font-medium">{file.client?.mobile}</p>
+                          </div>
+                          <div className="p-4 bg-gray-50 rounded-lg">
+                            <p className="text-sm text-gray-500">Email</p>
+                            <p className="font-medium">{file.client?.email || 'N/A'}</p>
+                          </div>
+                        </div>
                       </div>
-                      <div className="p-4 bg-gray-50 rounded-lg">
-                        <p className="text-sm text-gray-500">TIN Number</p>
-                        <p className="font-medium">{file.client?.tin}</p>
-                      </div>
-                      <div className="p-4 bg-gray-50 rounded-lg">
-                        <p className="text-sm text-gray-500">Mobile</p>
-                        <p className="font-medium">{file.client?.mobile}</p>
-                      </div>
-                      <div className="p-4 bg-gray-50 rounded-lg">
-                        <p className="text-sm text-gray-500">Email</p>
-                        <p className="font-medium">{file.client?.email || 'N/A'}</p>
-                      </div>
-                    </div>
-                  </div>
 
-                  <Separator />
+                      <Separator />
+                    </>
+                  )}
 
                   <div>
                     <h3 className="text-sm font-medium text-gray-500 mb-3">Shipment Details</h3>
@@ -481,6 +489,96 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
                             </div>
                           )}
                         </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Verification Photos Section */}
+                  {file.verificationPhotos && file.verificationPhotos.length > 0 && (
+                    <>
+                      <Separator />
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-500 mb-3">
+                          Verification Photos 📸 ({file.verificationPhotos.length}/7)
+                        </h3>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {file.verificationPhotos.map((photoUrl: string, index: number) => (
+                            <div key={index} className="relative group">
+                              <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 border-2 border-gray-200 hover:border-blue-400 transition-colors">
+                                <img 
+                                  src={photoUrl} 
+                                  alt={`Verification photo ${index + 1}`}
+                                  className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
+                                  onClick={() => window.open(photoUrl, '_blank')}
+                                />
+                              </div>
+                              <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
+                                {index + 1}/{file.verificationPhotos?.length || 0}
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full mt-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => window.open(photoUrl, '_blank')}
+                              >
+                                <ImageIcon className="w-3 h-3 mr-1" />
+                                View Full Size
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <p className="text-sm text-blue-700 flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4" />
+                            {file.verificationPhotos.length} verification photo(s) uploaded by operations team
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Release Order Section */}
+                  {file.releaseOrderUrl && (
+                    <>
+                      <Separator />
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-500 mb-3">
+                          Release Order 📄
+                        </h3>
+                        <div className="p-4 bg-green-50 rounded-lg border border-green-300">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                <FileText className="w-6 h-6 text-green-600" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-green-900">Release Order Uploaded</p>
+                                {file.releaseOrderUploadedAt && (
+                                  <p className="text-sm text-green-700">
+                                    {new Date(file.releaseOrderUploadedAt).toLocaleDateString()} at {new Date(file.releaseOrderUploadedAt).toLocaleTimeString()}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => window.open(file.releaseOrderUrl, '_blank')}
+                              className="border-green-300 hover:bg-green-100"
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              View/Download
+                            </Button>
+                          </div>
+                        </div>
+                        {file.status === 'RELEASE_ORDER_RECEIVED' && (
+                          <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <p className="text-sm text-blue-700 flex items-center gap-2">
+                              <CheckCircle className="w-4 h-4" />
+                              Release order received and ready for processing
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </>
                   )}

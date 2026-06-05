@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import type { 
   ShipmentFile, FileStatus, Client, ShippingDocument, 
-  DocumentType, ShipmentType, TransportMode, ActivityLog 
+  DocumentType, ShipmentType, ServiceType, TransportMode, ActivityLog 
 } from '@/types';
 import { 
   mockShipmentFiles, mockClients, mockActivityLogs, 
-  getUserById, getClientById 
+  getUserById, 
 } from '@/data/mockData';
 
 interface FileState {
@@ -16,9 +16,25 @@ interface FileState {
     clientId?: string;
     client?: Client;
     shipmentType: ShipmentType;
+    serviceType: ServiceType;
     transportMode: TransportMode;
     documents: { type: DocumentType; name: string; url: string }[];
     createdBy: string;
+    contactPersonId?: string;
+    // Document numbers
+    commercialInvoiceNumber?: string;
+    blType?: 'HBL' | 'MBL';
+    blNumber?: string;
+    awbType?: 'HAWB' | 'MAWB';
+    awbNumber?: string;
+    roadConsignmentNumber?: string;
+    // SEA freight details
+    seaFreightType?: 'LCL' | 'FCL';
+    fcl20ftQuantity?: number;
+    fcl40ftQuantity?: number;
+    fclContainerOtherDescription?: string;
+    // Cargo description
+    cargoDescription?: string;
   }) => ShipmentFile;
   updateFileStatus: (
     fileId: string, 
@@ -127,8 +143,14 @@ let state: {
 } = loadState();
 
 const listeners = new Set<() => void>();
+
+// Cache for enriched files to prevent infinite re-renders
+let cachedEnrichedFiles: any[] = [];
+let cacheInvalidated = true;
+
 const notify = () => {
   saveState(state);
+  cacheInvalidated = true; // Invalidate cache when state changes
   listeners.forEach(fn => fn());
 };
 
@@ -145,25 +167,38 @@ export const useFileStore = (): FileState => {
 
   return {
     get files() { 
+      // Return cached files if cache is still valid
+      if (!cacheInvalidated && cachedEnrichedFiles.length === state.files.length) {
+        return cachedEnrichedFiles;
+      }
+      
       // Return files with enriched data (client, assigned users)
-      return state.files.map(f => ({
+      cachedEnrichedFiles = state.files.map(f => ({
         ...f,
-        client: getClientById(f.clientId),
+        client: state.clients.find(c => c.id === f.clientId), // Use store's clients instead of mockData
         assignedDeclarant: f.assignedDeclarantId ? getUserById(f.assignedDeclarantId) : undefined,
         assignedOperationClerk: f.assignedOperationClerkId ? getUserById(f.assignedOperationClerkId) : undefined,
         assignedDriver: f.assignedDriverId ? getUserById(f.assignedDriverId) : undefined,
       }));
+      cacheInvalidated = false;
+      return cachedEnrichedFiles;
     },
     get clients() { return state.clients; },
     get activityLogs() { return state.activityLogs; },
 
     createFile: (data) => {
+      // Determine initial status based on service type
+      const initialStatus = data.serviceType === 'CLEARANCE' 
+        ? 'WAITING_FOR_DECLARATION' 
+        : 'WAITING_FOR_COMMERCIAL';
+
       const newFile: ShipmentFile = {
         id: Math.random().toString(36).substr(2, 9),
         fileNumber: generateFileNumber(data.shipmentType, data.transportMode, state.files),
         clientId: data.clientId || data.client?.id || '',
         client: data.client,
         shipmentType: data.shipmentType,
+        serviceType: data.serviceType, // NEW: Service type
         transportMode: data.transportMode,
         documents: data.documents.map((d) => ({
           id: Math.random().toString(36).substr(2, 9),
@@ -174,7 +209,22 @@ export const useFileStore = (): FileState => {
           uploadedBy: data.createdBy,
           uploadedAt: new Date(),
         })),
-        status: 'WAITING_FOR_DECLARATION',
+        status: initialStatus, // Set based on service type
+        contactPersonId: data.contactPersonId,
+        // Document numbers
+        commercialInvoiceNumber: data.commercialInvoiceNumber,
+        blType: data.blType,
+        blNumber: data.blNumber,
+        awbType: data.awbType,
+        awbNumber: data.awbNumber,
+        roadConsignmentNumber: data.roadConsignmentNumber,
+        // SEA freight details
+        seaFreightType: data.seaFreightType,
+        fcl20ftQuantity: data.fcl20ftQuantity,
+        fcl40ftQuantity: data.fcl40ftQuantity,
+        fclContainerOtherDescription: data.fclContainerOtherDescription,
+        // Cargo description
+        cargoDescription: data.cargoDescription,
         createdAt: new Date(),
         updatedAt: new Date(),
         createdBy: data.createdBy,
@@ -187,13 +237,17 @@ export const useFileStore = (): FileState => {
         files: [...state.files, newFile],
       };
 
+      const statusDescription = data.serviceType === 'CLEARANCE'
+        ? 'File created - Waiting for declaration assignment'
+        : `File created (${data.serviceType.replace('_', ' ')}) - Routed to Commercial Department`;
+
       const log: ActivityLog = {
         id: Math.random().toString(36).substr(2, 9),
         fileId: newFile.id,
         userId: data.createdBy,
         action: 'FILE_CREATED',
-        description: `File ${newFile.fileNumber} created - Tracking started for all channels until clearance completion`,
-        newStatus: 'WAITING_FOR_DECLARATION',
+        description: statusDescription,
+        newStatus: initialStatus,
         createdAt: new Date(),
       };
 
@@ -318,7 +372,7 @@ export const useFileStore = (): FileState => {
         ...state,
         files: state.files.map(f =>
           f.id === fileId
-            ? { ...f, assignedOperationClerkId: clerkId, status: 'RECEIVED_BY_CLERK', updatedAt: new Date() }
+            ? { ...f, assignedOperationClerkId: clerkId, status: 'WAITING_FOR_RELEASE_ORDER', updatedAt: new Date() }
             : f
         ),
       };
@@ -328,9 +382,9 @@ export const useFileStore = (): FileState => {
         fileId,
         userId,
         action: 'CLERK_ASSIGNED',
-        description: `Operation clerk assigned to file - All channels notified`,
+        description: `Operation clerk assigned to file - Status: WAITING FOR RELEASE ORDER`,
         oldStatus,
-        newStatus: 'RECEIVED_BY_CLERK',
+        newStatus: 'WAITING_FOR_RELEASE_ORDER',
         createdAt: new Date(),
       };
 
@@ -346,7 +400,7 @@ export const useFileStore = (): FileState => {
           if (notifStore?.notifyFileStatusChange) {
             const updatedFile = state.files.find(f => f.id === fileId);
             if (updatedFile) {
-              notifStore.notifyFileStatusChange(updatedFile, oldStatus, 'RECEIVED_BY_CLERK');
+              notifStore.notifyFileStatusChange(updatedFile, oldStatus, 'WAITING_FOR_RELEASE_ORDER');
             }
           }
         });
@@ -427,15 +481,47 @@ export const useFileStore = (): FileState => {
         ...state,
         activityLogs: [...state.activityLogs, log],
       };
+      
+      // Notify shipping line clerks for SEA shipments
+      const file = state.files.find(f => f.id === fileId);
+      if (file && file.transportMode === 'SEA' && (file.shipmentType === 'IMPORT' || file.shipmentType === 'EXPORT')) {
+        if (typeof window !== 'undefined') {
+          import('./notificationStore').then(({ useNotificationStore }) => {
+            import('../data/mockData').then(({ mockUsers }) => {
+              const shippingLineClerks = mockUsers.filter(u => u.role === 'shipping_line_clerk' && u.isActive);
+              const notifStore = useNotificationStore.getState?.();
+              if (notifStore) {
+                shippingLineClerks.forEach(clerk => {
+                  // Don't notify the person who made the comment
+                  if (clerk.id !== userId) {
+                    const { addNotification } = useNotificationStore();
+                    addNotification({
+                      userId: clerk.id,
+                      title: '💬 New Comment on SEA File',
+                      message: `New comment added to SEA file ${file.fileNumber}`,
+                      type: 'info',
+                      fileId: file.id,
+                      link: '/shipping-line',
+                    });
+                  }
+                });
+              }
+            });
+          });
+        }
+      }
+      
       notify();
     },
 
     getFileById: (id) => {
       const file = state.files.find(f => f.id === id);
       if (file) {
+        // Use the store's own getClientById method instead of the imported one
+        const client = state.clients.find(c => c.id === file.clientId);
         return {
           ...file,
-          client: getClientById(file.clientId),
+          client: client,
           assignedDeclarant: file.assignedDeclarantId ? getUserById(file.assignedDeclarantId) : undefined,
           assignedOperationClerk: file.assignedOperationClerkId ? getUserById(file.assignedOperationClerkId) : undefined,
           assignedDriver: file.assignedDriverId ? getUserById(file.assignedDriverId) : undefined,
@@ -449,7 +535,7 @@ export const useFileStore = (): FileState => {
         .filter(f => f.status === status)
         .map(f => ({
           ...f,
-          client: getClientById(f.clientId),
+          client: state.clients.find(c => c.id === f.clientId), // Use store's clients
           assignedDeclarant: f.assignedDeclarantId ? getUserById(f.assignedDeclarantId) : undefined,
           assignedOperationClerk: f.assignedOperationClerkId ? getUserById(f.assignedOperationClerkId) : undefined,
           assignedDriver: f.assignedDriverId ? getUserById(f.assignedDriverId) : undefined,
@@ -461,7 +547,7 @@ export const useFileStore = (): FileState => {
         .filter(f => f.clientId === clientId)
         .map(f => ({
           ...f,
-          client: getClientById(f.clientId),
+          client: state.clients.find(c => c.id === f.clientId), // Use store's clients
           assignedDeclarant: f.assignedDeclarantId ? getUserById(f.assignedDeclarantId) : undefined,
           assignedOperationClerk: f.assignedOperationClerkId ? getUserById(f.assignedOperationClerkId) : undefined,
           assignedDriver: f.assignedDriverId ? getUserById(f.assignedDriverId) : undefined,
@@ -473,7 +559,7 @@ export const useFileStore = (): FileState => {
         .filter(f => f.assignedDeclarantId === declarantId)
         .map(f => ({
           ...f,
-          client: getClientById(f.clientId),
+          client: state.clients.find(c => c.id === f.clientId), // Use store's clients
           assignedDeclarant: f.assignedDeclarantId ? getUserById(f.assignedDeclarantId) : undefined,
           assignedOperationClerk: f.assignedOperationClerkId ? getUserById(f.assignedOperationClerkId) : undefined,
           assignedDriver: f.assignedDriverId ? getUserById(f.assignedDriverId) : undefined,
@@ -485,7 +571,7 @@ export const useFileStore = (): FileState => {
         .filter(f => f.assignedOperationClerkId === clerkId)
         .map(f => ({
           ...f,
-          client: getClientById(f.clientId),
+          client: state.clients.find(c => c.id === f.clientId), // Use store's clients
           assignedDeclarant: f.assignedDeclarantId ? getUserById(f.assignedDeclarantId) : undefined,
           assignedOperationClerk: f.assignedOperationClerkId ? getUserById(f.assignedOperationClerkId) : undefined,
           assignedDriver: f.assignedDriverId ? getUserById(f.assignedDriverId) : undefined,

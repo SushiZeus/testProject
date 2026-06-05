@@ -94,8 +94,14 @@ const savePettyCashState = (state: any) => {
 let state = loadPettyCashState();
 
 const listeners = new Set<() => void>();
+
+// Cache for enriched requests to prevent infinite re-renders
+let cachedEnrichedRequests: any[] = [];
+let requestsCacheInvalidated = true;
+
 const notify = () => {
   savePettyCashState(state);
+  requestsCacheInvalidated = true; // Invalidate cache when state changes
   listeners.forEach(fn => fn());
 };
 
@@ -112,7 +118,12 @@ export const usePettyCashStore = (): PettyCashState => {
 
   return {
     get requests() { 
-      return state.requests.map((r: PettyCashRequest) => ({
+      // Return cached requests if cache is still valid
+      if (!requestsCacheInvalidated && cachedEnrichedRequests.length === state.requests.length) {
+        return cachedEnrichedRequests;
+      }
+      
+      cachedEnrichedRequests = state.requests.map((r: PettyCashRequest) => ({
         ...r,
         requester: getUserById(r.requestedBy),
         hrManager: r.hrManagerId ? getUserById(r.hrManagerId) : undefined,
@@ -122,6 +133,8 @@ export const usePettyCashStore = (): PettyCashState => {
         financeManager: r.financeManagerId ? getUserById(r.financeManagerId) : undefined,
         cashier: r.cashierId ? getUserById(r.cashierId) : undefined,
       }));
+      requestsCacheInvalidated = false;
+      return cachedEnrichedRequests;
     },
 
     createRequest: (data) => {
@@ -150,6 +163,9 @@ export const usePettyCashStore = (): PettyCashState => {
       } else if (requester?.role === 'declarant') {
         // Declarant requests go to Declaration Manager first
         initialStatus = 'PENDING_DECLARATION_MANAGER_APPROVAL';
+      } else if (requester?.role === 'shipping_line_clerk') {
+        // Shipping line clerk requests go to Operations Manager first
+        initialStatus = 'PENDING_MANAGER_APPROVAL';
       }
 
       const newRequest: PettyCashRequest = {

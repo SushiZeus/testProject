@@ -1,9 +1,17 @@
 import { useState } from 'react';
-import { DollarSign, CheckCircle, XCircle, Clock, FileText } from 'lucide-react';
+import { DollarSign, CheckCircle, XCircle, Clock, FileText, Filter } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -23,204 +31,91 @@ interface PettyCashHistoryPageProps {
 
 export function PettyCashHistoryPage({ navigate }: PettyCashHistoryPageProps) {
   const { user } = useAuthStore();
-  const { requests } = usePettyCashStore();
+  const { getRequestsByRequester } = usePettyCashStore();
 
-  const [activeTab, setActiveTab] = useState('made');
   const [selectedRequest, setSelectedRequest] = useState<PettyCashRequest | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [filters, setFilters] = useState({
+    dateFrom: '',
+    dateTo: '',
+    status: 'all',
+    amountMin: '',
+    amountMax: '',
+  });
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-gray-500">Please log in to view your petty cash history.</p>
+      </div>
+    );
+  }
 
-  // Filter requests based on user's actions
-  const requestsMade = requests.filter(r => r.requestedBy === user.id);
-  
-  const requestsApproved = requests.filter(r => 
-    (r.hrManagerId === user.id && r.status !== 'REJECTED_BY_HR' && r.hrActionAt) ||
-    (r.managerId === user.id && r.status !== 'REJECTED_BY_MANAGER' && r.managerActionAt) ||
-    (r.declarationManagerId === user.id && r.status !== 'REJECTED_BY_DECLARATION_MANAGER' && r.declarationManagerActionAt) ||
-    (r.cooId === user.id && r.status !== 'REJECTED_BY_COO' && r.cooActionAt) ||
-    (r.financeManagerId === user.id && r.status !== 'REJECTED_BACK_TO_CLERK' && r.financeActionAt)
-  );
+  const myPettyCashRequests = getRequestsByRequester(user.id);
 
-  const requestsRejected = requests.filter(r =>
-    (r.hrManagerId === user.id && r.status === 'REJECTED_BY_HR') ||
-    (r.managerId === user.id && r.status === 'REJECTED_BY_MANAGER') ||
-    (r.declarationManagerId === user.id && r.status === 'REJECTED_BY_DECLARATION_MANAGER') ||
-    (r.cooId === user.id && r.status === 'REJECTED_BY_COO') ||
-    (r.financeManagerId === user.id && r.status === 'REJECTED_BACK_TO_CLERK')
-  );
+  // Filter petty cash requests
+  const filteredPettyCashRequests = myPettyCashRequests.filter((request: PettyCashRequest) => {
+    // Date range filter
+    if (filters.dateFrom) {
+      const requestDate = new Date(request.createdAt);
+      const filterDate = new Date(filters.dateFrom);
+      if (requestDate < filterDate) return false;
+    }
+    if (filters.dateTo) {
+      const requestDate = new Date(request.createdAt);
+      const filterDate = new Date(filters.dateTo);
+      filterDate.setHours(23, 59, 59, 999);
+      if (requestDate > filterDate) return false;
+    }
 
-  const requestsPaid = requests.filter(r => r.cashierId === user.id && r.status === 'PAID');
+    // Status filter
+    if (filters.status !== 'all' && request.status !== filters.status) {
+      return false;
+    }
 
-  const statusColors: Record<PettyCashStatus, string> = {
-    PENDING_HR_APPROVAL: 'bg-amber-100 text-amber-700',
-    PENDING_MANAGER_APPROVAL: 'bg-amber-100 text-amber-700',
-    PENDING_DECLARATION_MANAGER_APPROVAL: 'bg-amber-100 text-amber-700',
-    PENDING_COO_APPROVAL: 'bg-amber-100 text-amber-700',
-    APPROVED_BY_COO: 'bg-blue-100 text-blue-700',
-    COO_DIRECT_TO_FINANCE: 'bg-blue-100 text-blue-700',
-    REJECTED_BY_HR: 'bg-red-100 text-red-700',
-    REJECTED_BY_MANAGER: 'bg-red-100 text-red-700',
-    REJECTED_BY_DECLARATION_MANAGER: 'bg-red-100 text-red-700',
-    REJECTED_BY_COO: 'bg-red-100 text-red-700',
-    PENDING_FINANCE: 'bg-purple-100 text-purple-700',
-    PENDING_PAYMENT: 'bg-blue-100 text-blue-700',
-    PAID: 'bg-green-100 text-green-700',
-    REJECTED_BACK_TO_CLERK: 'bg-red-100 text-red-700',
+    // Amount filter
+    if (filters.amountMin && request.amount < parseFloat(filters.amountMin)) {
+      return false;
+    }
+    if (filters.amountMax && request.amount > parseFloat(filters.amountMax)) {
+      return false;
+    }
+
+    return true;
+  });
+
+  const getStatusColor = (status: PettyCashStatus) => {
+    if (status.includes('PENDING')) return 'bg-yellow-100 text-yellow-700';
+    if (status.includes('APPROVED') || status === 'PAID') return 'bg-green-100 text-green-700';
+    if (status.includes('REJECTED')) return 'bg-red-100 text-red-700';
+    return 'bg-gray-100 text-gray-700';
   };
 
-  const getTimeline = (request: PettyCashRequest) => {
-    const timeline = [];
-
-    timeline.push({
-      title: 'Request Created',
-      user: request.requester?.name || 'Unknown',
-      date: request.createdAt,
-      status: 'created',
+  const clearFilters = () => {
+    setFilters({
+      dateFrom: '',
+      dateTo: '',
+      status: 'all',
+      amountMin: '',
+      amountMax: '',
     });
-
-    if (request.hrActionAt) {
-      timeline.push({
-        title: request.status === 'REJECTED_BY_HR' ? 'Rejected by HR Manager' : 'Approved by HR Manager',
-        user: request.hrManager?.name || 'HR Manager',
-        comment: request.hrComment,
-        date: request.hrActionAt,
-        status: request.status === 'REJECTED_BY_HR' ? 'rejected' : 'approved',
-      });
-    }
-
-    if (request.managerActionAt) {
-      timeline.push({
-        title: request.status === 'REJECTED_BY_MANAGER' ? 'Rejected by Manager' : 'Approved by Manager',
-        user: request.manager?.name || 'Manager',
-        comment: request.managerComment,
-        date: request.managerActionAt,
-        status: request.status === 'REJECTED_BY_MANAGER' ? 'rejected' : 'approved',
-      });
-    }
-
-    if (request.declarationManagerActionAt) {
-      timeline.push({
-        title: request.status === 'REJECTED_BY_DECLARATION_MANAGER' ? 'Rejected by Declaration Manager' : 'Approved by Declaration Manager',
-        user: request.declarationManager?.name || 'Declaration Manager',
-        comment: request.declarationManagerComment,
-        date: request.declarationManagerActionAt,
-        status: request.status === 'REJECTED_BY_DECLARATION_MANAGER' ? 'rejected' : 'approved',
-      });
-    }
-
-    if (request.cooActionAt) {
-      timeline.push({
-        title: request.status === 'REJECTED_BY_COO' ? 'Rejected by COO' : 'Approved by COO',
-        user: request.coo?.name || 'COO',
-        comment: request.cooComment,
-        date: request.cooActionAt,
-        status: request.status === 'REJECTED_BY_COO' ? 'rejected' : 'approved',
-      });
-    }
-
-    if (request.financeActionAt) {
-      timeline.push({
-        title: request.status === 'REJECTED_BACK_TO_CLERK' ? 'Rejected by Finance Manager' : 'Approved by Finance Manager',
-        user: request.financeManager?.name || 'Finance Manager',
-        comment: request.financeComment,
-        date: request.financeActionAt,
-        status: request.status === 'REJECTED_BACK_TO_CLERK' ? 'rejected' : 'approved',
-      });
-    }
-
-    if (request.paidAt) {
-      timeline.push({
-        title: 'Payment Completed',
-        user: request.cashier?.name || 'Cashier',
-        date: request.paidAt,
-        status: 'paid',
-        paymentRef: request.paymentReference,
-      });
-    }
-
-    return timeline;
   };
-
-  const renderRequestTable = (requestsList: PettyCashRequest[], emptyMessage: string) => (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b">
-            <th className="text-left py-3 px-4 font-medium text-gray-500">Request #</th>
-            <th className="text-left py-3 px-4 font-medium text-gray-500">Amount</th>
-            <th className="text-left py-3 px-4 font-medium text-gray-500">Description</th>
-            <th className="text-left py-3 px-4 font-medium text-gray-500">Status</th>
-            <th className="text-left py-3 px-4 font-medium text-gray-500">Date</th>
-            <th className="text-left py-3 px-4 font-medium text-gray-500">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {requestsList.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="py-8 text-center text-gray-500">
-                <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>{emptyMessage}</p>
-              </td>
-            </tr>
-          ) : (
-            requestsList.map((request: PettyCashRequest) => (
-              <tr key={request.id} className="border-b hover:bg-gray-50 transition-colors">
-                <td className="py-4 px-4">
-                  <p className="font-mono font-medium text-blue-600">{request.requestNumber}</p>
-                  {request.file && (
-                    <p className="text-xs text-gray-500">File: {request.file.fileNumber}</p>
-                  )}
-                </td>
-                <td className="py-4 px-4">
-                  <p className="font-semibold">{request.currency} {request.amount.toLocaleString()}</p>
-                </td>
-                <td className="py-4 px-4">
-                  <p className="text-sm line-clamp-2">{request.description}</p>
-                </td>
-                <td className="py-4 px-4">
-                  <Badge variant="secondary" className={cn('text-xs', statusColors[request.status])}>
-                    {request.status.replace(/_/g, ' ')}
-                  </Badge>
-                </td>
-                <td className="py-4 px-4">
-                  <p className="text-sm">{new Date(request.createdAt).toLocaleDateString()}</p>
-                  <p className="text-xs text-gray-500">{new Date(request.createdAt).toLocaleTimeString()}</p>
-                </td>
-                <td className="py-4 px-4">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => {
-                      setSelectedRequest(request);
-                      setViewDialogOpen(true);
-                    }}
-                  >
-                    View Timeline
-                  </Button>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
 
   const stats = {
-    made: requestsMade.length,
-    approved: requestsApproved.length,
-    rejected: requestsRejected.length,
-    paid: requestsPaid.length,
+    total: myPettyCashRequests.length,
+    pending: myPettyCashRequests.filter(r => r.status.includes('PENDING')).length,
+    approved: myPettyCashRequests.filter(r => r.status.includes('APPROVED') || r.status === 'PAID').length,
+    rejected: myPettyCashRequests.filter(r => r.status.includes('REJECTED')).length,
+    totalAmount: myPettyCashRequests.filter(r => r.status === 'PAID').reduce((sum, r) => sum + r.amount, 0),
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Petty Cash History</h1>
+          <h1 className="text-3xl font-bold text-gray-900">My Petty Cash History</h1>
           <p className="text-gray-500 mt-1">
-            View your petty cash request history and actions
+            View all your petty cash requests and their status
           </p>
         </div>
         <Button onClick={() => navigate('petty-cash')}>
@@ -229,7 +124,8 @@ export function PettyCashHistoryPage({ navigate }: PettyCashHistoryPageProps) {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -237,8 +133,21 @@ export function PettyCashHistoryPage({ navigate }: PettyCashHistoryPageProps) {
                 <FileText className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.made}</p>
-                <p className="text-sm text-gray-500">Requests Made</p>
+                <p className="text-2xl font-bold">{stats.total}</p>
+                <p className="text-sm text-gray-500">Total Requests</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <Clock className="w-5 h-5 text-yellow-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{stats.pending}</p>
+                <p className="text-sm text-gray-500">Pending</p>
               </div>
             </div>
           </CardContent>
@@ -276,150 +185,238 @@ export function PettyCashHistoryPage({ navigate }: PettyCashHistoryPageProps) {
                 <DollarSign className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.paid}</p>
-                <p className="text-sm text-gray-500">Paid Out</p>
+                <p className="text-2xl font-bold">TZS {stats.totalAmount.toLocaleString()}</p>
+                <p className="text-sm text-gray-500">Total Paid</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-4">
-          <TabsTrigger value="made">
-            Requests Made ({stats.made})
-          </TabsTrigger>
-          <TabsTrigger value="approved">
-            Approved ({stats.approved})
-          </TabsTrigger>
-          <TabsTrigger value="rejected">
-            Rejected ({stats.rejected})
-          </TabsTrigger>
-          <TabsTrigger value="paid">
-            Paid Out ({stats.paid})
-          </TabsTrigger>
-        </TabsList>
+      {/* Petty Cash History */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Petty Cash Request History</CardTitle>
+              <CardDescription>All your petty cash requests and their status</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={clearFilters}>
+              <Filter className="w-4 h-4 mr-2" />
+              Clear Filters
+            </Button>
+          </div>
+          
+          {/* Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4">
+            <div className="space-y-2">
+              <Label>From Date</Label>
+              <Input
+                type="date"
+                value={filters.dateFrom}
+                onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>To Date</Label>
+              <Input
+                type="date"
+                value={filters.dateTo}
+                onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select
+                value={filters.status}
+                onValueChange={(value) => setFilters({ ...filters, status: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="PENDING_HR_APPROVAL">Pending HR</SelectItem>
+                  <SelectItem value="PENDING_MANAGER_APPROVAL">Pending Manager</SelectItem>
+                  <SelectItem value="PENDING_COO_APPROVAL">Pending COO</SelectItem>
+                  <SelectItem value="PENDING_PAYMENT">Pending Payment</SelectItem>
+                  <SelectItem value="PAID">Paid</SelectItem>
+                  <SelectItem value="REJECTED_BY_HR">Rejected by HR</SelectItem>
+                  <SelectItem value="REJECTED_BY_MANAGER">Rejected by Manager</SelectItem>
+                  <SelectItem value="REJECTED_BY_COO">Rejected by COO</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Min Amount</Label>
+              <Input
+                type="number"
+                placeholder="0"
+                value={filters.amountMin}
+                onChange={(e) => setFilters({ ...filters, amountMin: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Max Amount</Label>
+              <Input
+                type="number"
+                placeholder="1000000"
+                value={filters.amountMax}
+                onChange={(e) => setFilters({ ...filters, amountMax: e.target.value })}
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-3 px-4 font-medium text-gray-500">Request #</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-500">Amount</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-500">Description</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-500">File</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-500">Status</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-500">Date</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-500">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPettyCashRequests.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-gray-500">
+                      <DollarSign className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p>No petty cash requests found</p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredPettyCashRequests.map((request) => (
+                    <tr key={request.id} className="border-b hover:bg-gray-50">
+                      <td className="py-4 px-4">
+                        <p className="font-mono text-sm">{request.requestNumber}</p>
+                      </td>
+                      <td className="py-4 px-4">
+                        <p className="font-semibold">
+                          {request.currency} {request.amount.toLocaleString()}
+                        </p>
+                      </td>
+                      <td className="py-4 px-4">
+                        <p className="text-sm max-w-xs truncate" title={request.description}>
+                          {request.description}
+                        </p>
+                      </td>
+                      <td className="py-4 px-4">
+                        {request.file ? (
+                          <p className="text-sm text-blue-600">{request.file.fileNumber}</p>
+                        ) : (
+                          <p className="text-sm text-gray-500">General Request</p>
+                        )}
+                      </td>
+                      <td className="py-4 px-4">
+                        <Badge variant="secondary" className={getStatusColor(request.status)}>
+                          {request.status.replace(/_/g, ' ')}
+                        </Badge>
+                      </td>
+                      <td className="py-4 px-4">
+                        <p className="text-sm">{new Date(request.createdAt).toLocaleDateString('en-GB')}</p>
+                      </td>
+                      <td className="py-4 px-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedRequest(request);
+                            setViewDialogOpen(true);
+                          }}
+                        >
+                          View Details
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
-        <TabsContent value="made" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Requests You Made</CardTitle>
-              <CardDescription>All petty cash requests you have submitted</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {renderRequestTable(requestsMade, 'You have not made any petty cash requests')}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="approved" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Requests You Approved</CardTitle>
-              <CardDescription>All petty cash requests you have approved</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {renderRequestTable(requestsApproved, 'You have not approved any petty cash requests')}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="rejected" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Requests You Rejected</CardTitle>
-              <CardDescription>All petty cash requests you have rejected</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {renderRequestTable(requestsRejected, 'You have not rejected any petty cash requests')}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="paid" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Requests You Paid</CardTitle>
-              <CardDescription>All petty cash requests you have paid out</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {renderRequestTable(requestsPaid, 'You have not paid out any petty cash requests')}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
+      {/* View Request Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Request Timeline</DialogTitle>
+            <DialogTitle>Petty Cash Request Details</DialogTitle>
             <DialogDescription>
-              {selectedRequest && `Complete history for request ${selectedRequest.requestNumber}`}
+              {selectedRequest && `Request ${selectedRequest.requestNumber}`}
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedRequest && (
             <div className="space-y-4 py-4">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <span className="text-gray-500">Request Number:</span>
-                    <p className="font-mono font-medium">{selectedRequest.requestNumber}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Amount:</span>
-                    <p className="font-semibold">{selectedRequest.currency} {selectedRequest.amount.toLocaleString()}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-gray-500">Description:</span>
-                    <p>{selectedRequest.description}</p>
-                  </div>
-                  {selectedRequest.file && (
-                    <div className="col-span-2">
-                      <span className="text-gray-500">Related File:</span>
-                      <p className="font-mono">{selectedRequest.file.fileNumber}</p>
-                    </div>
-                  )}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-gray-500">Request Number</Label>
+                  <p className="font-mono font-medium">{selectedRequest.requestNumber}</p>
+                </div>
+                <div>
+                  <Label className="text-gray-500">Amount</Label>
+                  <p className="font-semibold text-lg">
+                    {selectedRequest.currency} {selectedRequest.amount.toLocaleString()}
+                  </p>
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <h4 className="font-semibold">Timeline of Events</h4>
-                {getTimeline(selectedRequest).map((event, index) => (
-                  <div key={index} className="flex gap-3">
-                    <div className="flex flex-col items-center">
-                      <div className={cn(
-                        'w-8 h-8 rounded-full flex items-center justify-center',
-                        event.status === 'created' ? 'bg-blue-100' :
-                        event.status === 'approved' ? 'bg-green-100' :
-                        event.status === 'rejected' ? 'bg-red-100' :
-                        'bg-purple-100'
-                      )}>
-                        {event.status === 'created' && <Clock className="w-4 h-4 text-blue-600" />}
-                        {event.status === 'approved' && <CheckCircle className="w-4 h-4 text-green-600" />}
-                        {event.status === 'rejected' && <XCircle className="w-4 h-4 text-red-600" />}
-                        {event.status === 'paid' && <DollarSign className="w-4 h-4 text-purple-600" />}
-                      </div>
-                      {index < getTimeline(selectedRequest).length - 1 && (
-                        <div className="w-0.5 h-12 bg-gray-200" />
-                      )}
-                    </div>
-                    <div className="flex-1 pb-4">
-                      <p className="font-medium">{event.title}</p>
-                      <p className="text-sm text-gray-500">{event.user}</p>
-                      {event.comment && (
-                        <p className="text-sm text-gray-600 mt-1 italic">"{event.comment}"</p>
-                      )}
-                      {event.paymentRef && (
-                        <p className="text-sm text-gray-600 mt-1">Ref: {event.paymentRef}</p>
-                      )}
-                      <p className="text-xs text-gray-400 mt-1">
-                        {new Date(event.date).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+              <div>
+                <Label className="text-gray-500">Description</Label>
+                <p className="text-sm mt-1 p-3 bg-gray-50 rounded border">{selectedRequest.description}</p>
               </div>
+
+              {selectedRequest.file && (
+                <div>
+                  <Label className="text-gray-500">Related File</Label>
+                  <p className="font-mono">{selectedRequest.file.fileNumber}</p>
+                </div>
+              )}
+
+              <div>
+                <Label className="text-gray-500">Status</Label>
+                <Badge variant="secondary" className={cn('mt-1', getStatusColor(selectedRequest.status))}>
+                  {selectedRequest.status.replace(/_/g, ' ')}
+                </Badge>
+              </div>
+
+              <div>
+                <Label className="text-gray-500">Submitted On</Label>
+                <p className="text-sm">{new Date(selectedRequest.createdAt).toLocaleString('en-GB')}</p>
+              </div>
+
+              {selectedRequest.hrComment && (
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <Label className="text-blue-700">HR Manager Comment</Label>
+                  <p className="text-sm text-blue-600 mt-1">{selectedRequest.hrComment}</p>
+                </div>
+              )}
+
+              {selectedRequest.managerComment && (
+                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                  <Label className="text-green-700">Manager Comment</Label>
+                  <p className="text-sm text-green-600 mt-1">{selectedRequest.managerComment}</p>
+                </div>
+              )}
+
+              {selectedRequest.cooComment && (
+                <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                  <Label className="text-purple-700">COO Comment</Label>
+                  <p className="text-sm text-purple-600 mt-1">{selectedRequest.cooComment}</p>
+                </div>
+              )}
+
+              {selectedRequest.financeComment && (
+                <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                  <Label className="text-indigo-700">Finance Manager Comment</Label>
+                  <p className="text-sm text-indigo-600 mt-1">{selectedRequest.financeComment}</p>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>

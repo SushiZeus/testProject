@@ -1,0 +1,178 @@
+╔══════════════════════════════════════════════════════════════════════╗
+║                   🔍 WHERE TO FIND HR MODULES                        ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+📍 LOCATION IN SIDEBAR (After Login)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Look for these items in the left sidebar:
+
+┌─────────────────────────────────────────────────────────────────┐
+│  📊 Dashboard                                                   │
+│  📄 File Opening                                                │
+│  ✅ Declaration                                                 │
+│  🚚 Operations                                                  │
+│  🚢 Shipping Line                                               │
+│  💵 Petty Cash                                                  │
+│                                                                 │
+│  🧾 Claims & Expenses  ← NEW! Click here for Claims            │
+│  💰 Payroll            ← NEW! Click here for Payroll           │
+│  💳 Loans              ← NEW! Click here for Loans             │
+│                                                                 │
+│  👥 Leave Management                                            │
+│  👤 User Management                                             │
+│  📁 Documents                                                   │
+│  📈 Reports                                                     │
+└─────────────────────────────────────────────────────────────────┘
+
+
+🎯 MODULE DETAILS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1️⃣  CLAIMS & EXPENSES (🧾 Receipt Icon)
+   ├─ URL: http://localhost:5173 → Login → Click "Claims & Expenses"
+   ├─ Who can access: ALL EMPLOYEES
+   ├─ What you can do:
+   │  • Submit expense claims
+   │  • Add claim items with receipts
+   │  • Track approval status
+   │  • View claim history
+   └─ Button: "New Claim" (top right)
+
+2️⃣  PAYROLL (💰 Banknote Icon)
+   ├─ URL: http://localhost:5173 → Login → Click "Payroll"
+   ├─ Who can access: HR Manager, Finance Manager, Cashier, Administrator
+   ├─ What you can do:
+   │  • Create monthly payroll runs
+   │  • Add employees to payroll
+   │  • Calculate PAYE & NSSF
+   │  • Lock, approve, and mark as paid
+   └─ Button: "New Payroll Run" (top right)
+
+3️⃣  LOANS (💳 Wallet Icon)
+   ├─ URL: http://localhost:5173 → Login → Click "Loans"
+   ├─ Who can access: ALL EMPLOYEES
+   ├─ What you can do:
+   │  • Apply for employee loans
+   │  • Track loan status
+   │  • View repayment progress
+   │  • Monitor loan balance
+   └─ Button: "Apply for Loan" (top right)
+
+
+⚠️  IMPORTANT: START SERVER FIRST!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The HR modules are in the code but you need to restart the server:
+
+METHOD 1 (Easiest):
+   Double-click: 🚀_DOUBLE_CLICK_TO_START.bat
+
+METHOD 2 (Command Line):
+   1. Open Command Prompt
+   2. Type: cd app
+   3. Type: npm run dev
+   4. Wait for "Local: http://localhost:5173"
+   5. Open browser to that URL
+
+
+🔐 TEST USERS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+To test different roles:
+
+HR Manager:
+   Username: hr_manager
+   Password: hr123
+   Can access: All HR modules
+
+Finance Manager:
+   Username: finance_manager
+   Password: finance123
+   Can access: Payroll, Claims approval
+
+Regular Employee:
+   Username: documentation_officer
+   Password: doc123
+   Can access: Submit claims, apply for loans
+
+
+📊 WHAT YOU'LL SEE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Each module has:
+✅ Statistics tiles (Total, Pending, Approved, etc.)
+✅ Search bar
+✅ Create button (top right)
+✅ Data table with all records
+✅ Status badges (color-coded)
+✅ Action buttons (View, Approve, etc.)
+
+
+🎨 VISUAL INDICATORS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Status Colors:
+   🟦 DRAFT / PENDING - Blue
+   🟨 SUBMITTED - Yellow
+   🟩 APPROVED - Green
+   🟥 REJECTED - Red
+   🟪 DISBURSED - Purple
+   ⬜ COMPLETED - Gray
+
+
+💡 QUICK START GUIDE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Start server (double-click 🚀_DOUBLE_CLICK_TO_START.bat)
+2. Open browser to http://localhost:5173
+3. Login with any user credentials
+4. Look at left sidebar
+5. Click "Claims & Expenses", "Payroll", or "Loans"
+6. Click the create button to test functionality
+
+
+❓ TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Q: I don't see the HR modules in the sidebar
+A: Make sure you restarted the server after the code changes
+
+Q: The sidebar items are not showing
+A: Check your user role - some modules are role-restricted
+
+Q: I get an error when clicking
+A: Clear browser cache (Ctrl+Shift+Delete) and refresh
+
+Q: The page is blank
+A: Check browser console (F12) for errors
+
+
+✅ VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+All code is implemented and error-free:
+✅ Routes added to App.tsx
+✅ Navigation items added to DashboardLayout.tsx
+✅ All pages created
+✅ All stores created
+✅ All types defined
+✅ No TypeScript errors
+
+The modules are ready - just restart the server!
+
+
+📞 NEED HELP?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+If you still don't see the modules after restarting:
+1. Check HR_MODULES_VERIFICATION_APRIL_5_2026.md for details
+2. Verify server is running on port 5173
+3. Clear browser cache completely
+4. Try a different browser
+5. Check browser console for errors (F12)
+
+
+═══════════════════════════════════════════════════════════════════════
+                    🎉 HR MODULES ARE READY! 🎉
+═══════════════════════════════════════════════════════════════════════

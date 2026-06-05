@@ -1,0 +1,69 @@
+═══════════════════════════════════════════════════════════════
+  START THE SERVER - QUICK INSTRUCTIONS
+═══════════════════════════════════════════════════════════════
+
+THE SERVER IS NOT RUNNING YET!
+
+Follow these 3 simple steps:
+
+───────────────────────────────────────────────────────────────
+STEP 1: Open Command Prompt
+───────────────────────────────────────────────────────────────
+Press: Windows Key + R
+Type: cmd
+Press: Enter
+
+
+───────────────────────────────────────────────────────────────
+STEP 2: Copy and paste these commands (one at a time)
+───────────────────────────────────────────────────────────────
+
+cd C:\Users\user\Desktop\testproject\app
+
+npm run dev -- --host
+
+
+───────────────────────────────────────────────────────────────
+STEP 3: Wait for the server to show URLs
+───────────────────────────────────────────────────────────────
+You'll see something like:
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://192.168.0.XXX:5173/
+
+
+───────────────────────────────────────────────────────────────
+STEP 4: Open your browser
+───────────────────────────────────────────────────────────────
+Go to: http://localhost:5173/
+
+
+═══════════════════════════════════════════════════════════════
+  QUICK TEST LOGINS (Password: password123)
+═══════════════════════════════════════════════════════════════
+
+Declarant (test tax payments):
+  michael.brown@dowelef.com
+
+Operation Clerk (test release order):
+  lisa.anderson@dowelef.com
+
+Operations Manager:
+  ops.manager@dowelef.com
+
+
+═══════════════════════════════════════════════════════════════
+  WHAT'S NEW TODAY (March 27, 2026)
+═══════════════════════════════════════════════════════════════
+
+✅ Tax payment status updates correctly
+✅ Clear status: "WAITING FOR WHARFAGE PAYMENT"
+✅ Release order required before port/Swissport charges
+✅ OPERATIONS DONE button only shows with release order
+
+
+═══════════════════════════════════════════════════════════════
+  IMPORTANT: Keep the Command Prompt window open!
+═══════════════════════════════════════════════════════════════
+
+All changes are saved and ready to use! 🎉

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Cache Test - DOW ELEF System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2563eb;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .success {
+            background: #d1fae5;
+            border-left: 4px solid #10b981;
+            color: #065f46;
+        }
+        .info {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            color: #1e40af;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 10px 10px 0;
+            transition: background 0.3s;
+        }
+        .button:hover {
+            background: #1d4ed8;
+        }
+        .version {
+            font-family: monospace;
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .instructions {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #92400e;
+        }
+        .instructions ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 5px 0;
+            color: #78350f;
+        }
+        code {
+            background: #1f2937;
+            color: #10b981;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🔄 DOW ELEF System - Cache Test Page</h1>
+        
+        <div class="status success">
+            <strong>✅ Server Status:</strong> Running and serving latest code
+        </div>
+
+        <div class="version">
+            <strong>Build Version:</strong> March 9, 2026 - 18:30<br>
+            <strong>Build Hash:</strong> index-heLarfn7.js<br>
+            <strong>Fix Applied:</strong> Clickable tiles with proper error handling
+        </div>
+
+        <div class="status info">
+            <strong>ℹ️ What was fixed:</strong><br>
+            Transport mode tiles now have proper click handlers that check if the tile is clickable before executing. This prevents "undefined is not a function" errors.
+        </div>
+
+        <div class="instructions">
+            <h3>⚠️ If you're seeing errors in the console:</h3>
+            <ul>
+                <li><strong>Windows/Linux:</strong> Press <code>Ctrl + Shift + R</code> to hard refresh</li>
+                <li><strong>Mac:</strong> Press <code>Cmd + Shift + R</code> to hard refresh</li>
+                <li><strong>Alternative:</strong> Open Developer Tools (F12), right-click refresh button, select "Empty Cache and Hard Reload"</li>
+                <li><strong>Last Resort:</strong> Clear browser cache completely (<code>Ctrl + Shift + Delete</code>)</li>
+            </ul>
+        </div>
+
+        <div style="margin-top: 30px;">
+            <a href="/" class="button">🏠 Go to Main Application</a>
+            <a href="javascript:location.reload(true)" class="button">🔄 Hard Refresh This Page</a>
+        </div>
+
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+            <h3>Test Credentials:</h3>
+            <div style="background: #f9fafb; padding: 15px; border-radius: 5px;">
+                <strong>Documentation Officer (Has clickable tiles):</strong><br>
+                Email: <code>documentation_officer@company.com</code><br>
+                Password: <code>documentation_officer123</code>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; font-size: 14px; color: #6b7280;">
+            <strong>Server URLs:</strong><br>
+            Local: <a href="http://localhost:4173/">http://localhost:4173/</a><br>
+            Network: <a href="http://192.168.0.114:4173/">http://192.168.0.114:4173/</a>
+        </div>
+    </div>
+
+    <script>
+        // Display current timestamp to verify page is not cached
+        document.addEventListener('DOMContentLoaded', function() {
+            const timestamp = new Date().toLocaleString();
+            const timestampDiv = document.createElement('div');
+            timestampDiv.style.cssText = 'margin-top: 20px; padding: 10px; background: #f3f4f6; border-radius: 5px; font-size: 12px; color: #6b7280;';
+            timestampDiv.innerHTML = '<strong>Page Loaded At:</strong> ' + timestamp + '<br><em>If this timestamp doesn\'t update when you refresh, your browser is caching this page.</em>';
+            document.querySelector('.card').appendChild(timestampDiv);
+        });
+    </script>
+</body>
+</html>

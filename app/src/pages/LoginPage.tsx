@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { 
-  Building2, Mail, Lock, UserCircle, Eye, EyeOff 
+  Mail, Lock, UserCircle, Eye, EyeOff 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +23,7 @@ const roles: { value: UserRole; label: string }[] = [
   { value: 'operations_manager', label: 'Operations Manager' },
   { value: 'operation_clerk', label: 'Operation Clerk' },
   { value: 'permits_clerk', label: 'Permits Clerk' },
+  { value: 'shipping_line_clerk', label: 'Shipping Line Clerk' },
   { value: 'delivery_clerk', label: 'Delivery Clerk' },
   { value: 'transport_manager', label: 'Transport Manager' },
   { value: 'finance_manager', label: 'Finance Manager' },
@@ -90,14 +91,14 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       >
         {/* Header */}
         <div className="bg-gradient-to-r from-slate-800 to-orange-300 p-8 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-full mb-4 backdrop-blur-sm">
-            <Building2 className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center w-20 h-20 mb-4">
+            <img src="/dow-elef-logo.svg" alt="DOW ELEF Logo" className="w-full h-full" />
           </div>
           <h1 className="text-2xl font-bold text-white mb-1">
-            DOW ELEF System
+            DOW ELEF INTERNATIONAL
           </h1>
           <p className="text-orange-100 text-sm">
-            Enterprise Management Solutions
+            Freight Logistics Management System
           </p>
         </div>
 

@@ -1,0 +1,24 @@
+<svg width="200" height="60" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+  <!-- Globe with orange and blue design -->
+  <g transform="translate(5, 5)">
+    <!-- Globe circle -->
+    <circle cx="25" cy="25" r="24" fill="#FF8C42" stroke="#2E4A87" stroke-width="2"/>
+    
+    <!-- Globe continents -->
+    <path d="M8 20 Q15 15 25 18 Q35 20 42 25 Q35 30 25 32 Q15 35 8 30 Z" fill="#2E4A87" opacity="0.8"/>
+    <path d="M10 35 Q20 38 30 35 Q40 32 45 38" fill="#2E4A87" opacity="0.6"/>
+    <path d="M5 15 Q12 10 20 12 Q28 14 35 10" fill="#2E4A87" opacity="0.6"/>
+    
+    <!-- Orbital ring -->
+    <ellipse cx="25" cy="25" rx="30" ry="12" fill="none" stroke="#2E4A87" stroke-width="2" opacity="0.7"/>
+    
+    <!-- Arrow/direction indicator -->
+    <path d="M45 20 L50 25 L45 30 L47 25 Z" fill="#2E4A87"/>
+  </g>
+  
+  <!-- Company text -->
+  <text x="65" y="20" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#2E4A87">DOW</text>
+  <text x="105" y="20" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#FF8C42">ELEF</text>
+  <text x="65" y="35" font-family="Arial, sans-serif" font-size="8" fill="#666">INTERNATIONAL (T) LTD</text>
+  <text x="65" y="48" font-family="Arial, sans-serif" font-size="6" fill="#888" font-style="italic">"For fast and reliable freight logistics"</text>
+</svg>

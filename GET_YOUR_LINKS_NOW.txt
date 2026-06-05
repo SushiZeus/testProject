@@ -1,0 +1,94 @@
+═══════════════════════════════════════════════════════════════
+  GET YOUR FRESH LINKS - FOLLOW THESE 4 STEPS
+═══════════════════════════════════════════════════════════════
+
+ALL UPDATES ARE SAVED! Just restart the server to see them.
+
+───────────────────────────────────────────────────────────────
+STEP 1: Stop Current Server
+───────────────────────────────────────────────────────────────
+In the Command Prompt window where server is running:
+Press: Ctrl + C
+
+
+───────────────────────────────────────────────────────────────
+STEP 2: Clear Browser Cache (Choose One)
+───────────────────────────────────────────────────────────────
+Option A: Clear Cache
+  Press: Ctrl + Shift + Delete
+  Select: Cached images and files
+  Click: Clear data
+
+Option B: Use Incognito Mode (Easier!)
+  Chrome/Edge: Ctrl + Shift + N
+  Firefox: Ctrl + Shift + P
+
+
+───────────────────────────────────────────────────────────────
+STEP 3: Restart Server
+───────────────────────────────────────────────────────────────
+In Command Prompt, run:
+
+cd C:\Users\user\Desktop\testproject\app
+npm run dev -- --host
+
+
+───────────────────────────────────────────────────────────────
+STEP 4: Get Your Links
+───────────────────────────────────────────────────────────────
+The server will show:
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://192.168.0.XXX:5173/
+
+USE THESE LINKS! ⬆️
+
+
+═══════════════════════════════════════════════════════════════
+  QUICK TEST LOGINS (Password: password123)
+═══════════════════════════════════════════════════════════════
+
+Test Declaration Workflow:
+  Email: michael.brown@dowelef.com
+  
+Test Operations Workflow:
+  Email: lisa.anderson@dowelef.com
+
+
+═══════════════════════════════════════════════════════════════
+  WHAT'S FIXED TODAY
+═══════════════════════════════════════════════════════════════
+
+✅ Declaration Done Workflow
+   - File stays in declaration until DECLARATION DONE clicked
+   - TAX PAID and WHARFAGE PAID don't change status anymore
+   
+✅ Release Order Enforcement
+   - Must upload release order before port/Swissport charges
+   - OPERATIONS DONE only shows with release order
+
+✅ Clear Status Names
+   - "WAITING FOR WHARFAGE PAYMENT" (clearer)
+   - "WAITING FOR RELEASE ORDER" (after assignment)
+   - "OPERATIONS DONE" (after port charges)
+
+
+═══════════════════════════════════════════════════════════════
+  CRITICAL TEST (After Restarting)
+═══════════════════════════════════════════════════════════════
+
+Login as: michael.brown@dowelef.com
+
+1. Upload tax docs → Click TAX PAID
+   ✅ Status should STAY "WAITING FOR TAX PAYMENT"
+   
+2. Upload wharfage docs → Click WHARFAGE PAID
+   ✅ Status should STAY "WAITING FOR TAX PAYMENT"
+   
+3. Click DECLARATION DONE
+   ✅ NOW status changes to "READY FOR OPERATIONS"
+
+
+═══════════════════════════════════════════════════════════════
+
+All changes are saved! Just restart the server! 🚀

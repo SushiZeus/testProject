@@ -2,7 +2,6 @@ import { useState } from 'react';
 import {
   LayoutDashboard,
   FilePlus,
-  FileText,
   ClipboardCheck,
   Truck,
   DollarSign,
@@ -16,6 +15,18 @@ import {
   Settings,
   User,
   BarChart3,
+  FileText,
+  Receipt,
+  Banknote,
+  Package,
+  ShoppingCart,
+  Briefcase,
+  BookOpen,
+  TrendingUp,
+  Handshake,
+  Wrench,
+  Trash2,
+  ClipboardList,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -36,8 +47,9 @@ import { cn } from '@/lib/utils';
 interface NavItem {
   label: string;
   icon: React.ElementType;
-  href: AppRoute;
+  href?: AppRoute;
   roles: string[];
+  children?: NavItem[];
 }
 
 const navItems: NavItem[] = [
@@ -45,31 +57,109 @@ const navItems: NavItem[] = [
     label: 'Dashboard', 
     icon: LayoutDashboard, 
     href: 'dashboard', 
-    roles: ['*'] // All users can access dashboard
+    roles: ['*']
   },
   { 
     label: 'File Opening', 
     icon: FilePlus, 
     href: 'files/open', 
-    roles: ['documentation_officer', 'finance_manager', 'commercial_manager', 'coo', 'managing_director', 'administrator'] 
+    roles: ['documentation_officer', 'coo', 'managing_director', 'administrator'] 
   },
   { 
     label: 'Declaration', 
     icon: ClipboardCheck, 
     href: 'declaration', 
-    roles: ['declaration_manager', 'declarant', 'finance_manager', 'commercial_manager', 'coo', 'managing_director', 'administrator'] 
+    roles: ['declaration_manager', 'declarant', 'administrator'] 
   },
   { 
     label: 'Operations', 
     icon: Truck, 
     href: 'operations', 
-    roles: ['operations_manager', 'operation_clerk', 'permits_clerk', 'delivery_clerk', 'transport_manager', 'finance_manager', 'commercial_manager', 'coo', 'managing_director', 'administrator'] 
+    roles: ['operations_manager', 'operation_clerk', 'permits_clerk', 'administrator'] 
+  },
+  { 
+    label: 'Shipping Line', 
+    icon: Truck, 
+    href: 'shipping-line', 
+    roles: ['shipping_line_clerk', 'operations_manager', 'administrator'] 
   },
   { 
     label: 'Petty Cash', 
     icon: DollarSign, 
     href: 'petty-cash', 
-    roles: ['documentation_officer', 'declaration_manager', 'declarant', 'operations_manager', 'operation_clerk', 'hr_manager', 'finance_manager', 'cashier', 'commercial_manager', 'coo', 'managing_director', 'administrator'] 
+    roles: ['documentation_officer', 'declaration_manager', 'declarant', 'operations_manager', 'operation_clerk', 'shipping_line_clerk', 'hr_manager', 'finance_manager', 'cashier', 'commercial_manager', 'coo', 'managing_director', 'administrator'] 
+  },
+  { 
+    label: 'Payroll', 
+    icon: Banknote, 
+    href: 'payroll', 
+    roles: ['hr_manager', 'finance_manager', 'cashier', 'administrator'] 
+  },
+  { 
+    label: 'Fixed Assets', 
+    icon: Package, 
+    roles: ['hr_manager', 'finance_manager', 'administrator', 'commercial_manager', 'coo', 'managing_director'],
+    children: [
+      { label: 'Asset Register', icon: Package, href: 'assets', roles: ['hr_manager', 'finance_manager', 'administrator', 'commercial_manager', 'coo', 'managing_director'] },
+      { label: 'Depreciation', icon: TrendingUp, href: 'assets/depreciation', roles: ['hr_manager', 'finance_manager', 'administrator', 'commercial_manager', 'coo', 'managing_director'] },
+      { label: 'Assignments', icon: Users, href: 'assets/assignments', roles: ['hr_manager', 'finance_manager', 'administrator', 'commercial_manager', 'coo', 'managing_director'] },
+      { label: 'Maintenance', icon: Wrench, href: 'assets/maintenance', roles: ['hr_manager', 'finance_manager', 'administrator', 'commercial_manager', 'coo', 'managing_director'] },
+      { label: 'Disposals', icon: Trash2, href: 'assets/disposals', roles: ['hr_manager', 'finance_manager', 'administrator', 'commercial_manager', 'coo', 'managing_director'] },
+    ]
+  },
+  { 
+    label: 'Inventory', 
+    icon: ShoppingCart, 
+    roles: ['hr_manager', 'administrator', 'commercial_manager', 'coo', 'managing_director'],
+    children: [
+      { label: 'Dashboard', icon: LayoutDashboard, href: 'inventory', roles: ['hr_manager', 'administrator', 'commercial_manager', 'coo', 'managing_director'] },
+      { label: 'Items & Stock', icon: Package, href: 'inventory/items', roles: ['hr_manager', 'administrator', 'commercial_manager', 'coo', 'managing_director'] },
+      { label: 'Requests', icon: FileText, href: 'inventory/requests', roles: ['hr_manager', 'administrator', 'commercial_manager', 'coo', 'managing_director'] },
+      { label: 'Purchase Orders', icon: Receipt, href: 'inventory/po', roles: ['hr_manager', 'administrator', 'commercial_manager', 'coo', 'managing_director'] },
+      { label: 'Goods Received', icon: Banknote, href: 'inventory/goods-received', roles: ['hr_manager', 'administrator', 'commercial_manager', 'coo', 'managing_director'] },
+    ]
+  },
+  { 
+    label: 'Recruitment', 
+    icon: Briefcase, 
+    href: 'recruitment', 
+    roles: ['hr_manager', 'administrator', 'coo', 'managing_director'] 
+  },
+  { 
+    label: 'Training', 
+    icon: BookOpen, 
+    href: 'training', 
+    roles: ['hr_manager', 'administrator', 'coo', 'managing_director'] 
+  },
+  { 
+    label: 'Performance', 
+    icon: TrendingUp, 
+    href: 'performance', 
+    roles: ['hr_manager', 'administrator', 'coo', 'managing_director'] 
+  },
+  { 
+    label: 'Outsourcing', 
+    icon: Handshake, 
+    href: 'outsourcing', 
+    roles: ['hr_manager', 'administrator', 'coo', 'managing_director'] 
+  },
+  { 
+    label: 'Leave Management', 
+    icon: Users, 
+    href: 'leave-management', 
+    roles: ['*']
+  },
+  { 
+    label: 'User Management', 
+    icon: Users, 
+    href: 'user-management', 
+    roles: ['hr_manager', 'administrator'] 
+  },
+  { 
+    label: 'Documents', 
+    icon: FileText, 
+    href: 'documents', 
+    roles: ['*']
   },
   { 
     label: 'Reports', 
@@ -78,10 +168,16 @@ const navItems: NavItem[] = [
     roles: ['operations_manager', 'declaration_manager', 'hr_manager', 'finance_manager', 'commercial_manager', 'coo', 'managing_director', 'administrator'] 
   },
   { 
+    label: 'Quotations', 
+    icon: ClipboardList, 
+    href: 'quotations', 
+    roles: ['commercial_manager', 'administrator'] 
+  },
+  { 
     label: 'Drivers', 
     icon: Users, 
     href: 'drivers', 
-    roles: ['hr_manager', 'commercial_manager', 'coo', 'managing_director', 'administrator'] 
+    roles: ['hr_manager', 'coo', 'managing_director', 'administrator'] 
   },
   { 
     label: 'Driver Management', 
@@ -99,12 +195,52 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children, navigate, currentRoute }: DashboardLayoutProps) {
   const { user, logout } = useAuthStore();
-  const { getUnreadCount, getNotificationsForUser, markAsRead } = useNotificationStore();
+  const { getUnreadCount, getNotificationsForUser, markAsRead, markAllAsRead } = useNotificationStore();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<string[]>(['Fixed Assets', 'Inventory']);
 
   const unreadCount = user ? getUnreadCount(user.id) : 0;
   const notifications = user ? getNotificationsForUser(user.id).slice(0, 5) : [];
+
+  const toggleSection = (label: string) => {
+    setExpandedSections(prev =>
+      prev.includes(label)
+        ? prev.filter(l => l !== label)
+        : [...prev, label]
+    );
+  };
+
+  // Get notification count per module based on notification links
+  const getModuleNotificationCount = (route: AppRoute): number => {
+    if (!user) return 0;
+    
+    const userNotifications = getNotificationsForUser(user.id).filter(n => !n.isRead);
+    
+    // Map routes to notification link patterns
+    const routePatterns: Record<string, string[]> = {
+      'dashboard': ['/dashboard'],
+      'files/open': ['/files'],
+      'declaration': ['/declaration'],
+      'operations': ['/operations'],
+      'shipping-line': ['/shipping-line'],
+      'petty-cash': ['/petty-cash'],
+      'claims': ['/claims'],
+      'payroll': ['/payroll'],
+      'loans': ['/loans'],
+      'leave-management': ['/leave-management'],
+      'user-management': ['/user-management'],
+      'reports': ['/reports'],
+      'drivers': ['/drivers'],
+      'drivers-management': ['/drivers-management'],
+      'quotations': ['/quotations'],
+    };
+    
+    const patterns = routePatterns[route] || [];
+    return userNotifications.filter(n => 
+      n.link && patterns.some(pattern => n.link?.includes(pattern))
+    ).length;
+  };
 
   const handleLogout = () => {
     logout();
@@ -137,38 +273,98 @@ export function DashboardLayout({ children, navigate, currentRoute }: DashboardL
         <div className="h-20 flex items-center justify-center border-b border-white/10">
           {sidebarOpen ? (
             <div className="flex items-center gap-3 px-6">
-              <div className="w-10 h-10 bg-orange-300 rounded-lg flex items-center justify-center">
-                <FileText className="w-6 h-6 text-slate-800" />
+              <div className="w-12 h-12 flex items-center justify-center">
+                <img src="/dow-elef-logo.svg" alt="DOW ELEF Logo" className="w-full h-full" />
               </div>
               <div>
                 <h1 className="font-bold text-lg leading-tight">DOW ELEF</h1>
-                <p className="text-xs text-orange-200">Management System</p>
+                <p className="text-xs text-orange-200">INTERNATIONAL (T) LTD</p>
               </div>
             </div>
           ) : (
-            <div className="w-10 h-10 bg-orange-300 rounded-lg flex items-center justify-center">
-              <FileText className="w-6 h-6 text-slate-800" />
+            <div className="w-10 h-10 flex items-center justify-center">
+              <img src="/dow-elef-logo.svg" alt="DOW ELEF Logo" className="w-full h-full" />
             </div>
           )}
         </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-2">
-          {filteredNavItems.map((item) => (
-            <button
-              key={item.href}
-              onClick={() => navigate(item.href)}
-              className={cn(
-                'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-left',
-                currentRoute === item.href
-                  ? 'bg-orange-300 text-slate-800 border-l-4 border-orange-500'
-                  : 'hover:bg-white/10 border-l-4 border-transparent'
-              )}
-            >
-              <item.icon className="w-5 h-5 flex-shrink-0" />
-              {sidebarOpen && <span className="font-medium">{item.label}</span>}
-            </button>
-          ))}
+        <nav className="p-4 space-y-2 overflow-y-auto" style={{ height: 'calc(100vh - 160px)' }}>
+          {filteredNavItems.map((item) => {
+            if (item.children) {
+              // Expandable section
+              const isExpanded = expandedSections.includes(item.label);
+              return (
+                <div key={item.label}>
+                  <button
+                    onClick={() => toggleSection(item.label)}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-left hover:bg-white/10 border-l-4 border-transparent"
+                  >
+                    <item.icon className="w-5 h-5 flex-shrink-0" />
+                    {sidebarOpen && (
+                      <>
+                        <span className="font-medium flex-1">{item.label}</span>
+                        <ChevronDown className={cn(
+                          "w-4 h-4 transition-transform",
+                          isExpanded && "rotate-180"
+                        )} />
+                      </>
+                    )}
+                  </button>
+                  {isExpanded && sidebarOpen && (
+                    <div className="ml-4 mt-1 space-y-1">
+                      {item.children.map((child) => (
+                        <button
+                          key={child.href}
+                          onClick={() => navigate(child.href!)}
+                          className={cn(
+                            'w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 text-left text-sm',
+                            currentRoute === child.href
+                              ? 'bg-orange-300 text-slate-800'
+                              : 'hover:bg-white/10'
+                          )}
+                        >
+                          <span className="font-medium">{child.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            
+            // Regular item
+            const notificationCount = getModuleNotificationCount(item.href!);
+            return (
+              <button
+                key={item.href}
+                onClick={() => navigate(item.href!)}
+                className={cn(
+                  'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-left relative',
+                  currentRoute === item.href
+                    ? 'bg-orange-300 text-slate-800 border-l-4 border-orange-500'
+                    : 'hover:bg-white/10 border-l-4 border-transparent'
+                )}
+              >
+                <item.icon className="w-5 h-5 flex-shrink-0" />
+                {sidebarOpen && (
+                  <>
+                    <span className="font-medium flex-1">{item.label}</span>
+                    {notificationCount > 0 && (
+                      <Badge className="h-5 min-w-5 flex items-center justify-center p-0 px-1.5 bg-red-500 text-white text-xs">
+                        {notificationCount}
+                      </Badge>
+                    )}
+                  </>
+                )}
+                {!sidebarOpen && notificationCount > 0 && (
+                  <Badge className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 bg-red-500 text-white text-[10px]">
+                    {notificationCount}
+                  </Badge>
+                )}
+              </button>
+            );
+          })}
         </nav>
 
         {/* Toggle Button */}
@@ -197,12 +393,12 @@ export function DashboardLayout({ children, navigate, currentRoute }: DashboardL
       >
         <div className="h-20 flex items-center justify-between px-6 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-orange-300 rounded-lg flex items-center justify-center">
-              <FileText className="w-6 h-6 text-slate-800" />
+            <div className="w-12 h-12 flex items-center justify-center">
+              <img src="/dow-elef-logo.svg" alt="DOW ELEF Logo" className="w-full h-full" />
             </div>
             <div>
               <h1 className="font-bold text-lg leading-tight">DOW ELEF</h1>
-              <p className="text-xs text-orange-200">Management System</p>
+              <p className="text-xs text-orange-200">INTERNATIONAL (T) LTD</p>
             </div>
           </div>
           <button onClick={() => setMobileMenuOpen(false)}>
@@ -210,25 +406,75 @@ export function DashboardLayout({ children, navigate, currentRoute }: DashboardL
           </button>
         </div>
 
-        <nav className="p-4 space-y-2">
-          {filteredNavItems.map((item) => (
-            <button
-              key={item.href}
-              onClick={() => {
-                navigate(item.href);
-                setMobileMenuOpen(false);
-              }}
-              className={cn(
-                'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-left',
-                currentRoute === item.href
-                  ? 'bg-orange-300 text-slate-800 border-l-4 border-orange-500'
-                  : 'hover:bg-white/10 border-l-4 border-transparent'
-              )}
-            >
-              <item.icon className="w-5 h-5" />
-              <span className="font-medium">{item.label}</span>
-            </button>
-          ))}
+        <nav className="p-4 space-y-2 overflow-y-auto" style={{ height: 'calc(100vh - 80px)' }}>
+          {filteredNavItems.map((item) => {
+            if (item.children) {
+              // Expandable section
+              const isExpanded = expandedSections.includes(item.label);
+              return (
+                <div key={item.label}>
+                  <button
+                    onClick={() => toggleSection(item.label)}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-left hover:bg-white/10 border-l-4 border-transparent"
+                  >
+                    <item.icon className="w-5 h-5" />
+                    <span className="font-medium flex-1">{item.label}</span>
+                    <ChevronDown className={cn(
+                      "w-4 h-4 transition-transform",
+                      isExpanded && "rotate-180"
+                    )} />
+                  </button>
+                  {isExpanded && (
+                    <div className="ml-4 mt-1 space-y-1">
+                      {item.children.map((child) => (
+                        <button
+                          key={child.href}
+                          onClick={() => {
+                            navigate(child.href!);
+                            setMobileMenuOpen(false);
+                          }}
+                          className={cn(
+                            'w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 text-left text-sm',
+                            currentRoute === child.href
+                              ? 'bg-orange-300 text-slate-800'
+                              : 'hover:bg-white/10'
+                          )}
+                        >
+                          <span className="font-medium">{child.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            
+            // Regular item
+            const notificationCount = getModuleNotificationCount(item.href!);
+            return (
+              <button
+                key={item.href}
+                onClick={() => {
+                  navigate(item.href!);
+                  setMobileMenuOpen(false);
+                }}
+                className={cn(
+                  'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-left relative',
+                  currentRoute === item.href
+                    ? 'bg-orange-300 text-slate-800 border-l-4 border-orange-500'
+                    : 'hover:bg-white/10 border-l-4 border-transparent'
+                )}
+              >
+                <item.icon className="w-5 h-5" />
+                <span className="font-medium flex-1">{item.label}</span>
+                {notificationCount > 0 && (
+                  <Badge className="h-5 min-w-5 flex items-center justify-center p-0 px-1.5 bg-red-500 text-white text-xs">
+                    {notificationCount}
+                  </Badge>
+                )}
+              </button>
+            );
+          })}
         </nav>
       </aside>
 
@@ -277,7 +523,7 @@ export function DashboardLayout({ children, navigate, currentRoute }: DashboardL
                   <span>Notifications</span>
                   {unreadCount > 0 && (
                     <button
-                      onClick={() => user && markAsRead(user.id)}
+                      onClick={() => user && markAllAsRead(user.id)}
                       className="text-xs text-[#3b82f6] hover:underline"
                     >
                       Mark all read

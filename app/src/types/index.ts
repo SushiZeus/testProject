@@ -22,6 +22,9 @@ export type UserRole =
 // Shipment Types
 export type ShipmentType = 'IMPORT' | 'EXPORT' | 'TRANSSHIPMENT' | 'TRANSIT';
 
+// Service Types
+export type ServiceType = 'CLEARANCE' | 'DOCUMENT_HANDOVER' | 'TRANSPORTATION';
+
 // Transport Modes
 export type TransportMode = 'AIR' | 'SEA' | 'ROAD' | 'RAIL';
 
@@ -44,9 +47,10 @@ export type FileStatus =
   | 'WAITING_FOR_FINAL_ASSESSMENT'
   | 'DECLARATION_DONE'
   | 'WAITING_FOR_TAX_PAYMENT'
-  | 'WAITING_FOR_PAYMENTS' // NEW: After tax and wharfage docs uploaded
+  | 'WAITING_FOR_WHARFAGE_PAYMENT' // NEW: When tax is paid but wharfage is pending (SEA only)
   | 'TAXES_PAID'
   | 'READY_FOR_OPERATIONS'
+  | 'WAITING_FOR_RELEASE_ORDER' // NEW: After file assigned to operations, waiting for release order
   | 'RECEIVED_BY_CLERK'
   | 'CLERK_WORKING_ON_FILE'
   | 'SHIPMENT_UNDER_VERIFICATION'
@@ -55,6 +59,7 @@ export type FileStatus =
   | 'PERMIT_PAYMENTS_DONE'
   | 'PERMITS_DONE'
   | 'RELEASE_ORDER_UPLOADED'
+  | 'RELEASE_ORDER_RECEIVED' // NEW: When release order is uploaded
   | 'PROCESSING_DELIVERY_ORDER'
   | 'WAITING_FOR_DO_PAYMENT'
   | 'DELIVERY_ORDER_PAYMENTS_DONE'
@@ -67,9 +72,17 @@ export type FileStatus =
   | 'PORT_CHARGES_PAID'
   | 'WAITING_FOR_PORT_CHARGES_PAYMENT'
   | 'WAITING_FOR_SWISSPORT_CHARGES_PAYMENT'
-  | 'WAITING_FOR_PAYMENTS'
   | 'WAITING_FOR_SWISSPORT_PAYMENTS'
   | 'SWISSPORT_CHARGES_PAID'
+  | 'CARGO_CLEARED' // NEW: After swissport charges paid, ready for delivery
+  | 'OPERATIONS_DONE' // NEW: After port charges paid, operations complete, ready for delivery
+  | 'VERIFICATION_FORM_PENDING' // Cargo verification form must be completed before delivery
+  | 'VERIFICATION_FORM_COMPLETED' // Cargo verification form completed, ready for driver assignment
+  | 'WAITING_FOR_COMMERCIAL' // NEW: For DOCUMENT_HANDOVER and TRANSPORTATION services
+  | 'COMMERCIAL_PROCESSING' // NEW: Commercial department processing
+  | 'COMMERCIAL_APPROVED' // NEW: Approved by commercial, ready for delivery/handover
+  | 'QUOTATION_UPLOADED' // Quotation uploaded by commercial manager
+  | 'QUOTATION_SENT_TO_FINANCE' // Quotation sent to finance for Proforma Invoice
   | 'DRIVER_REQUESTED'
   | 'DRIVER_ASSIGNED'
   | 'DRIVER_COLLECTING_CARGO'
@@ -156,9 +169,31 @@ export interface ShipmentFile {
   clientId: string;
   client?: Client;
   shipmentType: ShipmentType;
+  serviceType: ServiceType; // NEW: CLEARANCE, DOCUMENT_HANDOVER, or TRANSPORTATION
   transportMode: TransportMode;
   documents: ShippingDocument[];
   status: FileStatus;
+  
+  // Document numbering fields
+  commercialInvoiceNumber?: string;
+  blType?: 'HBL' | 'MBL'; // Bill of Lading type for SEA
+  blNumber?: string; // Bill of Lading number
+  awbType?: 'HAWB' | 'MAWB'; // Airway Bill type for AIR
+  awbNumber?: string; // Airway Bill number
+  roadConsignmentNumber?: string;
+  
+  // Contact person
+  contactPersonId?: string;
+  contactPerson?: User;
+  
+  // SEA freight specific fields
+  seaFreightType?: 'LCL' | 'FCL'; // Less than Container Load or Full Container Load
+  fcl20ftQuantity?: number; // 20ft container quantity
+  fcl40ftQuantity?: number; // 40ft container quantity
+  fclContainerOtherDescription?: string;
+  
+  // Cargo information
+  cargoDescription?: string;
   
   // Declaration fields
   assignedDeclarantId?: string;
@@ -190,9 +225,11 @@ export interface ShipmentFile {
   assignedOperationClerk?: User;
   clerkAcknowledgedAt?: Date;
   verificationCheckedAt?: Date;
-  verificationPhotos?: string[]; // URLs of verification photos (max 4)
+  verificationPhotos?: string[]; // URLs of verification photos (max 7)
   releaseOrderUrl?: string;
+  releaseOrderUploadedAt?: Date; // When release order is uploaded
   swissportPaidAt?: Date;
+  cargoClearedAt?: Date; // When cargo is cleared after swissport charges paid
   
   // Permits fields
   assignedPermitsClerkId?: string;
@@ -212,13 +249,33 @@ export interface ShipmentFile {
   deliveryOrderPaymentsDoneAt?: Date;
   deliveryOrderSubmittedAt?: Date; // When shipping line clerk submits DO
   
+  // Shipping documentation fields (SEA only)
+  hblNumber?: string; // House Bill of Lading
+  mblNumber?: string; // Master Bill of Lading
+  doNumber?: string; // Delivery Order Number
+  containerNumbers?: string; // Container numbers (comma-separated)
+  
   // Port charges fields
   portChargesInvoiceUrl?: string;
   portChargesUrl?: string; // NEW: Port charges document (SEA)
   portChargesPaidAt?: Date;
   swissportChargesUrl?: string; // NEW: Swissport charges document (AIR)
   swissportChargesPaidAt?: Date; // NEW: Swissport charges paid timestamp
+  operationsDoneAt?: Date; // NEW: When operations are complete (after port charges paid for SEA)
   
+  // Commercial / Quotation fields
+  quotationUrl?: string;           // Uploaded quotation document URL
+  quotationFileName?: string;      // Original filename of the quotation
+  quotationUploadedAt?: Date;      // When quotation was uploaded
+  quotationUploadedBy?: string;    // User ID who uploaded
+  quotationSentToFinanceAt?: Date; // When sent to finance for Proforma Invoice
+  quotationNotes?: string;         // Notes from commercial manager
+
+  // Cargo Verification Form
+  cargoVerificationForm?: CargoVerificationForm;
+  cargoVerificationCompletedAt?: Date;
+  cargoVerificationCompletedBy?: string;
+
   // Delivery fields
   assignedDeliveryClerkId?: string;
   assignedDriverId?: string;
@@ -237,7 +294,44 @@ export interface ShipmentFile {
   comments?: FileComment[];
 }
 
-// File Comment Interface
+// Cargo Verification Form Interface
+export type VerificationAnswer = 'YES' | 'NO' | '';
+
+export interface CargoVerificationForm {
+  // Header fields
+  station: string;
+  verificationDate: string;
+  verificationOfficer: string;
+  tansadNo: string;
+  // Inspection checklist (YES/NO + remarks)
+  q1_physicalDamage: VerificationAnswer;
+  q1_remarks: string;
+  q2_sealsIntact: VerificationAnswer;
+  q2_remarks: string;
+  q3_discrepancyQuantity: VerificationAnswer;
+  q3_remarks: string;
+  q4_sameItemsDeclared: VerificationAnswer;
+  q4_remarks: string;
+  q5_allPartsSeen: VerificationAnswer;
+  q5_remarks: string;
+  q6_internalDamage: VerificationAnswer;
+  q6_remarks: string;
+  q7_specialAttention: VerificationAnswer;
+  q7_remarks: string;
+  q8_containerLocked: VerificationAnswer;
+  q8_remarks: string;
+  q9_sealFixed: VerificationAnswer;
+  q9_sealNumber: string;
+  q9_remarks: string;
+  q10_samplesTaken: VerificationAnswer;
+  q10_quantity: string;
+  q10_remarks: string;
+  // Footer
+  generalRemarks: string;
+  officerName: string;
+  completedAt?: Date;
+  completedBy?: string;
+}
 export interface FileComment {
   id: string;
   fileId: string;
@@ -429,3 +523,57 @@ export const PERMISSIONS: Permission[] = [
   { action: 'view_all_files', roles: ['administrator', 'coo'] },
   { action: 'view_department_files', roles: ['declaration_manager', 'operations_manager', 'finance_manager', 'hr_manager'] },
 ];
+
+
+// Leave Management Types
+
+// Leave Type
+export type LeaveType = 
+  | 'ANNUAL'
+  | 'SICK'
+  | 'EMERGENCY'
+  | 'UNPAID'
+  | 'MATERNITY'
+  | 'PATERNITY'
+  | 'COMPASSIONATE'
+  | 'STUDY';
+
+// Leave Status
+export type LeaveStatus = 
+  | 'PENDING'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'CANCELLED';
+
+// Leave Request Interface
+export interface LeaveRequest {
+  id: string;
+  requestNumber: string; // LR-2026-XXXX
+  userId: string;
+  user?: User;
+  leaveType: LeaveType;
+  startDate: Date;
+  endDate: Date;
+  numberOfDays: number;
+  description: string;
+  status: LeaveStatus;
+  
+  // HR Manager review
+  hrManagerId?: string;
+  hrManager?: User;
+  hrComment?: string;
+  reviewedAt?: Date;
+  
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// User with Leave Balance
+export interface UserWithLeaveBalance extends User {
+  annualLeaveBalance: number; // Days remaining
+  sickLeaveBalance: number;
+  totalLeaveTaken: number;
+  leaveRequests?: LeaveRequest[];
+}
+// Export document types
+export * from './document';

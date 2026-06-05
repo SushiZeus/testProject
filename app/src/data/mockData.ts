@@ -434,6 +434,27 @@ export const mockActivityLogs: ActivityLog[] = [];
 
 // Helper function to get user by ID
 export const getUserById = (id: string): User | undefined => {
+  // Check userManagementStore first (for newly registered users)
+  if (typeof window !== 'undefined') {
+    try {
+      const savedUserState = localStorage.getItem('userManagementStore');
+      if (savedUserState) {
+        const parsed = JSON.parse(savedUserState);
+        const user = parsed.users.find((u: any) => u.id === id);
+        if (user) {
+          return {
+            ...user,
+            createdAt: new Date(user.createdAt),
+            updatedAt: new Date(user.updatedAt),
+          };
+        }
+      }
+    } catch (error) {
+      console.error('Error loading user from userManagementStore:', error);
+    }
+  }
+
+  // Fall back to mockUsers
   return mockUsers.find(user => user.id === id);
 };
 

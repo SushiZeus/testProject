@@ -60,9 +60,7 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
       user.role === 'finance_manager' ||
       user.role === 'coo' ||
       user.role === 'managing_director' ||
-      user.role === 'commercial_manager' ||
-      user.role === 'cashier' ||
-      user.role === 'administrator'
+      user.role === 'commercial_manager'
     ) ? 'all' : 
     user && (
       user.role === 'hr_manager' ||
@@ -127,25 +125,28 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
   // Safe permission check
   const canCreateRequest = user.role === 'administrator' || 
     ['documentation_officer', 'declaration_manager', 'declarant', 'operations_manager', 
-     'operation_clerk', 'permits_clerk', 'delivery_clerk', 'hr_manager', 'finance_manager', 
+     'operation_clerk', 'permits_clerk', 'shipping_line_clerk', 'delivery_clerk', 'hr_manager', 'finance_manager', 
      'cashier', 'commercial_manager', 'coo'].includes(user.role);
 
-  // Check if user can view all requests (executives, administrators, and cashier)
+  // Check if user can view all requests (only specific executive roles)
   const canViewAllRequests = user && (
-    user.role === 'finance_manager' ||
+    user.role === 'commercial_manager' ||
     user.role === 'coo' ||
     user.role === 'managing_director' ||
-    user.role === 'commercial_manager' ||
-    user.role === 'cashier' ||
-    user.role === 'administrator'
+    user.role === 'finance_manager'
   );
 
   // Filter requests based on user role and permissions
   const getVisibleRequests = () => {
     if (!user) return [];
     
-    // Executives and administrators can see all requests
+    // Only specific executives can see all requests
     if (canViewAllRequests) {
+      return requests || [];
+    }
+    
+    // Cashier and administrator can see all requests but with limited actions
+    if (user.role === 'cashier' || user.role === 'administrator') {
       return requests || [];
     }
     
@@ -177,12 +178,6 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
       return (requests || []).filter((r: PettyCashRequest) => 
         r.requestedBy === user.id || r.status === 'PENDING_DECLARATION_MANAGER_APPROVAL'
       );
-    }
-    
-    if (user.role === 'cashier') {
-      // Cashier can see ALL requests to monitor their status
-      // But can only act on PENDING_PAYMENT requests
-      return requests || [];
     }
     
     // All other users can only see their own requests
@@ -444,6 +439,27 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
           message: `Your petty cash request ${selectedRequest.requestNumber} has been paid`,
           type: 'success',
         });
+        
+        // If request is linked to a SEA file, notify shipping line clerks
+        if (selectedRequest.fileId) {
+          const file = files.find(f => f.id === selectedRequest.fileId);
+          if (file && file.transportMode === 'SEA' && (file.shipmentType === 'IMPORT' || file.shipmentType === 'EXPORT')) {
+            // Get all shipping line clerks
+            import('@/data/mockData').then(({ mockUsers }) => {
+              const shippingLineClerks = mockUsers.filter(u => u.role === 'shipping_line_clerk' && u.isActive);
+              shippingLineClerks.forEach(clerk => {
+                addNotification({
+                  userId: clerk.id,
+                  title: '💰 Petty Cash Paid',
+                  message: `Petty cash request ${selectedRequest.requestNumber} for SEA file ${file.fileNumber} has been paid`,
+                  type: 'success',
+                  fileId: file.id,
+                  link: '/shipping-line',
+                });
+              });
+            });
+          }
+        }
       }
     } else {
       const status = newStatus[actionType][selectedRequest.status];
@@ -482,6 +498,27 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
           message: `Your petty cash request ${selectedRequest.requestNumber} has been ${actionType === 'approve' ? 'approved' : 'rejected'}`,
           type: actionType === 'approve' ? 'success' : 'error',
         });
+        
+        // If request is linked to a SEA file, notify shipping line clerks
+        if (selectedRequest.fileId) {
+          const file = files.find(f => f.id === selectedRequest.fileId);
+          if (file && file.transportMode === 'SEA' && (file.shipmentType === 'IMPORT' || file.shipmentType === 'EXPORT')) {
+            // Get all shipping line clerks
+            import('@/data/mockData').then(({ mockUsers }) => {
+              const shippingLineClerks = mockUsers.filter(u => u.role === 'shipping_line_clerk' && u.isActive);
+              shippingLineClerks.forEach(clerk => {
+                addNotification({
+                  userId: clerk.id,
+                  title: actionType === 'approve' ? '✅ Petty Cash Approved' : '❌ Petty Cash Rejected',
+                  message: `Petty cash request ${selectedRequest.requestNumber} for SEA file ${file.fileNumber} has been ${actionType === 'approve' ? 'approved' : 'rejected'}`,
+                  type: actionType === 'approve' ? 'success' : 'error',
+                  fileId: file.id,
+                  link: '/shipping-line',
+                });
+              });
+            });
+          }
+        }
       }
     }
 
@@ -1310,22 +1347,30 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
                       </div>
                     </div>
 
-                    {/* HR Manager Action */}
-                    {(selectedRequest.hrComment || selectedRequest.status.includes('HR')) && (
+                    {/* HR Manager Action - Only for Documentation Officer requests */}
+                    {selectedRequest.requester?.role === 'documentation_officer' && 
+                     (selectedRequest.hrComment || selectedRequest.hrManagerId || 
+                      selectedRequest.status === 'PENDING_MANAGER_APPROVAL' || 
+                      selectedRequest.status === 'REJECTED_BY_HR') && (
                       <div className="flex gap-4">
                         <div className="flex flex-col items-center">
                           <div className={cn(
                             "w-10 h-10 rounded-full flex items-center justify-center",
-                            selectedRequest.status === 'REJECTED_BY_HR' ? 'bg-red-100' : 'bg-green-100'
+                            selectedRequest.status === 'REJECTED_BY_HR' ? 'bg-red-100' : 
+                            selectedRequest.status === 'PENDING_HR_APPROVAL' ? 'bg-yellow-100' :
+                            'bg-green-100'
                           )}>
                             {selectedRequest.status === 'REJECTED_BY_HR' ? (
                               <XCircle className="w-5 h-5 text-red-600" />
+                            ) : selectedRequest.status === 'PENDING_HR_APPROVAL' ? (
+                              <Clock className="w-5 h-5 text-yellow-600" />
                             ) : (
                               <CheckCircle className="w-5 h-5 text-green-600" />
                             )}
                           </div>
                           {(selectedRequest.managerComment || selectedRequest.declarationManagerComment || 
-                            selectedRequest.cooComment || selectedRequest.financeComment) && (
+                            selectedRequest.cooComment || selectedRequest.financeComment || 
+                            selectedRequest.status === 'PENDING_MANAGER_APPROVAL') && (
                             <div className="w-0.5 h-full bg-gray-200 mt-2"></div>
                           )}
                         </div>
@@ -1333,14 +1378,16 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
                           <div className="flex items-start justify-between">
                             <div>
                               <p className="font-medium text-gray-900">
-                                {selectedRequest.status === 'REJECTED_BY_HR' ? 'Rejected by HR Manager' : 'Reviewed by HR Manager'}
+                                {selectedRequest.status === 'REJECTED_BY_HR' ? 'Rejected by HR Manager' : 
+                                 selectedRequest.status === 'PENDING_HR_APPROVAL' ? 'Pending HR Manager Approval' :
+                                 'Approved by HR Manager'}
                               </p>
                               <p className="text-sm text-gray-600">HR Department</p>
                             </div>
-                            {selectedRequest.hrComment && (
+                            {selectedRequest.hrActionAt && (
                               <div className="flex items-center gap-1 text-xs text-gray-500">
                                 <Calendar className="w-3 h-3" />
-                                {new Date(selectedRequest.updatedAt).toLocaleString()}
+                                {new Date(selectedRequest.hrActionAt).toLocaleString()}
                               </div>
                             )}
                           </div>
@@ -1356,22 +1403,32 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
                       </div>
                     )}
 
-                    {/* Operations Manager Action */}
-                    {(selectedRequest.managerComment || selectedRequest.status.includes('MANAGER')) && (
+                    {/* Operations Manager Action - For shipping_line_clerk and after HR/Declaration Manager approval */}
+                    {((selectedRequest.requester?.role === 'shipping_line_clerk' || 
+                       selectedRequest.requester?.role === 'operation_clerk' ||
+                       selectedRequest.requester?.role === 'permits_clerk' ||
+                       selectedRequest.requester?.role === 'documentation_officer' && selectedRequest.hrManagerId) &&
+                      (selectedRequest.managerComment || selectedRequest.managerId || 
+                       selectedRequest.status === 'PENDING_COO_APPROVAL' || 
+                       selectedRequest.status === 'REJECTED_BY_MANAGER')) && (
                       <div className="flex gap-4">
                         <div className="flex flex-col items-center">
                           <div className={cn(
                             "w-10 h-10 rounded-full flex items-center justify-center",
-                            selectedRequest.status === 'REJECTED_BY_MANAGER' ? 'bg-red-100' : 'bg-green-100'
+                            selectedRequest.status === 'REJECTED_BY_MANAGER' ? 'bg-red-100' : 
+                            selectedRequest.status === 'PENDING_MANAGER_APPROVAL' ? 'bg-yellow-100' :
+                            'bg-green-100'
                           )}>
                             {selectedRequest.status === 'REJECTED_BY_MANAGER' ? (
                               <XCircle className="w-5 h-5 text-red-600" />
+                            ) : selectedRequest.status === 'PENDING_MANAGER_APPROVAL' ? (
+                              <Clock className="w-5 h-5 text-yellow-600" />
                             ) : (
                               <CheckCircle className="w-5 h-5 text-green-600" />
                             )}
                           </div>
                           {(selectedRequest.declarationManagerComment || selectedRequest.cooComment || 
-                            selectedRequest.financeComment) && (
+                            selectedRequest.financeComment || selectedRequest.status === 'PENDING_COO_APPROVAL') && (
                             <div className="w-0.5 h-full bg-gray-200 mt-2"></div>
                           )}
                         </div>
@@ -1379,7 +1436,9 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
                           <div className="flex items-start justify-between">
                             <div>
                               <p className="font-medium text-gray-900">
-                                {selectedRequest.status === 'REJECTED_BY_MANAGER' ? 'Rejected by Operations Manager' : 'Approved by Operations Manager'}
+                                {selectedRequest.status === 'REJECTED_BY_MANAGER' ? 'Rejected by Operations Manager' : 
+                                 selectedRequest.status === 'PENDING_MANAGER_APPROVAL' ? 'Pending Operations Manager Approval' :
+                                 'Approved by Operations Manager'}
                               </p>
                               <p className="text-sm text-gray-600">{selectedRequest.manager?.name || 'Operations Department'}</p>
                             </div>
@@ -1402,21 +1461,29 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
                       </div>
                     )}
 
-                    {/* Declaration Manager Action */}
-                    {(selectedRequest.declarationManagerComment || selectedRequest.status.includes('DECLARATION_MANAGER')) && (
+                    {/* Declaration Manager Action - Only for Declarant requests */}
+                    {selectedRequest.requester?.role === 'declarant' && 
+                     (selectedRequest.declarationManagerComment || selectedRequest.declarationManagerId || 
+                      selectedRequest.status === 'PENDING_COO_APPROVAL' || 
+                      selectedRequest.status === 'REJECTED_BY_DECLARATION_MANAGER') && (
                       <div className="flex gap-4">
                         <div className="flex flex-col items-center">
                           <div className={cn(
                             "w-10 h-10 rounded-full flex items-center justify-center",
-                            selectedRequest.status === 'REJECTED_BY_DECLARATION_MANAGER' ? 'bg-red-100' : 'bg-green-100'
+                            selectedRequest.status === 'REJECTED_BY_DECLARATION_MANAGER' ? 'bg-red-100' : 
+                            selectedRequest.status === 'PENDING_DECLARATION_MANAGER_APPROVAL' ? 'bg-yellow-100' :
+                            'bg-green-100'
                           )}>
                             {selectedRequest.status === 'REJECTED_BY_DECLARATION_MANAGER' ? (
                               <XCircle className="w-5 h-5 text-red-600" />
+                            ) : selectedRequest.status === 'PENDING_DECLARATION_MANAGER_APPROVAL' ? (
+                              <Clock className="w-5 h-5 text-yellow-600" />
                             ) : (
                               <CheckCircle className="w-5 h-5 text-green-600" />
                             )}
                           </div>
-                          {(selectedRequest.cooComment || selectedRequest.financeComment) && (
+                          {(selectedRequest.cooComment || selectedRequest.financeComment || 
+                            selectedRequest.status === 'PENDING_COO_APPROVAL') && (
                             <div className="w-0.5 h-full bg-gray-200 mt-2"></div>
                           )}
                         </div>
@@ -1424,7 +1491,9 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
                           <div className="flex items-start justify-between">
                             <div>
                               <p className="font-medium text-gray-900">
-                                {selectedRequest.status === 'REJECTED_BY_DECLARATION_MANAGER' ? 'Rejected by Declaration Manager' : 'Approved by Declaration Manager'}
+                                {selectedRequest.status === 'REJECTED_BY_DECLARATION_MANAGER' ? 'Rejected by Declaration Manager' : 
+                                 selectedRequest.status === 'PENDING_DECLARATION_MANAGER_APPROVAL' ? 'Pending Declaration Manager Approval' :
+                                 'Approved by Declaration Manager'}
                               </p>
                               <p className="text-sm text-gray-600">{selectedRequest.declarationManager?.name || 'Declaration Department'}</p>
                             </div>
@@ -1448,20 +1517,28 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
                     )}
 
                     {/* COO Action */}
-                    {(selectedRequest.cooComment || selectedRequest.status.includes('COO')) && (
+                    {(selectedRequest.cooComment || selectedRequest.cooId || 
+                      selectedRequest.status === 'PENDING_FINANCE' || 
+                      selectedRequest.status === 'PENDING_PAYMENT' ||
+                      selectedRequest.status === 'REJECTED_BY_COO') && (
                       <div className="flex gap-4">
                         <div className="flex flex-col items-center">
                           <div className={cn(
                             "w-10 h-10 rounded-full flex items-center justify-center",
-                            selectedRequest.status === 'REJECTED_BY_COO' ? 'bg-red-100' : 'bg-green-100'
+                            selectedRequest.status === 'REJECTED_BY_COO' ? 'bg-red-100' : 
+                            selectedRequest.status === 'PENDING_COO_APPROVAL' ? 'bg-yellow-100' :
+                            'bg-green-100'
                           )}>
                             {selectedRequest.status === 'REJECTED_BY_COO' ? (
                               <XCircle className="w-5 h-5 text-red-600" />
+                            ) : selectedRequest.status === 'PENDING_COO_APPROVAL' ? (
+                              <Clock className="w-5 h-5 text-yellow-600" />
                             ) : (
                               <CheckCircle className="w-5 h-5 text-green-600" />
                             )}
                           </div>
-                          {selectedRequest.financeComment && (
+                          {(selectedRequest.financeComment || selectedRequest.status === 'PENDING_FINANCE' || 
+                            selectedRequest.status === 'PENDING_PAYMENT') && (
                             <div className="w-0.5 h-full bg-gray-200 mt-2"></div>
                           )}
                         </div>
@@ -1469,7 +1546,9 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
                           <div className="flex items-start justify-between">
                             <div>
                               <p className="font-medium text-gray-900">
-                                {selectedRequest.status === 'REJECTED_BY_COO' ? 'Rejected by COO' : 'Approved by COO'}
+                                {selectedRequest.status === 'REJECTED_BY_COO' ? 'Rejected by COO' : 
+                                 selectedRequest.status === 'PENDING_COO_APPROVAL' ? 'Pending COO Approval' :
+                                 'Approved by COO'}
                               </p>
                               <p className="text-sm text-gray-600">{selectedRequest.coo?.name || 'Chief Operating Officer'}</p>
                             </div>
@@ -1493,12 +1572,20 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
                     )}
 
                     {/* Finance Manager Action */}
-                    {(selectedRequest.financeComment || selectedRequest.status.includes('FINANCE') || 
-                      selectedRequest.status === 'PENDING_PAYMENT') && (
+                    {(selectedRequest.financeComment || selectedRequest.financeManagerId || 
+                      selectedRequest.status === 'PENDING_PAYMENT' || 
+                      selectedRequest.status === 'PAID') && (
                       <div className="flex gap-4">
                         <div className="flex flex-col items-center">
-                          <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-                            <DollarSign className="w-5 h-5 text-purple-600" />
+                          <div className={cn(
+                            "w-10 h-10 rounded-full flex items-center justify-center",
+                            selectedRequest.status === 'PENDING_FINANCE' ? 'bg-yellow-100' : 'bg-purple-100'
+                          )}>
+                            {selectedRequest.status === 'PENDING_FINANCE' ? (
+                              <Clock className="w-5 h-5 text-yellow-600" />
+                            ) : (
+                              <DollarSign className="w-5 h-5 text-purple-600" />
+                            )}
                           </div>
                           {(selectedRequest.status === 'PENDING_PAYMENT' || selectedRequest.status === 'PAID') && (
                             <div className="w-0.5 h-full bg-gray-200 mt-2"></div>
@@ -1507,7 +1594,9 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
                         <div className="flex-1 pb-6">
                           <div className="flex items-start justify-between">
                             <div>
-                              <p className="font-medium text-gray-900">Processed by Finance Manager</p>
+                              <p className="font-medium text-gray-900">
+                                {selectedRequest.status === 'PENDING_FINANCE' ? 'Pending Finance Manager Review' : 'Processed by Finance Manager'}
+                              </p>
                               <p className="text-sm text-gray-600">{selectedRequest.financeManager?.name || 'Finance Department'}</p>
                             </div>
                             {selectedRequest.financeActionAt && (
@@ -1529,18 +1618,27 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
                       </div>
                     )}
 
-                    {/* Payment Completed */}
-                    {selectedRequest.status === 'PAID' && (
+                    {/* Cashier Payment */}
+                    {(selectedRequest.status === 'PENDING_PAYMENT' || selectedRequest.status === 'PAID') && (
                       <div className="flex gap-4">
                         <div className="flex flex-col items-center">
-                          <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                            <CheckCircle className="w-5 h-5 text-green-600" />
+                          <div className={cn(
+                            "w-10 h-10 rounded-full flex items-center justify-center",
+                            selectedRequest.status === 'PENDING_PAYMENT' ? 'bg-yellow-100' : 'bg-green-100'
+                          )}>
+                            {selectedRequest.status === 'PENDING_PAYMENT' ? (
+                              <Clock className="w-5 h-5 text-yellow-600" />
+                            ) : (
+                              <CheckCircle className="w-5 h-5 text-green-600" />
+                            )}
                           </div>
                         </div>
                         <div className="flex-1">
                           <div className="flex items-start justify-between">
                             <div>
-                              <p className="font-medium text-gray-900">Payment Completed</p>
+                              <p className="font-medium text-gray-900">
+                                {selectedRequest.status === 'PENDING_PAYMENT' ? 'Pending Payment by Cashier' : 'Payment Completed'}
+                              </p>
                               <p className="text-sm text-gray-600">by {selectedRequest.cashier?.name || 'Cashier'}</p>
                             </div>
                             {selectedRequest.paidAt && (

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   FileText,
   Upload,
@@ -14,7 +14,7 @@ import {
   FileCheck,
   DollarSign,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,12 +41,14 @@ import { useAuthStore } from '@/store/authStore';
 import { useFileStore } from '@/store/fileStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { usePettyCashStore } from '@/store/pettyCashStore';
+import { useDocumentStore } from '@/store/documentStore';
 import type { 
-  ShipmentType, TransportMode, DocumentType, Client 
+  ShipmentType, ServiceType, TransportMode, DocumentType, Client, User 
 } from '@/types';
 import type { AppRoute } from '@/App';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { mockUsers } from '@/data/mockData';
 
 const documentTypes: { value: DocumentType; label: string }[] = [
   { value: 'commercial_invoice', label: 'Commercial Invoice' },
@@ -75,6 +77,7 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
   const { createFile, clients, addClient, files } = useFileStore();
   const { addNotification } = useNotificationStore();
   const { createRequest } = usePettyCashStore();
+  const { getUserAccessibleDocuments, uploadDocument } = useDocumentStore();
 
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -91,6 +94,7 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
   // Client state
   const [clientType, setClientType] = useState<'new' | 'existing'>('existing');
   const [selectedClient, setSelectedClient] = useState<string>('');
+  const [selectedContactPerson, setSelectedContactPerson] = useState<string>('');
   const [newClient, setNewClient] = useState({
     name: '',
     mobile: '',
@@ -100,13 +104,77 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
 
   // Shipment state
   const [shipmentType, setShipmentType] = useState<ShipmentType>('IMPORT');
+  const [serviceType, setServiceType] = useState<ServiceType>('CLEARANCE'); // NEW: Service type selection
   const [transportMode, setTransportMode] = useState<TransportMode>('AIR');
 
   // Documents state
   const [selectedDocuments, setSelectedDocuments] = useState<DocumentType[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<Record<DocumentType, File[]>>({} as Record<DocumentType, File[]>);
+  const [selectedExistingDocuments, setSelectedExistingDocuments] = useState<Record<DocumentType, string[]>>({} as Record<DocumentType, string[]>);
+  const [documentSelectionMode, setDocumentSelectionMode] = useState<'upload' | 'existing'>('existing');
+
+  // Document numbers state
+  const [documentNumbers, setDocumentNumbers] = useState({
+    commercialInvoiceNumber: '',
+    blType: '' as 'HBL' | 'MBL' | '',
+    blNumber: '',
+    awbType: '' as 'HAWB' | 'MAWB' | '',
+    awbNumber: '',
+    roadConsignmentNumber: '',
+  });
+
+  // SEA freight details state
+  const [seaFreightDetails, setSeaFreightDetails] = useState<{
+    seaFreightType: 'LCL' | 'FCL' | '';
+    fcl20ftQuantity: string;
+    fcl40ftQuantity: string;
+    fclContainerOtherDescription: string;
+  }>({
+    seaFreightType: '',
+    fcl20ftQuantity: '',
+    fcl40ftQuantity: '',
+    fclContainerOtherDescription: '',
+  });
+
+  // Cargo description state
+  const [cargoDescription, setCargoDescription] = useState('');
+
+  // Get all users that can be contact persons (managed by HR)
+  // Exclude specific roles as requested
+  const contactPersons = mockUsers.filter(u => 
+    u.isActive && 
+    ![
+      'driver',
+      'hr_manager', 
+      'finance_manager', 
+      'declaration_manager', 
+      'delivery_clerk', 
+      'shipping_line_clerk',
+      'permits_clerk',
+      'cashier',
+      'transport_manager',
+      'operation_clerk',
+      'managing_director',
+      'administrator'
+    ].includes(u.role)
+  );
 
   const fileInputRefs = useRef<Record<DocumentType, HTMLInputElement | null>>({} as Record<DocumentType, HTMLInputElement | null>);
+
+  // Auto-set transport mode based on service type and shipment type
+  useEffect(() => {
+    if (serviceType === 'TRANSPORTATION') {
+      setTransportMode('ROAD');
+      // Default to IMPORT (LOCAL) for TRANSPORTATION
+      if (shipmentType !== 'IMPORT' && shipmentType !== 'TRANSIT') {
+        setShipmentType('IMPORT');
+      }
+    } else if (shipmentType === 'TRANSSHIPMENT') {
+      setTransportMode('SEA');
+    } else if (shipmentType === 'TRANSIT') {
+      setTransportMode('ROAD');
+    }
+  }, [serviceType, shipmentType]);
 
   const handleDocumentToggle = (docType: DocumentType) => {
     setSelectedDocuments(prev =>
@@ -167,23 +235,102 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
             return false;
           }
         }
+        
+        // Validate contact person
+        if (!selectedContactPerson) {
+          errors.contactPerson = true;
+          toast.error('Please select a contact person');
+          setValidationErrors(errors);
+          return false;
+        }
+        
         setValidationErrors({});
         return true;
       case 2:
-        // Documents are now optional - no validation needed
+        // Validate document numbers if documents are selected
+        if (selectedDocuments.includes('commercial_invoice') && !documentNumbers.commercialInvoiceNumber) {
+          errors.commercialInvoiceNumber = true;
+        }
+        if (selectedDocuments.includes('bill_of_lading')) {
+          if (!documentNumbers.blType || !documentNumbers.blNumber) {
+            errors.blNumber = true;
+          }
+        }
+        if (selectedDocuments.includes('airway_bill')) {
+          if (!documentNumbers.awbType || !documentNumbers.awbNumber) {
+            errors.awbNumber = true;
+          }
+        }
+        if (selectedDocuments.includes('road_consignment_note') && !documentNumbers.roadConsignmentNumber) {
+          errors.roadConsignmentNumber = true;
+        }
+        
+        if (Object.keys(errors).length > 0) {
+          toast.error('Please fill in all required document numbers');
+          setValidationErrors(errors);
+          return false;
+        }
         setValidationErrors({});
         return true;
       case 3:
+        // Validate SEA freight details (only for SEA transport)
+        if (transportMode === 'SEA') {
+          if (!seaFreightDetails.seaFreightType) {
+            errors.seaFreightType = true;
+            toast.error('Please select container type (LCL or FCL)');
+            setValidationErrors(errors);
+            return false;
+          }
+          if (seaFreightDetails.seaFreightType === 'FCL') {
+            const has20ft = seaFreightDetails.fcl20ftQuantity && parseInt(seaFreightDetails.fcl20ftQuantity) > 0;
+            const has40ft = seaFreightDetails.fcl40ftQuantity && parseInt(seaFreightDetails.fcl40ftQuantity) > 0;
+            const hasOther = seaFreightDetails.fclContainerOtherDescription.trim().length > 0;
+            
+            if (!has20ft && !has40ft && !hasOther) {
+              errors.fclContainerQuantity = true;
+              toast.error('Please specify at least one container type (20ft, 40ft, or other description)');
+              setValidationErrors(errors);
+              return false;
+            }
+          }
+        }
+        setValidationErrors({});
+        return true;
+      case 4:
+        // Validate cargo description
+        if (!cargoDescription || cargoDescription.length < 10) {
+          errors.cargoDescription = true;
+          toast.error('Please provide cargo description (minimum 10 characters)');
+          setValidationErrors(errors);
+          return false;
+        }
+        if (cargoDescription.length > 500) {
+          errors.cargoDescription = true;
+          toast.error('Cargo description must not exceed 500 characters');
+          setValidationErrors(errors);
+          return false;
+        }
+        setValidationErrors({});
+        return true;
+      case 5:
         // Only validate if documents were selected
         if (selectedDocuments.length > 0) {
           for (const docType of selectedDocuments) {
-            if (!uploadedFiles[docType] || uploadedFiles[docType].length === 0) {
-              errors[docType] = true;
+            if (documentSelectionMode === 'existing') {
+              // Check if existing documents are selected
+              if (!selectedExistingDocuments[docType] || selectedExistingDocuments[docType].length === 0) {
+                errors[docType] = true;
+              }
+            } else {
+              // Check if files are uploaded
+              if (!uploadedFiles[docType] || uploadedFiles[docType].length === 0) {
+                errors[docType] = true;
+              }
             }
           }
           
           if (Object.keys(errors).length > 0) {
-            toast.error(`Please upload all selected documents (highlighted in red)`);
+            toast.error(`Please ${documentSelectionMode === 'existing' ? 'select existing documents' : 'upload all selected documents'} (highlighted in red)`);
             setValidationErrors(errors);
             return false;
           }
@@ -220,37 +367,104 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
         client = clients.find((c: Client) => c.id === selectedClient);
       }
 
-      const documents = selectedDocuments.flatMap(docType =>
-        (uploadedFiles[docType] || []).map(file => ({
-          type: docType,
-          name: file.name,
-          url: URL.createObjectURL(file),
-        }))
-      );
+      const documents = selectedDocuments.flatMap(docType => {
+        if (documentSelectionMode === 'existing') {
+          // Use existing documents from the system
+          const selectedIds = selectedExistingDocuments[docType] || [];
+          return selectedIds
+            .map(docId => {
+              const doc = getUserAccessibleDocuments(user.id, user.role).find(d => d.id === docId);
+              return doc ? {
+                type: docType,
+                name: doc.originalName,
+                url: doc.fileUrl,
+              } : null;
+            })
+            .filter((item): item is { type: DocumentType; name: string; url: string } => item !== null);
+        } else {
+          // Use uploaded files
+          return (uploadedFiles[docType] || []).map(file => ({
+            type: docType,
+            name: file.name,
+            url: URL.createObjectURL(file),
+          }));
+        }
+      });
 
       const file = createFile({
         clientId,
         client,
         shipmentType,
+        serviceType, // NEW: Service type selection
         transportMode,
         documents,
         createdBy: user.id,
+        contactPersonId: selectedContactPerson,
+        // Document numbers
+        commercialInvoiceNumber: documentNumbers.commercialInvoiceNumber || undefined,
+        blType: documentNumbers.blType || undefined,
+        blNumber: documentNumbers.blNumber || undefined,
+        awbType: documentNumbers.awbType || undefined,
+        awbNumber: documentNumbers.awbNumber || undefined,
+        roadConsignmentNumber: documentNumbers.roadConsignmentNumber || undefined,
+        // SEA freight details
+        seaFreightType: transportMode === 'SEA' ? seaFreightDetails.seaFreightType || undefined : undefined,
+        fcl20ftQuantity: transportMode === 'SEA' && seaFreightDetails.seaFreightType === 'FCL' && seaFreightDetails.fcl20ftQuantity ? parseInt(seaFreightDetails.fcl20ftQuantity) : undefined,
+        fcl40ftQuantity: transportMode === 'SEA' && seaFreightDetails.seaFreightType === 'FCL' && seaFreightDetails.fcl40ftQuantity ? parseInt(seaFreightDetails.fcl40ftQuantity) : undefined,
+        fclContainerOtherDescription: transportMode === 'SEA' && seaFreightDetails.seaFreightType === 'FCL' && seaFreightDetails.fclContainerOtherDescription ? seaFreightDetails.fclContainerOtherDescription : undefined,
+        // Cargo description
+        cargoDescription,
       });
+
+      // Upload documents to document store if using upload mode
+      if (documentSelectionMode === 'upload') {
+        for (const docType of selectedDocuments) {
+          const files = uploadedFiles[docType] || [];
+          for (const uploadFile of files) {
+            try {
+              await uploadDocument({
+                category: 'shipment',
+                subCategory: docType,
+                tags: [file.fileNumber, docType, shipmentType, transportMode],
+                relatedFileId: file.id,
+                description: `${docType.replace(/_/g, ' ')} for file ${file.fileNumber}`,
+                file: uploadFile,
+                visibility: 'role_specific',
+              }, user.id);
+            } catch (error) {
+              console.error(`Failed to upload document ${uploadFile.name}:`, error);
+            }
+          }
+        }
+      }
 
       setCreatedFile(file);
 
-      // Notify declaration manager
-      addNotification({
-        userId: '2', // Declaration manager ID
-        title: 'New File Waiting',
-        message: `File ${file.fileNumber} is waiting for declaration assignment`,
-        type: 'info',
-        fileId: file.id,
-        link: '/declaration',
-      });
+      // Notify appropriate department based on service type
+      if (serviceType === 'CLEARANCE') {
+        // Notify declaration manager for clearance files
+        addNotification({
+          userId: '2', // Declaration manager ID
+          title: 'New File Waiting',
+          message: `File ${file.fileNumber} is waiting for declaration assignment`,
+          type: 'info',
+          fileId: file.id,
+          link: '/declaration',
+        });
+      } else {
+        // Notify commercial manager for document handover and transportation
+        addNotification({
+          userId: '19', // Commercial manager ID
+          title: 'New Quotation File',
+          message: `File ${file.fileNumber} (${serviceType.replace('_', ' ')}) is waiting for commercial review`,
+          type: 'info',
+          fileId: file.id,
+          link: '/quotations',
+        });
+      }
 
       toast.success('File created successfully!');
-      setStep(4);
+      setStep(maxStep);
     } catch (error) {
       toast.error('Failed to create file. Please try again.');
     } finally {
@@ -401,25 +615,164 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
 
       <Separator />
 
+      {/* Contact Person Selection */}
+      <div className="space-y-2">
+        <Label htmlFor="contactPerson">Contact Person *</Label>
+
+        <Select value={selectedContactPerson} onValueChange={(v) => { setSelectedContactPerson(v); setValidationErrors({}); }}>
+          <SelectTrigger className={cn("h-12", validationErrors.contactPerson && "border-red-500 border-2")}>
+            <div className="flex items-center gap-2">
+              <Search className="w-4 h-4 text-gray-400" />
+              <SelectValue placeholder="Select contact person" />
+            </div>
+          </SelectTrigger>
+          <SelectContent className="max-h-60">
+            {contactPersons.map((person: User) => (
+              <SelectItem key={person.id} value={person.id}>
+                <div>
+                  <p className="font-medium">{person.name}</p>
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <span>{person.email}</span>
+                    <span>•</span>
+                    <span className="capitalize">{person.role.replace(/_/g, ' ')}</span>
+                    {person.department && (
+                      <>
+                        <span>•</span>
+                        <span>{person.department}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {validationErrors.contactPerson && (
+          <p className="text-sm text-red-500">Please select a contact person</p>
+        )}
+        <p className="text-xs text-gray-500">
+          Select from available users. User list is managed by HR. ({contactPersons.length} users available)
+        </p>
+      </div>
+
+      <Separator />
+
+      {/* Service Type Selection */}
+      <div>
+        <Label className="text-base font-medium">Service Type *</Label>
+        <p className="text-sm text-gray-500 mt-1">
+          Select the type of service required for this shipment
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+          <button
+            onClick={() => setServiceType('CLEARANCE')}
+            className={cn(
+              'p-4 rounded-lg border-2 text-left transition-all duration-200',
+              serviceType === 'CLEARANCE'
+                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+            )}
+          >
+            <FileText className="w-6 h-6 mb-2" />
+            <span className="text-sm font-medium block">CLEARANCE</span>
+            <span className="text-xs text-gray-500 block mt-1">Full customs clearance process</span>
+          </button>
+          <button
+            onClick={() => setServiceType('DOCUMENT_HANDOVER')}
+            className={cn(
+              'p-4 rounded-lg border-2 text-left transition-all duration-200',
+              serviceType === 'DOCUMENT_HANDOVER'
+                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+            )}
+          >
+            <FileText className="w-6 h-6 mb-2" />
+            <span className="text-sm font-medium block">DOCUMENT HANDOVER</span>
+            <span className="text-xs text-gray-500 block mt-1">Document delivery only</span>
+          </button>
+          <button
+            onClick={() => setServiceType('TRANSPORTATION')}
+            className={cn(
+              'p-4 rounded-lg border-2 text-left transition-all duration-200',
+              serviceType === 'TRANSPORTATION'
+                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+            )}
+          >
+            <FileText className="w-6 h-6 mb-2" />
+            <span className="text-sm font-medium block">TRANSPORTATION</span>
+            <span className="text-xs text-gray-500 block mt-1">Transport service only</span>
+          </button>
+        </div>
+        {serviceType !== 'CLEARANCE' && (
+          <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-sm text-amber-800">
+              <strong>Note:</strong> This file will be routed to the Commercial Department instead of Declaration.
+            </p>
+          </div>
+        )}
+      </div>
+
+      <Separator />
+
       {/* Shipment Type */}
       <div>
         <Label className="text-base font-medium">Shipment Type</Label>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
-          {(['IMPORT', 'EXPORT', 'TRANSSHIPMENT', 'TRANSIT'] as ShipmentType[]).map((type) => (
-            <button
-              key={type}
-              onClick={() => setShipmentType(type)}
-              className={cn(
-                'p-4 rounded-lg border-2 text-center transition-all duration-200',
-                shipmentType === type
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-              )}
-            >
-              <FileText className="w-6 h-6 mx-auto mb-2" />
-              <span className="text-sm font-medium">{type}</span>
-            </button>
-          ))}
+          {serviceType === 'TRANSPORTATION' ? (
+            // For TRANSPORTATION service, only show LOCAL and TRANSIT
+            <>
+              <button
+                onClick={() => setShipmentType('IMPORT')} // Using IMPORT as LOCAL
+                className={cn(
+                  'p-4 rounded-lg border-2 text-center transition-all duration-200',
+                  shipmentType === 'IMPORT'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                )}
+              >
+                <FileText className="w-6 h-6 mx-auto mb-2" />
+                <span className="text-sm font-medium">LOCAL</span>
+              </button>
+              <button
+                onClick={() => setShipmentType('TRANSIT')}
+                className={cn(
+                  'p-4 rounded-lg border-2 text-center transition-all duration-200',
+                  shipmentType === 'TRANSIT'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                )}
+              >
+                <FileText className="w-6 h-6 mx-auto mb-2" />
+                <span className="text-sm font-medium">TRANSIT</span>
+              </button>
+            </>
+          ) : (
+            // For CLEARANCE and DOCUMENT_HANDOVER, show all shipment types
+            (['IMPORT', 'EXPORT', 'TRANSSHIPMENT', 'TRANSIT'] as ShipmentType[]).map((type) => (
+              <button
+                key={type}
+                onClick={() => {
+                  setShipmentType(type);
+                  // Auto-set transport mode based on shipment type
+                  if (type === 'TRANSSHIPMENT') {
+                    setTransportMode('SEA');
+                  } else if (type === 'TRANSIT') {
+                    setTransportMode('ROAD');
+                  }
+                }}
+                className={cn(
+                  'p-4 rounded-lg border-2 text-center transition-all duration-200',
+                  shipmentType === type
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                )}
+              >
+                <FileText className="w-6 h-6 mx-auto mb-2" />
+                <span className="text-sm font-medium">{type}</span>
+              </button>
+            ))
+          )}
         </div>
       </div>
 
@@ -427,21 +780,46 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
       <div>
         <Label className="text-base font-medium">Mode of Transport</Label>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
-          {transportModes.map(({ value, label, icon: Icon }) => (
-            <button
-              key={value}
-              onClick={() => setTransportMode(value)}
-              className={cn(
-                'p-4 rounded-lg border-2 text-center transition-all duration-200',
-                transportMode === value
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-              )}
-            >
-              <Icon className="w-6 h-6 mx-auto mb-2" />
-              <span className="text-sm font-medium">{label}</span>
-            </button>
-          ))}
+          {transportModes
+            .filter(({ value }) => {
+              // For TRANSPORTATION service, only show ROAD
+              if (serviceType === 'TRANSPORTATION') {
+                return value === 'ROAD';
+              }
+              // For TRANSSHIPMENT, only show SEA
+              if (shipmentType === 'TRANSSHIPMENT') {
+                return value === 'SEA';
+              }
+              // For TRANSIT, only show ROAD
+              if (shipmentType === 'TRANSIT') {
+                return value === 'ROAD';
+              }
+              // For other cases, show all modes
+              return true;
+            })
+            .map(({ value, label, icon: Icon }) => (
+              <button
+                key={value}
+                onClick={() => setTransportMode(value)}
+                disabled={
+                  (serviceType === 'TRANSPORTATION' && value !== 'ROAD') ||
+                  (shipmentType === 'TRANSSHIPMENT' && value !== 'SEA') ||
+                  (shipmentType === 'TRANSIT' && value !== 'ROAD')
+                }
+                className={cn(
+                  'p-4 rounded-lg border-2 text-center transition-all duration-200',
+                  transportMode === value
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50',
+                  ((serviceType === 'TRANSPORTATION' && value !== 'ROAD') ||
+                   (shipmentType === 'TRANSSHIPMENT' && value !== 'SEA') ||
+                   (shipmentType === 'TRANSIT' && value !== 'ROAD')) && 'opacity-50 cursor-not-allowed'
+                )}
+              >
+                <Icon className="w-6 h-6 mx-auto mb-2" />
+                <span className="text-sm font-medium">{label}</span>
+              </button>
+            ))}
         </div>
       </div>
     </div>
@@ -452,107 +830,162 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
       <div>
         <Label className="text-base font-medium">Select Documents</Label>
         <p className="text-sm text-gray-500 mt-1">
-          Choose the shipping documents that need to be uploaded
+          Choose the shipping documents and enter their numbers
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-          {documentTypes.map(({ value, label }) => (
-            <div
-              key={value}
-              onClick={() => handleDocumentToggle(value)}
-              className={cn(
-                'flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200',
-                selectedDocuments.includes(value)
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300'
-              )}
-            >
-              <input
-                type="checkbox"
-                checked={selectedDocuments.includes(value)}
-                onChange={() => handleDocumentToggle(value)}
-                className="w-4 h-4"
-              />
-              <span className="font-medium">{label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderStep3 = () => (
-    <div className="space-y-6">
-      <div>
-        <Label className="text-base font-medium">Upload Documents</Label>
-        <p className="text-sm text-gray-500 mt-1">
-          Upload PDF files for each selected document type
-        </p>
-        <div className="space-y-4 mt-4">
-          {selectedDocuments.map((docType) => {
-            const docInfo = documentTypes.find(d => d.value === docType);
-            const files = uploadedFiles[docType] || [];
+        <div className="space-y-3 mt-4">
+          {documentTypes.map(({ value, label }) => {
+            // Filter documents based on transport mode
+            if (value === 'airway_bill' && transportMode !== 'AIR') return null;
+            if (value === 'bill_of_lading' && transportMode !== 'SEA') return null;
+            if (value === 'road_consignment_note' && transportMode !== 'ROAD') return null;
+            
+            const isSelected = selectedDocuments.includes(value);
             
             return (
-              <Card key={docType} className={cn("border-2", validationErrors[docType] && "border-red-500")}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <FileText className="w-5 h-5 text-blue-600" />
-                      <span className="font-medium">{docInfo?.label}</span>
-                      {validationErrors[docType] && (
-                        <Badge variant="destructive" className="text-xs">Required</Badge>
-                      )}
-                    </div>
-                    <Badge variant={files.length > 0 ? 'default' : 'secondary'}>
-                      {files.length} file(s)
-                    </Badge>
-                  </div>
-                  
-                  <input
-                    type="file"
-                    accept=".pdf"
-                    multiple
-                    ref={(el) => { fileInputRefs.current[docType] = el; }}
-                    onChange={(e) => handleFileUpload(docType, e.target.files)}
-                    className="hidden"
-                  />
-                  
-                  {files.length > 0 && (
-                    <div className="space-y-2 mb-3">
-                      {files.map((file, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
-                        >
-                          <div className="flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-gray-400" />
-                            <span className="text-sm truncate max-w-xs">{file.name}</span>
-                            <span className="text-xs text-gray-400">
-                              ({(file.size / 1024).toFixed(1)} KB)
-                            </span>
-                          </div>
-                          <button
-                            onClick={() => removeUploadedFile(docType, index)}
-                            className="p-1 hover:bg-gray-200 rounded transition-colors"
-                          >
-                            <X className="w-4 h-4 text-gray-500" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
+              <div key={value} className="space-y-2">
+                <div
+                  onClick={() => handleDocumentToggle(value)}
+                  className={cn(
+                    'flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200',
+                    isSelected
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
                   )}
-                  
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => fileInputRefs.current[docType]?.click()}
-                    className="w-full"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    {files.length > 0 ? 'Upload More' : 'Upload Files'}
-                  </Button>
-                </CardContent>
-              </Card>
+                >
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => handleDocumentToggle(value)}
+                    className="w-4 h-4"
+                  />
+                  <span className="font-medium">{label}</span>
+                </div>
+                
+                {/* Document number inputs */}
+                {isSelected && (
+                  <div className="ml-7 space-y-3 p-4 bg-gray-50 rounded-lg">
+                    {value === 'commercial_invoice' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="commercialInvoiceNumber">Invoice Number *</Label>
+                        <Input
+                          id="commercialInvoiceNumber"
+                          placeholder="Enter invoice number"
+                          value={documentNumbers.commercialInvoiceNumber}
+                          onChange={(e) => {
+                            setDocumentNumbers({ ...documentNumbers, commercialInvoiceNumber: e.target.value });
+                            setValidationErrors({});
+                          }}
+                          className={cn("h-10", validationErrors.commercialInvoiceNumber && "border-red-500 border-2")}
+                        />
+                        {validationErrors.commercialInvoiceNumber && (
+                          <p className="text-sm text-red-500">Invoice number is required</p>
+                        )}
+                      </div>
+                    )}
+                    
+                    {value === 'bill_of_lading' && (
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <Label>Bill of Lading Type *</Label>
+                          <RadioGroup
+                            value={documentNumbers.blType}
+                            onValueChange={(v) => {
+                              setDocumentNumbers({ ...documentNumbers, blType: v as 'HBL' | 'MBL' });
+                              setValidationErrors({});
+                            }}
+                            className="flex gap-4"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="HBL" id="hbl" />
+                              <Label htmlFor="hbl" className="cursor-pointer">HBL (House Bill of Lading)</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="MBL" id="mbl" />
+                              <Label htmlFor="mbl" className="cursor-pointer">MBL (Master Bill of Lading)</Label>
+                            </div>
+                          </RadioGroup>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="blNumber">{documentNumbers.blType || 'BL'} Number *</Label>
+                          <Input
+                            id="blNumber"
+                            placeholder={`Enter ${documentNumbers.blType || 'BL'} number`}
+                            value={documentNumbers.blNumber}
+                            onChange={(e) => {
+                              setDocumentNumbers({ ...documentNumbers, blNumber: e.target.value });
+                              setValidationErrors({});
+                            }}
+                            className={cn("h-10", validationErrors.blNumber && "border-red-500 border-2")}
+                          />
+                        </div>
+                        {validationErrors.blNumber && (
+                          <p className="text-sm text-red-500">Please select BL type and enter number</p>
+                        )}
+                      </div>
+                    )}
+                    
+                    {value === 'airway_bill' && (
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <Label>Airway Bill Type *</Label>
+                          <RadioGroup
+                            value={documentNumbers.awbType}
+                            onValueChange={(v) => {
+                              setDocumentNumbers({ ...documentNumbers, awbType: v as 'HAWB' | 'MAWB' });
+                              setValidationErrors({});
+                            }}
+                            className="flex gap-4"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="HAWB" id="hawb" />
+                              <Label htmlFor="hawb" className="cursor-pointer">HAWB (House Air Waybill)</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="MAWB" id="mawb" />
+                              <Label htmlFor="mawb" className="cursor-pointer">MAWB (Master Air Waybill)</Label>
+                            </div>
+                          </RadioGroup>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="awbNumber">{documentNumbers.awbType || 'AWB'} Number *</Label>
+                          <Input
+                            id="awbNumber"
+                            placeholder={`Enter ${documentNumbers.awbType || 'AWB'} number`}
+                            value={documentNumbers.awbNumber}
+                            onChange={(e) => {
+                              setDocumentNumbers({ ...documentNumbers, awbNumber: e.target.value });
+                              setValidationErrors({});
+                            }}
+                            className={cn("h-10", validationErrors.awbNumber && "border-red-500 border-2")}
+                          />
+                        </div>
+                        {validationErrors.awbNumber && (
+                          <p className="text-sm text-red-500">Please select AWB type and enter number</p>
+                        )}
+                      </div>
+                    )}
+                    
+                    {value === 'road_consignment_note' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="roadConsignmentNumber">Consignment Number *</Label>
+                        <Input
+                          id="roadConsignmentNumber"
+                          placeholder="Enter consignment number"
+                          value={documentNumbers.roadConsignmentNumber}
+                          onChange={(e) => {
+                            setDocumentNumbers({ ...documentNumbers, roadConsignmentNumber: e.target.value });
+                            setValidationErrors({});
+                          }}
+                          className={cn("h-10", validationErrors.roadConsignmentNumber && "border-red-500 border-2")}
+                        />
+                        {validationErrors.roadConsignmentNumber && (
+                          <p className="text-sm text-red-500">Consignment number is required</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
@@ -560,52 +993,482 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
     </div>
   );
 
-  const renderStep4 = () => (
-    <div className="text-center py-8">
-      <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-        <FileCheck className="w-10 h-10 text-green-600" />
-      </div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">
-        File Created Successfully!
-      </h2>
-      <p className="text-gray-500 mb-6">
-        The file has been created and is now waiting for declaration.
-      </p>
-      
-      <div className="bg-gray-50 rounded-lg p-6 max-w-md mx-auto mb-6">
-        <p className="text-sm text-gray-500 mb-2">File Number</p>
-        <p className="text-3xl font-mono font-bold text-blue-600">
-          {createdFile?.fileNumber}
-        </p>
-        <Badge className="mt-4 bg-amber-100 text-amber-700 hover:bg-amber-100">
-          WAITING FOR DECLARATION
-        </Badge>
-      </div>
+  const renderStep3 = () => {
+    // Only show SEA freight details for SEA transport
+    if (transportMode !== 'SEA') {
+      return renderStep4(); // Skip to cargo description
+    }
+    
+    return (
+      <div className="space-y-6">
+        <div>
+          <Label className="text-base font-medium">Container Type *</Label>
+          <p className="text-sm text-gray-500 mt-1">
+            Select the type of container for your SEA shipment
+          </p>
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <button
+              type="button"
+              onClick={() => {
+                setSeaFreightDetails({ ...seaFreightDetails, seaFreightType: 'LCL', fcl20ftQuantity: '', fcl40ftQuantity: '', fclContainerOtherDescription: '' });
+                setValidationErrors({});
+              }}
+              className={cn(
+                'p-4 rounded-lg border-2 text-center transition-all duration-200',
+                seaFreightDetails.seaFreightType === 'LCL'
+                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50',
+                validationErrors.seaFreightType && 'border-red-500'
+              )}
+            >
+              <Ship className="w-6 h-6 mx-auto mb-2" />
+              <span className="text-sm font-medium">LCL</span>
+              <p className="text-xs text-gray-500 mt-1">Less than Container Load</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSeaFreightDetails({ ...seaFreightDetails, seaFreightType: 'FCL' });
+                setValidationErrors({});
+              }}
+              className={cn(
+                'p-4 rounded-lg border-2 text-center transition-all duration-200',
+                seaFreightDetails.seaFreightType === 'FCL'
+                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50',
+                validationErrors.seaFreightType && 'border-red-500'
+              )}
+            >
+              <Ship className="w-6 h-6 mx-auto mb-2" />
+              <span className="text-sm font-medium">FCL</span>
+              <p className="text-xs text-gray-500 mt-1">Full Container Load</p>
+            </button>
+          </div>
+        </div>
 
-      <div className="flex gap-4 justify-center">
-        <Button variant="outline" onClick={() => navigate('dashboard')}>
-          Go to Dashboard
-        </Button>
-        <Button onClick={() => {
-          setStep(1);
-          setCreatedFile(null);
-          setSelectedClient('');
-          setNewClient({ name: '', mobile: '', email: '', tin: '' });
-          setSelectedDocuments([]);
-          setUploadedFiles({} as Record<DocumentType, File[]>);
-        }}>
-          Create Another File
-        </Button>
+        {seaFreightDetails.seaFreightType === 'FCL' && (
+          <div className="space-y-4">
+            <Separator />
+            <div>
+              <Label className="text-base font-medium">Container Quantities *</Label>
+              <p className="text-sm text-gray-500 mt-1">
+                Specify quantities for 20ft and/or 40ft containers, or provide other description
+              </p>
+              <div className="space-y-3 mt-4">
+                <div className="p-4 rounded-lg border-2 border-gray-200 bg-gray-50">
+                  <div className="flex items-center gap-3 mb-3">
+                    <input
+                      type="checkbox"
+                      checked={!!seaFreightDetails.fcl20ftQuantity}
+                      onChange={(e) => {
+                        if (!e.target.checked) {
+                          setSeaFreightDetails({ ...seaFreightDetails, fcl20ftQuantity: '' });
+                        }
+                      }}
+                      className="w-4 h-4"
+                    />
+                    <span className="font-medium">20ft Container</span>
+                  </div>
+                  <div className="ml-7 flex items-center gap-2">
+                    <Label htmlFor="qty20ft" className="text-sm">Quantity:</Label>
+                    <Input
+                      id="qty20ft"
+                      type="number"
+                      min="1"
+                      placeholder="0"
+                      value={seaFreightDetails.fcl20ftQuantity}
+                      onChange={(e) => {
+                        setSeaFreightDetails({ ...seaFreightDetails, fcl20ftQuantity: e.target.value });
+                        setValidationErrors({});
+                      }}
+                      className="w-32 h-10"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-lg border-2 border-gray-200 bg-gray-50">
+                  <div className="flex items-center gap-3 mb-3">
+                    <input
+                      type="checkbox"
+                      checked={!!seaFreightDetails.fcl40ftQuantity}
+                      onChange={(e) => {
+                        if (!e.target.checked) {
+                          setSeaFreightDetails({ ...seaFreightDetails, fcl40ftQuantity: '' });
+                        }
+                      }}
+                      className="w-4 h-4"
+                    />
+                    <span className="font-medium">40ft Container</span>
+                  </div>
+                  <div className="ml-7 flex items-center gap-2">
+                    <Label htmlFor="qty40ft" className="text-sm">Quantity:</Label>
+                    <Input
+                      id="qty40ft"
+                      type="number"
+                      min="1"
+                      placeholder="0"
+                      value={seaFreightDetails.fcl40ftQuantity}
+                      onChange={(e) => {
+                        setSeaFreightDetails({ ...seaFreightDetails, fcl40ftQuantity: e.target.value });
+                        setValidationErrors({});
+                      }}
+                      className="w-32 h-10"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-lg border-2 border-gray-200 bg-gray-50">
+                  <div className="flex items-center gap-3 mb-3">
+                    <input
+                      type="checkbox"
+                      checked={!!seaFreightDetails.fclContainerOtherDescription}
+                      onChange={(e) => {
+                        if (!e.target.checked) {
+                          setSeaFreightDetails({ ...seaFreightDetails, fclContainerOtherDescription: '' });
+                        }
+                      }}
+                      className="w-4 h-4"
+                    />
+                    <span className="font-medium">Other Container Type</span>
+                  </div>
+                  {seaFreightDetails.fclContainerOtherDescription !== '' && (
+                    <div className="ml-7 space-y-2">
+                      <Label htmlFor="otherDescription">Description</Label>
+                      <Textarea
+                        id="otherDescription"
+                        placeholder="Describe the container type..."
+                        value={seaFreightDetails.fclContainerOtherDescription}
+                        onChange={(e) => {
+                          setSeaFreightDetails({ ...seaFreightDetails, fclContainerOtherDescription: e.target.value });
+                          setValidationErrors({});
+                        }}
+                        rows={3}
+                      />
+                    </div>
+                  )}
+                </div>
+                
+                {validationErrors.fclContainerQuantity && (
+                  <p className="text-sm text-red-500">Please specify at least one container type</p>
+                )}
+                
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-700">
+                    You can select multiple options. For example: 2x 20ft + 3x 40ft containers for a single file.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderStep4 = () => (
+    <div className="space-y-6">
+      <div>
+        <Label className="text-base font-medium">Cargo Description *</Label>
+        <p className="text-sm text-gray-500 mt-1">
+          Provide details about the shipment contents
+        </p>
+        <div className="space-y-2 mt-4">
+          <Textarea
+            placeholder="Enter cargo description (e.g., Electronics - Mobile phones and accessories for retail distribution)"
+            value={cargoDescription}
+            onChange={(e) => {
+              if (e.target.value.length <= 500) {
+                setCargoDescription(e.target.value);
+                setValidationErrors({});
+              }
+            }}
+            rows={5}
+            className={cn(validationErrors.cargoDescription && "border-red-500 border-2")}
+          />
+          <div className="flex justify-between items-center">
+            <p className={cn(
+              "text-sm",
+              cargoDescription.length < 10 ? "text-red-500" : cargoDescription.length > 450 ? "text-amber-500" : "text-gray-500"
+            )}>
+              {cargoDescription.length} / 500 characters {cargoDescription.length < 10 && "(minimum 10)"}
+            </p>
+          </div>
+          {validationErrors.cargoDescription && (
+            <p className="text-sm text-red-500">
+              {cargoDescription.length < 10 
+                ? "Cargo description must be at least 10 characters" 
+                : "Cargo description must not exceed 500 characters"}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
 
-  const steps = [
-    { number: 1, title: 'Client & Shipment', description: 'Enter client and shipment details' },
-    { number: 2, title: 'Select Documents', description: 'Choose required documents' },
-    { number: 3, title: 'Upload Documents', description: 'Upload PDF files' },
-    { number: 4, title: 'Confirmation', description: 'File creation complete' },
-  ];
+  const renderStep5 = () => {
+    // Get user's accessible documents for shipment category
+    const accessibleDocuments = user ? getUserAccessibleDocuments(user.id, user.role).filter(doc => 
+      doc.category === 'shipment' || doc.category === 'system'
+    ) : [];
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <Label className="text-base font-medium">Documents</Label>
+          <p className="text-sm text-gray-500 mt-1">
+            Choose document source and attach required files
+          </p>
+          
+          {/* Document Selection Mode */}
+          <div className="mt-4 mb-6">
+            <Label className="text-sm font-medium">Document Source</Label>
+            <RadioGroup
+              value={documentSelectionMode}
+              onValueChange={(v) => setDocumentSelectionMode(v as 'upload' | 'existing')}
+              className="flex gap-6 mt-2"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="existing" id="existing-docs" />
+                <Label htmlFor="existing-docs" className="cursor-pointer">Use Existing Documents</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="upload" id="upload-docs" />
+                <Label htmlFor="upload-docs" className="cursor-pointer">Upload New Documents</Label>
+              </div>
+            </RadioGroup>
+            <p className="text-xs text-gray-500 mt-1">
+              {documentSelectionMode === 'existing' 
+                ? `${accessibleDocuments.length} documents available from the system`
+                : 'Upload new PDF files for this shipment'
+              }
+            </p>
+          </div>
+
+          <div className="space-y-4 mt-4">
+            {selectedDocuments.map((docType) => {
+              const docInfo = documentTypes.find(d => d.value === docType);
+              const uploadedFilesForType = uploadedFiles[docType] || [];
+              const selectedExistingForType = selectedExistingDocuments[docType] || [];
+              const relevantExistingDocs = accessibleDocuments.filter(doc => 
+                doc.originalName.toLowerCase().includes(docType.replace('_', ' ')) ||
+                doc.tags.some(tag => tag.toLowerCase().includes(docType.replace('_', ' '))) ||
+                doc.subCategory === docType
+              );
+              
+              return (
+                <Card key={docType} className={cn("border-2", validationErrors[docType] && "border-red-500")}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <FileText className="w-5 h-5 text-blue-600" />
+                        <span className="font-medium">{docInfo?.label}</span>
+                        {validationErrors[docType] && (
+                          <Badge variant="destructive" className="text-xs">Required</Badge>
+                        )}
+                      </div>
+                      <Badge variant={
+                        (documentSelectionMode === 'existing' ? selectedExistingForType.length : uploadedFilesForType.length) > 0 
+                          ? 'default' : 'secondary'
+                      }>
+                        {documentSelectionMode === 'existing' 
+                          ? `${selectedExistingForType.length} selected`
+                          : `${uploadedFilesForType.length} file(s)`
+                        }
+                      </Badge>
+                    </div>
+                    
+                    {documentSelectionMode === 'existing' ? (
+                      /* Existing Documents Selection */
+                      <div className="space-y-3">
+                        {relevantExistingDocs.length > 0 ? (
+                          <div className="space-y-2">
+                            <Label className="text-sm">Available Documents ({relevantExistingDocs.length})</Label>
+                            <div className="max-h-40 overflow-y-auto space-y-2 border rounded p-2">
+                              {relevantExistingDocs.map((doc) => (
+                                <div key={doc.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded">
+                                  <input
+                                    type="checkbox"
+                                    id={`existing-${docType}-${doc.id}`}
+                                    checked={selectedExistingForType.includes(doc.id)}
+                                    onChange={(e) => {
+                                      const newSelected = e.target.checked
+                                        ? [...selectedExistingForType, doc.id]
+                                        : selectedExistingForType.filter(id => id !== doc.id);
+                                      setSelectedExistingDocuments(prev => ({
+                                        ...prev,
+                                        [docType]: newSelected
+                                      }));
+                                      // Clear validation error
+                                      setValidationErrors(prev => {
+                                        const newErrors = { ...prev };
+                                        delete newErrors[docType];
+                                        return newErrors;
+                                      });
+                                    }}
+                                    className="w-4 h-4"
+                                  />
+                                  <label htmlFor={`existing-${docType}-${doc.id}`} className="flex-1 cursor-pointer">
+                                    <div className="flex items-center gap-2">
+                                      <FileText className="w-4 h-4 text-gray-400" />
+                                      <div className="flex-1">
+                                        <p className="text-sm font-medium truncate">{doc.originalName}</p>
+                                        <p className="text-xs text-gray-500">
+                                          Uploaded {new Date(doc.uploadedAt).toLocaleDateString()} • {(doc.fileSize / 1024).toFixed(1)} KB
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </label>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-center py-6 text-gray-500">
+                            <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">No existing documents found for {docInfo?.label}</p>
+                            <p className="text-xs">Switch to "Upload New Documents" to add files</p>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      /* File Upload Section */
+                      <div>
+                        <input
+                          type="file"
+                          accept=".pdf"
+                          multiple
+                          ref={(el) => { fileInputRefs.current[docType] = el; }}
+                          onChange={(e) => handleFileUpload(docType, e.target.files)}
+                          className="hidden"
+                        />
+                        
+                        {uploadedFilesForType.length > 0 && (
+                          <div className="space-y-2 mb-3">
+                            {uploadedFilesForType.map((file, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <FileText className="w-4 h-4 text-gray-400" />
+                                  <span className="text-sm truncate max-w-xs">{file.name}</span>
+                                  <span className="text-xs text-gray-400">
+                                    ({(file.size / 1024).toFixed(1)} KB)
+                                  </span>
+                                </div>
+                                <button
+                                  onClick={() => removeUploadedFile(docType, index)}
+                                  className="p-1 hover:bg-gray-200 rounded transition-colors"
+                                >
+                                  <X className="w-4 h-4 text-gray-500" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => fileInputRefs.current[docType]?.click()}
+                          className="w-full"
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          {uploadedFilesForType.length > 0 ? 'Upload More' : 'Upload Files'}
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderStep6 = () => {
+    const statusMessage = serviceType === 'CLEARANCE' 
+      ? 'The file has been created and is now waiting for declaration.'
+      : `The file has been created and routed to Commercial Department for ${serviceType.replace('_', ' ').toLowerCase()} processing.`;
+    
+    const statusBadge = serviceType === 'CLEARANCE'
+      ? 'WAITING FOR DECLARATION'
+      : 'WAITING FOR ACCOUNTS';
+    
+    const statusColor = serviceType === 'CLEARANCE'
+      ? 'bg-amber-100 text-amber-700 hover:bg-amber-100'
+      : 'bg-blue-100 text-blue-700 hover:bg-blue-100';
+
+    return (
+      <div className="text-center py-8">
+        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <FileCheck className="w-10 h-10 text-green-600" />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          File Created Successfully!
+        </h2>
+        <p className="text-gray-500 mb-6">
+          {statusMessage}
+        </p>
+        
+        <div className="bg-gray-50 rounded-lg p-6 max-w-md mx-auto mb-6">
+          <p className="text-sm text-gray-500 mb-2">File Number</p>
+          <p className="text-3xl font-mono font-bold text-blue-600">
+            {createdFile?.fileNumber}
+          </p>
+          <Badge className={`mt-4 ${statusColor}`}>
+            {statusBadge}
+          </Badge>
+        </div>
+
+        <div className="flex gap-4 justify-center">
+          <Button variant="outline" onClick={() => navigate('dashboard')}>
+            Go to Dashboard
+          </Button>
+          <Button onClick={() => {
+            setStep(1);
+            setCreatedFile(null);
+            setSelectedClient('');
+            setSelectedContactPerson('');
+            setNewClient({ name: '', mobile: '', email: '', tin: '' });
+            setSelectedDocuments([]);
+            setUploadedFiles({} as Record<DocumentType, File[]>);
+            setSelectedExistingDocuments({} as Record<DocumentType, string[]>);
+            setDocumentSelectionMode('existing');
+            setDocumentNumbers({ commercialInvoiceNumber: '', blType: '', blNumber: '', awbType: '', awbNumber: '', roadConsignmentNumber: '' });
+            setSeaFreightDetails({ seaFreightType: '', fcl20ftQuantity: '', fcl40ftQuantity: '', fclContainerOtherDescription: '' });
+            setCargoDescription('');
+          }}>
+            Create Another File
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  const getSteps = () => {
+    const baseSteps = [
+      { number: 1, title: 'Client & Shipment', description: 'Enter client and shipment details' },
+      { number: 2, title: 'Documents & Numbers', description: 'Select documents and enter numbers' },
+    ];
+    
+    if (transportMode === 'SEA') {
+      baseSteps.push({ number: 3, title: 'SEA Freight Details', description: 'Container type and specifications' });
+    }
+    
+    baseSteps.push(
+      { number: baseSteps.length + 1, title: 'Cargo Description', description: 'Describe the cargo' },
+      { number: baseSteps.length + 2, title: 'Documents', description: 'Select existing or upload new documents' },
+      { number: baseSteps.length + 3, title: 'Confirmation', description: 'File creation complete' }
+    );
+    
+    return baseSteps;
+  };
+
+  const steps = getSteps();
+  const maxStep = steps.length;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -626,10 +1489,10 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
       </div>
 
       {/* Progress Steps */}
-      {step < 4 && (
+      {step < maxStep && (
         <div className="mb-8">
           <div className="flex items-center justify-between">
-            {steps.slice(0, 3).map((s, index) => (
+            {steps.slice(0, -1).map((s, index) => (
               <div key={s.number} className="flex items-center">
                 <div className="flex flex-col items-center">
                   <div
@@ -648,7 +1511,7 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
                     {s.title}
                   </span>
                 </div>
-                {index < 2 && (
+                {index < steps.length - 2 && (
                   <div
                     className={cn(
                       'w-24 md:w-32 h-1 mx-2 transition-all duration-200',
@@ -664,20 +1527,18 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
 
       {/* Content Card */}
       <Card>
-        <CardHeader>
-          <CardTitle>{steps[step - 1].title}</CardTitle>
-          <CardDescription>{steps[step - 1].description}</CardDescription>
-        </CardHeader>
         <CardContent>
           {step === 1 && renderStep1()}
           {step === 2 && renderStep2()}
-          {step === 3 && renderStep3()}
-          {step === 4 && renderStep4()}
+          {step === 3 && (transportMode === 'SEA' ? renderStep3() : renderStep4())}
+          {step === 4 && (transportMode === 'SEA' ? renderStep4() : renderStep5())}
+          {step === 5 && (transportMode === 'SEA' ? renderStep5() : renderStep6())}
+          {step === 6 && renderStep6()}
         </CardContent>
       </Card>
 
       {/* Navigation Buttons */}
-      {step < 4 && (
+      {step < maxStep && (
         <div className="flex justify-between mt-6">
           <Button
             variant="outline"
@@ -688,7 +1549,7 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
             Previous
           </Button>
           
-          {step < 3 ? (
+          {step < maxStep - 1 ? (
             <Button onClick={() => validateStep() && setStep(step + 1)}>
               Next
               <ArrowRight className="w-4 h-4 ml-2" />

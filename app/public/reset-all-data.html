@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset All System Data</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1e3a5f 0%, #2d6a4f 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 40px;
+      max-width: 560px;
+      width: 100%;
+    }
+    h1 { color: #1a202c; font-size: 26px; margin-bottom: 6px; text-align: center; }
+    .subtitle { color: #718096; text-align: center; margin-bottom: 28px; font-size: 14px; }
+    .warning-box {
+      background: #fff5f5; border: 2px solid #fc8181;
+      border-radius: 8px; padding: 16px; margin-bottom: 24px;
+    }
+    .warning-title { color: #c53030; font-weight: 600; font-size: 15px; margin-bottom: 8px; }
+    .warning-text { color: #742a2a; font-size: 13px; line-height: 1.6; }
+    .data-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; margin-bottom: 24px;
+    }
+    .data-card {
+      background: #f7fafc; border-radius: 8px; padding: 14px;
+      text-align: center; border: 1px solid #e2e8f0;
+    }
+    .data-card .count { font-size: 28px; font-weight: 700; color: #2d3748; }
+    .data-card .label { font-size: 12px; color: #718096; margin-top: 2px; }
+    .button-group { display: flex; gap: 12px; }
+    button {
+      flex: 1; padding: 14px; border: none; border-radius: 8px;
+      font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-danger { background: #e53e3e; color: white; }
+    .btn-danger:hover { background: #c53030; transform: translateY(-1px); }
+    .btn-danger:disabled { background: #fc8181; cursor: not-allowed; transform: none; }
+    .btn-secondary { background: #e2e8f0; color: #2d3748; }
+    .btn-secondary:hover { background: #cbd5e0; }
+    .status {
+      margin-top: 18px; padding: 14px; border-radius: 8px;
+      font-size: 14px; display: none; text-align: center;
+    }
+    .status.success { background: #c6f6d5; color: #22543d; border: 2px solid #48bb78; display: block; }
+    .status.error { background: #fed7d7; color: #742a2a; border: 2px solid #fc8181; display: block; }
+    .spinner {
+      display: inline-block; width: 16px; height: 16px;
+      border: 2px solid white; border-top-color: transparent;
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+      vertical-align: middle; margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🗑️ Clean System Reset</h1>
+    <p class="subtitle">Remove all files, notifications, and transaction data</p>
+
+    <div class="warning-box">
+      <div class="warning-title">⚠️ This cannot be undone</div>
+      <p class="warning-text">
+        All shipment files, notifications, petty cash requests, leave requests,
+        activity logs, and documents will be permanently deleted.
+        User accounts and client records will be preserved.
+      </p>
+    </div>
+
+    <div class="data-grid">
+      <div class="data-card">
+        <div class="count" id="fileCount">—</div>
+        <div class="label">Shipment Files</div>
+      </div>
+      <div class="data-card">
+        <div class="count" id="notifCount">—</div>
+        <div class="label">Notifications</div>
+      </div>
+      <div class="data-card">
+        <div class="count" id="pettyCashCount">—</div>
+        <div class="label">Petty Cash Requests</div>
+      </div>
+      <div class="data-card">
+        <div class="count" id="leaveCount">—</div>
+        <div class="label">Leave Requests</div>
+      </div>
+    </div>
+
+    <div class="button-group">
+      <button class="btn-secondary" onclick="window.location.href='/'">Cancel</button>
+      <button class="btn-danger" id="resetBtn" onclick="doReset()">🗑️ Reset Everything</button>
+    </div>
+
+    <div id="status" class="status"></div>
+  </div>
+
+  <script>
+    const KEYS_TO_CLEAR = [
+      'fileStore',
+      'notificationStore',
+      'pettyCashStore',
+      'leaveStore',
+      'driverStore',
+      'permitStore',
+      'documentStore',
+      'claimsStore',
+      'loansStore',
+      'outsourcingStore',
+      'recruitmentStore',
+      'trainingStore',
+      'performanceStore',
+      'inventoryStore',
+      'fixedAssetsStore',
+      'payrollStore',
+    ];
+
+    function loadCounts() {
+      try {
+        const fs = JSON.parse(localStorage.getItem('fileStore') || '{}');
+        const ns = JSON.parse(localStorage.getItem('notificationStore') || '{}');
+        const ps = JSON.parse(localStorage.getItem('pettyCashStore') || '{}');
+        const ls = JSON.parse(localStorage.getItem('leaveStore') || '{}');
+
+        document.getElementById('fileCount').textContent = fs.files?.length ?? 0;
+        document.getElementById('notifCount').textContent = ns.notifications?.length ?? 0;
+        document.getElementById('pettyCashCount').textContent = ps.requests?.length ?? 0;
+        document.getElementById('leaveCount').textContent = ls.requests?.length ?? 0;
+      } catch(e) {
+        ['fileCount','notifCount','pettyCashCount','leaveCount'].forEach(id => {
+          document.getElementById(id).textContent = '?';
+        });
+      }
+    }
+
+    function doReset() {
+      const btn = document.getElementById('resetBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Resetting...';
+
+      try {
+        // For fileStore and leaveStore, preserve clients/balances
+        const fileStore = JSON.parse(localStorage.getItem('fileStore') || '{}');
+        const leaveStore = JSON.parse(localStorage.getItem('leaveStore') || '{}');
+
+        // Clear all keys
+        KEYS_TO_CLEAR.forEach(key => localStorage.removeItem(key));
+
+        // Also clear authStore to force fresh login
+        localStorage.removeItem('authStore');
+
+        // Restore fileStore with empty files but keep clients
+        localStorage.setItem('fileStore', JSON.stringify({
+          files: [],
+          clients: fileStore.clients || [],
+          activityLogs: [],
+        }));
+
+        // Restore leaveStore with empty requests but keep balances
+        localStorage.setItem('leaveStore', JSON.stringify({
+          requests: [],
+          balances: leaveStore.balances || {},
+        }));
+
+        // Empty notification store
+        localStorage.setItem('notificationStore', JSON.stringify({ notifications: [] }));
+
+        const status = document.getElementById('status');
+        status.className = 'status success';
+        status.innerHTML = '✅ <strong>System reset complete.</strong> Redirecting to login...';
+
+        loadCounts();
+
+        setTimeout(() => { window.location.href = '/'; }, 2000);
+      } catch(e) {
+        const status = document.getElementById('status');
+        status.className = 'status error';
+        status.innerHTML = '❌ Reset failed: ' + e.message;
+        btn.disabled = false;
+        btn.innerHTML = '🗑️ Reset Everything';
+      }
+    }
+
+    loadCounts();
+  </script>
+</body>
+</html>

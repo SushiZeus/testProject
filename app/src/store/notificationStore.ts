@@ -121,6 +121,10 @@ export const useNotificationStore = (): NotificationState => {
     get notifications() { return state.notifications; },
 
     addNotification: (notification) => {
+      // Documentation officers do not receive file notifications
+      const targetUser = mockUsers.find(u => u.id === notification.userId);
+      if (targetUser?.role === 'documentation_officer') return;
+
       const newNotification: Notification = {
         id: Math.random().toString(36).substr(2, 9),
         ...notification,
@@ -179,21 +183,24 @@ export const useNotificationStore = (): NotificationState => {
     notifyFileCreated: (file) => {
       const notifications: Notification[] = [];
 
-      // Only notify the file creator
+      // Only notify the file creator (skip if documentation officer)
       if (file.createdBy) {
-        const creatorNotification = {
-          id: Math.random().toString(36).substr(2, 9),
-          userId: file.createdBy,
-          title: '✅ File Created Successfully',
-          message: `File ${file.fileNumber} has been created and is ready for processing`,
-          type: 'success' as const,
-          isRead: false,
-          fileId: file.id,
-          link: `/files/${file.id}`,
-          createdAt: new Date(),
-        };
-        notifications.push(creatorNotification);
-        showToastNotification(creatorNotification);
+        const creator = mockUsers.find(u => u.id === file.createdBy);
+        if (creator && creator.role !== 'documentation_officer') {
+          const creatorNotification = {
+            id: Math.random().toString(36).substr(2, 9),
+            userId: file.createdBy,
+            title: '✅ File Created Successfully',
+            message: `File ${file.fileNumber} has been created and is ready for processing`,
+            type: 'success' as const,
+            isRead: false,
+            fileId: file.id,
+            link: `/files/${file.id}`,
+            createdAt: new Date(),
+          };
+          notifications.push(creatorNotification);
+          showToastNotification(creatorNotification);
+        }
       }
 
       // Notify declaration managers who need to assign a declarant
@@ -214,6 +221,26 @@ export const useNotificationStore = (): NotificationState => {
         showToastNotification(managerNotification);
       });
 
+      // Notify shipping line clerks for SEA shipments
+      if (file.transportMode === 'SEA' && (file.shipmentType === 'IMPORT' || file.shipmentType === 'EXPORT')) {
+        const shippingLineClerks = getUsersByRole('shipping_line_clerk');
+        shippingLineClerks.forEach(clerk => {
+          const clerkNotification = {
+            id: Math.random().toString(36).substr(2, 9),
+            userId: clerk.id,
+            title: '🚢 New SEA Shipment File',
+            message: `SEA ${file.shipmentType} file ${file.fileNumber} has been opened for ${file.client?.name || 'client'}`,
+            type: 'info' as const,
+            isRead: false,
+            fileId: file.id,
+            link: '/shipping-line',
+            createdAt: new Date(),
+          };
+          notifications.push(clerkNotification);
+          showToastNotification(clerkNotification);
+        });
+      }
+
       state = {
         ...state,
         notifications: [...notifications, ...state.notifications],
@@ -226,6 +253,10 @@ export const useNotificationStore = (): NotificationState => {
 
       // Helper to add notification and show toast
       const addNotificationWithToast = (notif: Omit<Notification, 'id' | 'createdAt' | 'isRead'>) => {
+        // Documentation officers do not receive file notifications
+        const targetUser = mockUsers.find(u => u.id === notif.userId);
+        if (targetUser?.role === 'documentation_officer') return;
+
         const fullNotif = {
           id: Math.random().toString(36).substr(2, 9),
           ...notif,
@@ -234,6 +265,22 @@ export const useNotificationStore = (): NotificationState => {
         };
         notifications.push(fullNotif);
         showToastNotification(notif);
+      };
+
+      // Helper to notify shipping line clerks for SEA shipments
+      const notifyShippingLineClerks = (title: string, message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') => {
+        if (file.transportMode === 'SEA' && (file.shipmentType === 'IMPORT' || file.shipmentType === 'EXPORT')) {
+          getUsersByRole('shipping_line_clerk').forEach(clerk => {
+            addNotificationWithToast({
+              userId: clerk.id,
+              title,
+              message,
+              type,
+              fileId: file.id,
+              link: '/shipping-line',
+            });
+          });
+        }
       };
 
       // Role-specific notifications based on status - only notify users involved at this stage
@@ -261,6 +308,12 @@ export const useNotificationStore = (): NotificationState => {
               link: `/files/${file.id}`,
             });
           }
+          // Notify shipping line clerks for SEA shipments
+          notifyShippingLineClerks(
+            '📝 Declarant Assigned',
+            `SEA file ${file.fileNumber} has been assigned to a declarant`,
+            'info'
+          );
           break;
 
         case 'DECLARANT_ACKNOWLEDGED':
@@ -314,6 +367,41 @@ export const useNotificationStore = (): NotificationState => {
               link: '/declaration',
             });
           }
+          // Notify shipping line clerks for SEA shipments
+          notifyShippingLineClerks(
+            '✅ Declaration Complete',
+            `SEA file ${file.fileNumber} declaration is complete`,
+            'success'
+          );
+          break;
+
+        case 'PERMITS_DONE':
+          // Notify shipping line clerks for SEA shipments - they need to upload D.O invoice
+          notifyShippingLineClerks(
+            '📋 Permits Complete - Action Required',
+            `SEA file ${file.fileNumber} permits are done. Please upload delivery order invoice`,
+            'warning'
+          );
+          break;
+
+        case 'DELIVERY_ORDER_SUBMITTED':
+          // Notify operations managers
+          getUsersByRole('operations_manager').forEach(manager => {
+            addNotificationWithToast({
+              userId: manager.id,
+              title: '✅ Delivery Order Submitted',
+              message: `File ${file.fileNumber} delivery order has been submitted`,
+              type: 'success',
+              fileId: file.id,
+              link: '/operations',
+            });
+          });
+          // Notify shipping line clerks
+          notifyShippingLineClerks(
+            '✅ Delivery Order Submitted',
+            `SEA file ${file.fileNumber} delivery order submitted successfully`,
+            'success'
+          );
           break;
 
         case 'WAITING_FOR_TAX_PAYMENT':
@@ -390,7 +478,6 @@ export const useNotificationStore = (): NotificationState => {
         case 'WAITING_FOR_DO_PAYMENT':
         case 'WAITING_FOR_PORT_PAYMENT':
         case 'WAITING_FOR_SWISSPORT_PAYMENTS':
-        case 'WAITING_FOR_PAYMENTS':
           // Notify finance manager
           getUsersByRole('finance_manager').forEach(manager => {
             addNotificationWithToast({
@@ -402,6 +489,20 @@ export const useNotificationStore = (): NotificationState => {
               link: '/petty-cash',
             });
           });
+          // Notify shipping line clerks for SEA shipments
+          if (newStatus === 'WAITING_FOR_DO_PAYMENT') {
+            notifyShippingLineClerks(
+              '⏳ Waiting for D.O Payment',
+              `SEA file ${file.fileNumber} delivery order invoice uploaded - waiting for payment`,
+              'info'
+            );
+          } else {
+            notifyShippingLineClerks(
+              '💰 Payment Required',
+              `SEA file ${file.fileNumber} is waiting for payment`,
+              'info'
+            );
+          }
           break;
 
         case 'PERMIT_PAYMENTS_DONE':
@@ -418,6 +519,20 @@ export const useNotificationStore = (): NotificationState => {
               fileId: file.id,
               link: '/operations',
             });
+          }
+          // Notify shipping line clerks for SEA shipments
+          if (newStatus === 'DELIVERY_ORDER_PAYMENTS_DONE') {
+            notifyShippingLineClerks(
+              '✅ D.O Payment Complete - Action Required',
+              `SEA file ${file.fileNumber} payment done. Please submit delivery order document`,
+              'warning'
+            );
+          } else {
+            notifyShippingLineClerks(
+              '✅ Payment Completed',
+              `SEA file ${file.fileNumber} payment has been completed`,
+              'success'
+            );
           }
           break;
 
@@ -543,6 +658,13 @@ export const useNotificationStore = (): NotificationState => {
               link: `/files/${file.id}`,
             });
           });
+          
+          // Notify shipping line clerks for SEA shipments
+          notifyShippingLineClerks(
+            '🎉 File Completed',
+            `SEA file ${file.fileNumber} has been successfully completed and cleared`,
+            'success'
+          );
           break;
 
         case 'CANCELLED':
@@ -582,20 +704,23 @@ useNotificationStore.getState = () => {
     notifyFileCreated: (file: ShipmentFile) => {
       const notifications: Notification[] = [];
 
-      // Only notify the file creator
+      // Only notify the file creator (skip if documentation officer)
       if (file.createdBy) {
-        const creatorNotification = {
-          id: Math.random().toString(36).substr(2, 9),
-          userId: file.createdBy,
-          title: '✅ File Created Successfully',
-          message: `File ${file.fileNumber} has been created and is ready for processing`,
-          type: 'info' as const,
-          isRead: false,
-          fileId: file.id,
-          link: `/files/${file.id}`,
-          createdAt: new Date(),
-        };
-        notifications.push(creatorNotification);
+        const creator = mockUsers.find(u => u.id === file.createdBy);
+        if (creator && creator.role !== 'documentation_officer') {
+          const creatorNotification = {
+            id: Math.random().toString(36).substr(2, 9),
+            userId: file.createdBy,
+            title: '✅ File Created Successfully',
+            message: `File ${file.fileNumber} has been created and is ready for processing`,
+            type: 'info' as const,
+            isRead: false,
+            fileId: file.id,
+            link: `/files/${file.id}`,
+            createdAt: new Date(),
+          };
+          notifications.push(creatorNotification);
+        }
       }
 
       // Notify declaration managers

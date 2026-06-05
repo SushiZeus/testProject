@@ -39,7 +39,7 @@ const rolePermissions: Record<UserRole, string[]> = {
   cashier: ['process_payments', 'view_pending_payments', 'create_petty_cash_request'],
   
   // HR Department - Limited to HR + Full Access Roles  
-  hr_manager: ['assign_small_truck_driver', 'manage_small_truck_drivers', 'view_driver_reports', 'approve_petty_cash_hr', 'view_hr_department', 'create_petty_cash_request'],
+  hr_manager: ['assign_small_truck_driver', 'manage_small_truck_drivers', 'view_driver_reports', 'approve_petty_cash_hr', 'view_hr_department', 'create_petty_cash_request', 'manage_fixed_assets', 'view_fixed_assets', 'assign_assets', 'schedule_maintenance'],
   
   // Senior Management - Executive Access (View Only + Comments)
   commercial_manager: [
@@ -129,14 +129,54 @@ export const useAuthStore = (): AuthState => {
     get isAuthenticated() { return state.isAuthenticated; },
 
     login: async (email: string, password: string, role: UserRole) => {
-      // Find user by email and password
-      const credential = Object.values(userCredentials).find(
-        c => c.email === email && c.password === password
-      );
+      // Check localStorage credentials first (for newly registered users)
+      let credential = null;
+      if (typeof window !== 'undefined') {
+        try {
+          const savedCredentials = JSON.parse(localStorage.getItem('userCredentials') || '{}');
+          if (savedCredentials[email] && savedCredentials[email].password === password) {
+            credential = savedCredentials[email];
+          }
+        } catch (error) {
+          console.error('Error loading credentials:', error);
+        }
+      }
+
+      // Fall back to mockData credentials
+      if (!credential) {
+        credential = Object.values(userCredentials).find(
+          c => c.email === email && c.password === password
+        );
+      }
       
       if (credential) {
-        const user = mockUsers.find(u => u.email === email && u.role === role);
-        if (user) {
+        // Check userManagementStore first (for newly registered users)
+        let user = null;
+        if (typeof window !== 'undefined') {
+          try {
+            const savedUserState = localStorage.getItem('userManagementStore');
+            if (savedUserState) {
+              const parsed = JSON.parse(savedUserState);
+              user = parsed.users.find((u: any) => u.email === email && u.role === role);
+              if (user) {
+                user = {
+                  ...user,
+                  createdAt: new Date(user.createdAt),
+                  updatedAt: new Date(user.updatedAt),
+                };
+              }
+            }
+          } catch (error) {
+            console.error('Error loading user from userManagementStore:', error);
+          }
+        }
+
+        // Fall back to mockUsers
+        if (!user) {
+          user = mockUsers.find(u => u.email === email && u.role === role);
+        }
+
+        if (user && user.isActive) {
           state = { user, isAuthenticated: true };
           notify();
           return true;
