@@ -1,0 +1,336 @@
+═══════════════════════════════════════════════════════════════════════════════
+    🎯 DOW ELEF SHIPMENT MANAGEMENT SYSTEM
+    COMPLETE ACCESS GUIDE - JUNE 5, 2026 (FRIDAY)
+    VERSION 1.2.1 - ALL UPDATES DEPLOYED ✅
+═══════════════════════════════════════════════════════════════════════════════
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ 🌐 APPLICATION ACCESS (PORT 5173)                                        ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    LOCALHOST (Same Computer):
+    ─────────────────────────
+    http://localhost:5173/
+
+    NETWORK (Other Devices):
+    ────────────────────────
+    http://192.168.0.114:5173/
+
+    ✅ Status: LIVE AND READY
+    ⚡ Port: 5173 (Updated from 4173)
+    🚀 Quick Start: Run 🚀_DOUBLE_CLICK_TO_START.bat
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ 🐙 GITHUB REPOSITORY                                                      ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    Repository URL:
+    ───────────────
+    https://github.com/SushiZeus/testProject
+
+    📦 Branch: main
+    ✅ Status: All updates synced
+    📝 Latest: 7d9a821 (June 5, 2026)
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ 🆕 LATEST UPDATES (JUNE 5, 2026)                                         ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    UPDATE #1: CARGO VERIFICATION FORM ✅
+    ────────────────────────────────────
+    • Mandatory 10-question inspection checklist
+    • Required before driver assignment
+    • Professional print layout
+    • Station, officer, TANSAD number fields
+    • Yes/No questions with remarks
+
+    UPDATE #2: AIR DECLARATION WORKFLOW FIX ✅
+    ──────────────────────────────────────────
+    • GREEN "Declaration Done" button
+    • Enabled after TAX PAID (AIR only)
+    • Enabled after TAX + WHARFAGE PAID (SEA)
+    • Clear visual distinction
+
+    UPDATE #3: OPERATIONS MANAGER SIDEBAR ✅
+    ────────────────────────────────────────
+    • Removed Inventory module
+    • Removed Outsourcing module
+    • Cleaner, focused interface
+
+    UPDATE #4: OPERATION CLERK UI ✅
+    ─────────────────────────────────
+    • Removed "View Only Access" disclaimer
+    • Better user confidence
+    • Clear operational access
+
+    UPDATE #5: PORT UPDATE ✅
+    ─────────────────────────
+    • Changed from port 4173 → 5173
+    • All documentation updated
+    • GitHub synced
+
+    UPDATE #6: DECLARATION DONE BUTTON FIX ✅
+    ──────────────────────────────────────────
+    • Fixed missing button after payment
+    • Status correctly transitions to payment waiting
+    • GREEN button now appears when ready
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ 🔑 LOGIN CREDENTIALS (27 ACCOUNTS)                                       ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    ADMINISTRATOR (Full System Access):
+    ───────────────────────────────────
+    📧 administrator@company.com
+    🔑 administrator123
+
+    OPERATIONS MANAGER (Test Sidebar):
+    ──────────────────────────────────
+    📧 operations_manager@company.com
+    🔑 operations_manager123
+
+    OPERATION CLERK (Test Cargo Form + No Disclaimer):
+    ──────────────────────────────────────────────────
+    📧 operation_clerk@company.com
+    🔑 operation_clerk123
+
+    DECLARANT (Test AIR Declaration + GREEN Button):
+    ────────────────────────────────────────────────
+    📧 declarant@company.com
+    🔑 declarant123
+
+    DECLARATION MANAGER:
+    ────────────────────
+    📧 declaration_manager@company.com
+    🔑 declaration_manager123
+
+    DOCUMENTATION OFFICER:
+    ──────────────────────
+    📧 documentation_officer@company.com
+    🔑 documentation_officer123
+
+    FINANCE MANAGER:
+    ────────────────
+    📧 finance_manager@company.com
+    🔑 finance_manager123
+
+    📌 All 27 accounts: See ALL_USER_CREDENTIALS_APRIL_1_2026.md
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ 🧪 QUICK TEST SCENARIOS                                                  ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    TEST #1: Cargo Verification Form
+    ─────────────────────────────────
+    1. Login: operation_clerk@company.com
+    2. Find file: Status "Verification Form Pending"
+    3. Click: Purple "Fill Verification Form" button
+    4. Complete: 10 questions + officer details
+    5. Submit & Print
+
+    TEST #2: AIR Declaration (GREEN Button)
+    ────────────────────────────────────────
+    1. Login: declarant@company.com
+    2. Open: AIR shipment file
+    3. Upload: Tax documents
+    4. Click: "TAX PAID" button
+    5. Verify: Status = "WAITING FOR TAX PAYMENT"
+    6. Verify: GREEN "Declaration Done" button appears
+    7. Click: Declaration Done
+    8. Verify: Status = "READY FOR OPERATIONS"
+
+    TEST #3: SEA Declaration (GREEN Button)
+    ────────────────────────────────────────
+    1. Login: declarant@company.com
+    2. Open: SEA shipment file
+    3. Upload: Tax documents → Click "TAX PAID"
+    4. Upload: Wharfage documents → Click "WHARFAGE PAID"
+    5. Verify: Status = "WAITING FOR WHARFAGE PAYMENT"
+    6. Verify: GREEN "Declaration Done" button appears & enabled
+    7. Click: Declaration Done
+    8. Verify: Status = "READY FOR OPERATIONS"
+
+    TEST #4: Operations Manager Sidebar
+    ────────────────────────────────────
+    1. Login: operations_manager@company.com
+    2. Check sidebar: NO Inventory module
+    3. Check sidebar: NO Outsourcing module
+    4. Verify: Only operations modules visible
+
+    TEST #5: Operation Clerk UI
+    ────────────────────────────
+    1. Login: operation_clerk@company.com
+    2. Go to: Operations page
+    3. Verify: NO "View Only Access" warning
+    4. Verify: Can access assigned files
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ 📚 DOCUMENTATION FILES                                                    ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    QUICK ACCESS:
+    ─────────────
+    🎯_COMPLETE_SYSTEM_ACCESS_JUNE_5_2026.txt (This file)
+    ⚡_QUICK_ACCESS_JUNE_5_2026.txt
+    🌐_SYSTEM_ACCESS_JUNE_5_2026.txt
+
+    COMPREHENSIVE GUIDES:
+    ─────────────────────
+    🎉_ALL_UPDATES_DEPLOYED_JUNE_5_2026.md
+    README.md (Version 1.2.1)
+
+    IMPLEMENTATION DETAILS:
+    ───────────────────────
+    THREE_FIXES_IMPLEMENTED_MAY_30_2026.md
+    CARGO_VERIFICATION_FORM_COMPLETE_MAY_30_2026.md
+    🔧_DECLARATION_DONE_BUTTON_FIX_JUNE_5_2026.md
+    ✅_PORT_5173_UPDATE_COMPLETE.txt
+
+    CREDENTIALS:
+    ────────────
+    ALL_USER_CREDENTIALS_APRIL_1_2026.md
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ 🔧 SERVER COMMANDS                                                        ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    START SERVER (METHOD 1 - Easy):
+    ────────────────────────────────
+    Double-click: 🚀_DOUBLE_CLICK_TO_START.bat
+
+    START SERVER (METHOD 2 - Manual):
+    ──────────────────────────────────
+    cd app
+    npm run dev -- --host
+
+    HARD REFRESH BROWSER:
+    ─────────────────────
+    Ctrl + Shift + R
+
+    CHECK GIT STATUS:
+    ─────────────────
+    git status
+    git log --oneline -5
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ 📊 SYSTEM STATISTICS                                                      ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    Version:           1.2.1
+    Port:              5173
+    Users:             27 accounts
+    Roles:             18 different roles
+    Departments:       7 departments
+    Workflow Statuses: 40+ statuses
+    Features:          50+ implemented
+    TypeScript Errors: 0
+    Build Errors:      0
+    GitHub Status:     ✅ Synced (7d9a821)
+    Last Updated:      June 5, 2026
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ 🎯 VERSION HISTORY                                                        ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    Version 1.2.1 - June 5, 2026 (Latest)
+    ──────────────────────────────────────
+    • Port update (4173 → 5173)
+    • Declaration Done button workflow fix
+    • Documentation files added
+
+    Version 1.2.0 - May 30, 2026
+    ────────────────────────────
+    • Cargo verification form
+    • AIR declaration GREEN button
+    • Operations manager sidebar cleanup
+    • Operation clerk UI improvements
+
+    Version 1.1.0 - April 2026
+    ──────────────────────────
+    • HR modules (6 new modules)
+    • Inventory management
+    • Fixed assets tracking
+    • Outsourcing module
+
+    Version 1.0.0 - March 2026
+    ──────────────────────────
+    • Initial release
+    • Core shipment management
+    • 27 user accounts
+    • Professional branding
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ 🚨 IMPORTANT NOTES                                                        ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    1. PORT CHANGE:
+       ───────────
+       System now runs on PORT 5173 (changed from 4173)
+       Update bookmarks and shared links!
+
+    2. DECLARATION WORKFLOW:
+       ─────────────────────
+       After clicking TAX PAID / WHARFAGE PAID buttons:
+       - Status will change to payment waiting status
+       - GREEN "Declaration Done" button will appear
+       - Click to move file to Operations
+
+    3. BROWSER CACHE:
+       ──────────────
+       Always hard refresh after updates:
+       Ctrl + Shift + R
+
+    4. GITHUB:
+       ───────
+       All code is backed up and synced
+       Repository: github.com/SushiZeus/testProject
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ 📱 SHARE THESE LINKS                                                      ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    FOR SAME COMPUTER USERS:
+    ────────────────────────
+    http://localhost:5173/
+
+    FOR NETWORK USERS (Mobile, Other PCs):
+    ──────────────────────────────────────
+    http://192.168.0.114:5173/
+
+    FOR DEVELOPERS:
+    ───────────────
+    https://github.com/SushiZeus/testProject
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ ✅ READY TO USE!                                                          ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    Quick Start Steps:
+    ──────────────────
+    1. Double-click: 🚀_DOUBLE_CLICK_TO_START.bat
+    2. Open browser: http://localhost:5173/
+    3. Login with any account above
+    4. Test the new features!
+
+
+═══════════════════════════════════════════════════════════════════════════════
+    🎊 ALL UPDATES DEPLOYED - SYSTEM READY FOR PRODUCTION!
+═══════════════════════════════════════════════════════════════════════════════
+
+    Last Updated: June 5, 2026 (Friday)
+    Version: 1.2.1
+    Status: ✅ PRODUCTION READY
+    GitHub: ✅ All Changes Synced (Commit: 7d9a821)
+
+═══════════════════════════════════════════════════════════════════════════════
