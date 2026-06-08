@@ -1,0 +1,113 @@
+═══════════════════════════════════════════════════════════════════════════════
+    ⚡ HOW TO START THE SERVER - JUNE 5, 2026
+═══════════════════════════════════════════════════════════════════════════════
+
+The localhost link needs the development server to be running first!
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ METHOD 1: DOUBLE-CLICK TO START (EASIEST)                                ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    Simply double-click either file:
+    ─────────────────────────────────
+    🚀_DOUBLE_CLICK_TO_START.bat
+    
+    OR
+    
+    🚀_START_SERVER_NOW.bat
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ METHOD 2: COMMAND LINE                                                   ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    Open Command Prompt (CMD) and run:
+    ───────────────────────────────────
+    cd C:\Users\user\Desktop\testproject\app
+    npm run dev -- --host
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ WHAT TO EXPECT                                                            ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    The terminal will show:
+    ───────────────────────
+    VITE v5.x.x  ready in xxx ms
+
+    ➜  Local:   http://localhost:5173/
+    ➜  Network: http://192.168.0.114:5173/
+    ➜  press h + enter to show help
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ AFTER SERVER STARTS                                                       ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    1. Keep the terminal window OPEN (don't close it!)
+    
+    2. Open your browser and go to:
+       ───────────────────────────────
+       http://localhost:5173/
+    
+    3. Login with:
+       ───────────
+       Email: administrator@company.com
+       Password: administrator123
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ TO STOP THE SERVER                                                        ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    In the terminal window, press:
+    ───────────────────────────────
+    Ctrl + C
+    
+    Then type: Y (Yes) to confirm
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ TROUBLESHOOTING                                                           ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    Problem: Port already in use
+    ────────────────────────────
+    Solution: 
+    1. Close any other terminals running the server
+    2. Or kill the process:
+       - Open Task Manager (Ctrl + Shift + Esc)
+       - Find "Node.js" processes
+       - End them
+       - Try starting server again
+
+    Problem: npm command not found
+    ──────────────────────────────
+    Solution:
+    - Ensure Node.js is installed
+    - Restart your terminal/computer
+
+    Problem: Browser shows "Cannot connect"
+    ───────────────────────────────────────
+    Solution:
+    - Make sure server terminal is still open and running
+    - Check if you see the "Local: http://localhost:5173/" message
+    - Try hard refresh: Ctrl + Shift + R
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ NETWORK ACCESS (OTHER DEVICES)                                            ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    If you want to access from mobile/other computers:
+    ──────────────────────────────────────────────────
+    http://192.168.0.114:5173/
+    
+    Note: Make sure:
+    - Both devices on same network
+    - Firewall allows port 5173
+
+
+═══════════════════════════════════════════════════════════════════════════════
+    🎯 QUICK START: Just double-click 🚀_START_SERVER_NOW.bat
+═══════════════════════════════════════════════════════════════════════════════
