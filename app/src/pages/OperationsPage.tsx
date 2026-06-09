@@ -647,13 +647,13 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     addNotification({
       userId: '5', // Operations Manager
       title: 'Port Charges Paid',
-      message: `Port charges for file ${selectedFile.fileNumber} have been paid - Ready for delivery`,
+      message: `Port charges for file ${selectedFile.fileNumber} have been paid - Click OPERATIONS DONE to complete`,
       type: 'success',
       fileId: selectedFile.id,
       link: '/operations',
     });
 
-    toast.success('Port charges payment confirmed - File ready for delivery');
+    toast.success('Port charges payment confirmed - Click OPERATIONS DONE button to proceed');
     setSelectedFile(null);
   };
 
@@ -673,19 +673,21 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     addNotification({
       userId: '5', // Operations Manager
       title: 'Swissport Charges Paid',
-      message: `Swissport charges for file ${selectedFile.fileNumber} have been paid - Ready to clear cargo`,
+      message: `Swissport charges for file ${selectedFile.fileNumber} have been paid - Click OPERATIONS DONE to complete`,
       type: 'success',
       fileId: selectedFile.id,
       link: '/operations',
     });
 
-    toast.success('Swissport charges payment confirmed - Click CARGO CLEARED to proceed');
+    toast.success('Swissport charges payment confirmed - Click OPERATIONS DONE button to proceed');
     setSelectedFile(null);
   };
 
   const handleCargoCleared = () => {
     if (!selectedFile || !user) return;
 
+    // This function is no longer needed - we go straight to OPERATIONS_DONE after Swissport payment
+    // Keeping for backwards compatibility but not used in new workflow
     updateFileStatus(
       selectedFile.id,
       'CARGO_CLEARED',
@@ -695,17 +697,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
       }
     );
 
-    // Notify operations manager and delivery team
-    addNotification({
-      userId: '5', // Operations Manager
-      title: 'Cargo Cleared - Ready for Delivery',
-      message: `Cargo for file ${selectedFile.fileNumber} has been cleared and is ready for delivery assignment`,
-      type: 'success',
-      fileId: selectedFile.id,
-      link: '/operations',
-    });
-
-    toast.success('Cargo cleared - File ready for delivery assignment');
+    toast.success('Cargo cleared');
     setSelectedFile(null);
   };
 
@@ -718,9 +710,14 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
       return;
     }
 
-    // Validate that port charges are paid (for SEA)
+    // Validate that appropriate charges are paid based on transport mode
     if (selectedFile.transportMode === 'SEA' && selectedFile.status !== 'PORT_CHARGES_PAID') {
       toast.error('Port charges must be paid before marking operations as done');
+      return;
+    }
+
+    if (selectedFile.transportMode === 'AIR' && selectedFile.status !== 'SWISSPORT_CHARGES_PAID') {
+      toast.error('Swissport charges must be paid before marking operations as done');
       return;
     }
 
@@ -1255,23 +1252,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                   title="Confirm port charges payment"
                                 >
                                   <CheckCircle className="w-3 h-3 mr-1" />
-                                  CONFIRM PAYMENT
-                                </Button>
-                              )}
-
-                              {/* OPERATIONS DONE Button - After PORT_CHARGES_PAID for SEA - Only for assigned user - Requires release order */}
-                              {user?.role === 'operation_clerk' && 
-                               file.assignedOperationClerkId === user?.id &&
-                               file.transportMode === 'SEA' && 
-                               file.status === 'PORT_CHARGES_PAID' && 
-                               file.releaseOrderUrl && (
-                                <Button 
-                                  size="sm" 
-                                  onClick={() => { setSelectedFile(file); handleOperationsDone(); }}
-                                  className="bg-green-600 hover:bg-green-700 text-white"
-                                >
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  OPERATIONS DONE
+                                  PORT CHARGES PAID
                                 </Button>
                               )}
 
@@ -1282,49 +1263,71 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                 <Button 
                                   size="sm" 
                                   onClick={() => { setSelectedFile(file); handleSwissportChargesPaid(); }}
-                                  className="bg-green-600 hover:bg-green-700 text-white"
-                                >
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  CONFIRM PAYMENT
-                                </Button>
-                              )}
-
-                              {/* CARGO CLEARED Button - After SWISSPORT_CHARGES_PAID - Only for assigned user */}
-                              {user?.role === 'operation_clerk' && 
-                               file.assignedOperationClerkId === user?.id &&
-                               file.transportMode === 'AIR' && 
-                               file.status === 'SWISSPORT_CHARGES_PAID' && (
-                                <Button 
-                                  size="sm" 
-                                  onClick={() => { setSelectedFile(file); handleCargoCleared(); }}
                                   className="bg-blue-600 hover:bg-blue-700 text-white"
+                                  title="Confirm Swissport charges payment"
                                 >
                                   <CheckCircle className="w-3 h-3 mr-1" />
-                                  CARGO CLEARED
+                                  SWISSPORT PAID
                                 </Button>
                               )}
 
-                              {/* CARGO VERIFICATION FORM - After OPERATIONS_DONE or CARGO_CLEARED */}
+                              {/* OPERATIONS DONE Button - After payment confirmation (both SEA and AIR) - Only for assigned user */}
                               {user?.role === 'operation_clerk' && 
                                file.assignedOperationClerkId === user?.id &&
-                               file.status === 'VERIFICATION_FORM_PENDING' && (
+                               ((file.transportMode === 'SEA' && file.status === 'PORT_CHARGES_PAID') ||
+                                (file.transportMode === 'AIR' && file.status === 'SWISSPORT_CHARGES_PAID')) &&
+                               file.releaseOrderUrl && (
                                 <Button 
                                   size="sm" 
+                                  onClick={() => { setSelectedFile(file); handleOperationsDone(); }}
+                                  className="bg-green-600 hover:bg-green-700 text-white"
+                                  title="Mark operations as complete and proceed to verification"
+                                >
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  OPERATIONS DONE
+                                </Button>
+                              )}
+
+                              {/* CARGO VERIFICATION FORM - Available for all shipments that have operation clerk assigned */}
+                              {user?.role === 'operation_clerk' && 
+                               file.assignedOperationClerkId === user?.id &&
+                               !file.cargoVerificationForm && (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
                                   onClick={() => handleOpenVerificationForm(file)}
-                                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                                  className="border-purple-600 text-purple-600 hover:bg-purple-50"
+                                  title="Fill cargo verification form (can be done at any time)"
                                 >
                                   <ClipboardList className="w-3 h-3 mr-1" />
                                   Fill Verification Form
                                 </Button>
                               )}
 
+                              {/* CARGO VERIFICATION FORM - REQUIRED BEFORE DELIVERY (Purple for pending) */}
+                              {user?.role === 'operation_clerk' && 
+                               file.assignedOperationClerkId === user?.id &&
+                               file.status === 'VERIFICATION_FORM_PENDING' &&
+                               !file.cargoVerificationForm && (
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => handleOpenVerificationForm(file)}
+                                  className="bg-purple-600 hover:bg-purple-700 text-white animate-pulse"
+                                  title="REQUIRED: Fill verification form before driver assignment"
+                                >
+                                  <ClipboardList className="w-3 h-3 mr-1" />
+                                  Fill Verification Form (Required)
+                                </Button>
+                              )}
+
                               {/* VIEW/PRINT VERIFICATION FORM - After form is completed */}
-                              {file.status === 'VERIFICATION_FORM_COMPLETED' && file.cargoVerificationForm && (
+                              {file.cargoVerificationForm && (
                                 <Button 
                                   size="sm" 
                                   variant="outline"
                                   onClick={() => handlePrintVerificationForm(file)}
                                   className="bg-green-50 border-green-300 text-green-700"
+                                  title="View and print completed verification form"
                                 >
                                   <Printer className="w-3 h-3 mr-1" />
                                   View/Print Form
