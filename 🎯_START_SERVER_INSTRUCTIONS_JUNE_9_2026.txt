@@ -1,0 +1,159 @@
+═══════════════════════════════════════════════════════════════════════════════
+    🎯 SERVER RESTART INSTRUCTIONS - JUNE 9, 2026
+    ALL UPDATES SAVED & READY TO TEST
+═══════════════════════════════════════════════════════════════════════════════
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ ✅ ALL UPDATES SAVED                                                      ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    ✓ Code changes committed (commit c2cce09)
+    ✓ GitHub synced and pushed
+    ✓ Documentation created
+    ✓ Version 1.3.0 ready
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ 🚀 HOW TO START THE SERVER                                                ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    METHOD 1: Double-Click Helper File (EASIEST)
+    ────────────────────────────────────────────
+    
+    Just double-click this file:
+    🚀_START_SERVER_NOW.bat
+    
+    or
+    
+    🚀_DOUBLE_CLICK_TO_START.bat
+
+
+    METHOD 2: Command Prompt
+    ─────────────────────────
+    
+    1. Open Command Prompt (CMD)
+    
+    2. Run these commands:
+       cd C:\Users\user\Desktop\testproject\app
+       npm run dev -- --host
+    
+    3. Wait for this message:
+       "Local: http://localhost:5173/"
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ 🌐 ACCESS LINKS (After Server Starts)                                     ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    LOCALHOST (Same Computer):
+    ──────────────────────────
+    http://localhost:5173/
+
+    NETWORK (Other Devices):
+    ────────────────────────
+    http://192.168.0.114:5173/
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ 🧪 WHAT TO TEST (Version 1.3.0)                                           ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    1. CLEAR PAYMENT BUTTONS:
+       ──────────────────────
+       • SEA files: Look for "PORT CHARGES PAID" (Blue)
+       • AIR files: Look for "SWISSPORT PAID" (Blue)
+       • No more generic "CONFIRM PAYMENT"
+
+    2. OPERATIONS DONE BUTTON:
+       ───────────────────────
+       • After payment confirmed
+       • Single GREEN button to complete operations
+       • No more confusing "CARGO CLEARED" step
+
+    3. VERIFICATION FORM ANYTIME:
+       ─────────────────────────
+       • Available on ALL shipments
+       • Can fill proactively at any stage
+       • Purple outline = optional
+       • Purple pulsing = required after operations done
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ 🔑 TEST ACCOUNTS                                                          ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    Operation Clerk:
+    ────────────────
+    Email: operation_clerk@company.com
+    Password: operation_clerk123
+    
+    Finance Manager:
+    ────────────────
+    Email: finance_manager@company.com
+    Password: finance_manager123
+    
+    Administrator:
+    ──────────────
+    Email: administrator@company.com
+    Password: administrator123
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ 📚 DOCUMENTATION FILES                                                    ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    Quick Summary:
+    ──────────────
+    ✅_DEPLOYMENT_COMPLETE_JUNE_9_2026.txt
+    QUICK_UPDATE_JUNE_9_2026.txt
+
+    Before & After:
+    ───────────────
+    BEFORE_AND_AFTER_JUNE_9_2026.txt
+
+    Full Technical Details:
+    ───────────────────────
+    OPERATIONS_WORKFLOW_ENHANCEMENT_JUNE_9_2026.md
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ 🐙 GITHUB STATUS                                                          ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    Repository: https://github.com/SushiZeus/testProject
+    Branch:     main
+    Latest Commit: c2cce09
+    Status:     ✅ ALL UPDATES PUSHED
+
+    Recent Commits:
+    ───────────────
+    c2cce09 - Added final deployment documentation
+    b950985 - Enhanced operations workflow (main changes)
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ ⚠️ IMPORTANT NOTES                                                        ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    • Keep server terminal window OPEN while testing
+    • Use Ctrl+Shift+R in browser for hard refresh
+    • Server must be running for localhost to work
+    • Port changed from 4173 to 5173 (update bookmarks!)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+    🎉 SYSTEM READY FOR TESTING
+═══════════════════════════════════════════════════════════════════════════════
+
+    Version: 1.3.0
+    Date: June 9, 2026 (Tuesday)
+    Status: ✅ ALL UPDATES SAVED & READY
+
+    Next Steps:
+    1. Start server (double-click 🚀_START_SERVER_NOW.bat)
+    2. Open browser (http://localhost:5173/)
+    3. Login and test new features
+    4. Verify payment buttons are clear
+    5. Test verification form availability
+
+═══════════════════════════════════════════════════════════════════════════════
