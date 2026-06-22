@@ -634,9 +634,10 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
   const handlePortChargesPaid = () => {
     if (!selectedFile || !user) return;
 
+    // Mark port charges as paid - keep current status, set payment confirmation flag
     updateFileStatus(
       selectedFile.id,
-      'PORT_CHARGES_PAID',
+      selectedFile.status, // Keep current status
       user.id,
       {
         portChargesPaidAt: new Date(),
@@ -653,16 +654,17 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
       link: '/operations',
     });
 
-    toast.success('Port charges payment confirmed - Click OPERATIONS DONE button to proceed');
+    toast.success('Port charges payment confirmed ✓ - OPERATIONS DONE button is now available (GREEN)');
     setSelectedFile(null);
   };
 
   const handleSwissportChargesPaid = () => {
     if (!selectedFile || !user) return;
 
+    // Mark swissport charges as paid - keep current status, set payment confirmation flag
     updateFileStatus(
       selectedFile.id,
-      'SWISSPORT_CHARGES_PAID',
+      selectedFile.status, // Keep current status
       user.id,
       {
         swissportChargesPaidAt: new Date(),
@@ -679,7 +681,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
       link: '/operations',
     });
 
-    toast.success('Swissport charges payment confirmed - Click OPERATIONS DONE button to proceed');
+    toast.success('Swissport charges payment confirmed ✓ - OPERATIONS DONE button is now available (GREEN)');
     setSelectedFile(null);
   };
 
@@ -710,13 +712,13 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
       return;
     }
 
-    // Validate that appropriate charges are paid based on transport mode
-    if (selectedFile.transportMode === 'SEA' && selectedFile.status !== 'PORT_CHARGES_PAID') {
+    // Validate that appropriate charges are paid based on transport mode (check payment flags, not status)
+    if (selectedFile.transportMode === 'SEA' && !selectedFile.portChargesPaidAt) {
       toast.error('Port charges must be paid before marking operations as done');
       return;
     }
 
-    if (selectedFile.transportMode === 'AIR' && selectedFile.status !== 'SWISSPORT_CHARGES_PAID') {
+    if (selectedFile.transportMode === 'AIR' && !selectedFile.swissportChargesPaidAt) {
       toast.error('Swissport charges must be paid before marking operations as done');
       return;
     }
@@ -741,6 +743,48 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     });
 
     toast.success('Operations complete - Please fill the Cargo Verification Form before delivery');
+    setSelectedFile(null);
+  };
+
+  const handleMoveToDelivery = () => {
+    if (!selectedFile || !user) return;
+
+    // Validate that verification form is completed
+    if (!selectedFile.cargoVerificationForm) {
+      toast.error('Cargo verification form must be completed before moving to delivery');
+      return;
+    }
+
+    // Move file to DRIVER_REQUESTED status for delivery clerk assignment
+    updateFileStatus(
+      selectedFile.id,
+      'DRIVER_REQUESTED',
+      user.id,
+      {
+        operationsFinalizedAt: new Date(),
+      } as Partial<ShipmentFile>
+    );
+
+    // Notify delivery clerk and transport manager
+    addNotification({
+      userId: '6', // Delivery Clerk
+      title: 'File Ready for Driver Assignment',
+      message: `File ${selectedFile.fileNumber} verification complete - Ready for driver assignment`,
+      type: 'success',
+      fileId: selectedFile.id,
+      link: '/delivery',
+    });
+
+    addNotification({
+      userId: '7', // Transport Manager
+      title: 'File Ready for Driver Assignment',
+      message: `File ${selectedFile.fileNumber} verification complete - Ready for driver assignment`,
+      type: 'info',
+      fileId: selectedFile.id,
+      link: '/delivery',
+    });
+
+    toast.success('Operations complete - File moved to delivery for driver assignment');
     setSelectedFile(null);
   };
 
@@ -1274,9 +1318,11 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                               {/* OPERATIONS DONE Button - After payment confirmation (both SEA and AIR) - Only for assigned user */}
                               {user?.role === 'operation_clerk' && 
                                file.assignedOperationClerkId === user?.id &&
-                               ((file.transportMode === 'SEA' && file.status === 'PORT_CHARGES_PAID') ||
-                                (file.transportMode === 'AIR' && file.status === 'SWISSPORT_CHARGES_PAID')) &&
-                               file.releaseOrderUrl && (
+                               ((file.transportMode === 'SEA' && file.portChargesPaidAt) ||
+                                (file.transportMode === 'AIR' && file.swissportChargesPaidAt)) &&
+                               file.releaseOrderUrl && 
+                               file.status !== 'VERIFICATION_FORM_PENDING' &&
+                               file.status !== 'VERIFICATION_FORM_COMPLETED' && (
                                 <Button 
                                   size="sm" 
                                   onClick={() => { setSelectedFile(file); handleOperationsDone(); }}
@@ -1331,6 +1377,22 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                 >
                                   <Printer className="w-3 h-3 mr-1" />
                                   View/Print Form
+                                </Button>
+                              )}
+
+                              {/* OPERATIONS DONE - Move to Delivery (After Verification Form Completed) */}
+                              {user?.role === 'operation_clerk' && 
+                               file.assignedOperationClerkId === user?.id &&
+                               file.status === 'VERIFICATION_FORM_COMPLETED' &&
+                               file.cargoVerificationForm && (
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => { setSelectedFile(file); handleMoveToDelivery(); }}
+                                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                                  title="Move file to delivery for driver assignment"
+                                >
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  OPERATIONS DONE
                                 </Button>
                               )}
                               
