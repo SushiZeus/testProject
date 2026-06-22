@@ -765,26 +765,27 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
       } as Partial<ShipmentFile>
     );
 
-    // Notify delivery clerk and transport manager
+    // Notify delivery clerk
     addNotification({
-      userId: '6', // Delivery Clerk
-      title: 'File Ready for Driver Assignment',
-      message: `File ${selectedFile.fileNumber} verification complete - Ready for driver assignment`,
+      userId: '7', // Delivery Clerk (User ID based on credentials)
+      title: 'File Ready for Driver Request',
+      message: `File ${selectedFile.fileNumber} is ready for delivery. Please request an appropriate truck and driver.`,
       type: 'success',
       fileId: selectedFile.id,
       link: '/delivery',
     });
 
+    // Also notify transport manager
     addNotification({
-      userId: '7', // Transport Manager
-      title: 'File Ready for Driver Assignment',
-      message: `File ${selectedFile.fileNumber} verification complete - Ready for driver assignment`,
+      userId: '8', // Transport Manager
+      title: 'File Ready for Delivery',
+      message: `File ${selectedFile.fileNumber} verification complete and ready for transport.`,
       type: 'info',
       fileId: selectedFile.id,
-      link: '/delivery',
+      link: '/drivers',
     });
 
-    toast.success('Operations complete - File moved to delivery for driver assignment');
+    toast.success('File moved to delivery - Delivery Clerk can now request drivers');
     setSelectedFile(null);
   };
 

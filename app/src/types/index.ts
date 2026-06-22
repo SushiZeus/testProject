@@ -278,6 +278,10 @@ export interface ShipmentFile {
 
   // Delivery fields
   assignedDeliveryClerkId?: string;
+  requestedTruckSize?: TruckSize; // SMALL or BIG truck size requested by delivery clerk
+  requestedTruckSizeAt?: Date;
+  requestedTruckSizeBy?: string;
+  truckSizeForApproval?: boolean; // Flag to indicate truck size is pending approval
   assignedDriverId?: string;
   assignedDriver?: User;
   driverAcceptedAt?: Date;
@@ -408,6 +412,9 @@ export interface Permit {
   updatedAt: Date;
 }
 
+// Truck Size Type
+export type TruckSize = 'SMALL' | 'BIG';
+
 // Driver Assignment Interface
 export interface DriverAssignment {
   id: string;
@@ -417,6 +424,10 @@ export interface DriverAssignment {
   driver?: User;
   requestedBy: string;
   requester?: User;
+  requestedByRole?: UserRole; // Role of who requested (delivery_clerk)
+  truckSize?: TruckSize; // SMALL or BIG truck
+  approvedBy?: string; // HR Manager (small) or Transport Manager (big)
+  approvedByUser?: User;
   assignedBy?: string;
   assignedByUser?: User;
   status: DriverJobStatus;

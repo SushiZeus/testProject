@@ -6,6 +6,7 @@ import { DashboardPage } from '@/pages/DashboardPage';
 import { FileOpeningPage } from '@/pages/FileOpeningPage';
 import { DeclarationPage } from '@/pages/DeclarationPage';
 import { OperationsPage } from '@/pages/OperationsPage';
+import { DeliveryPage } from '@/pages/DeliveryPage';
 import { ShippingLinePage } from '@/pages/ShippingLinePage';
 import { PettyCashPage } from '@/pages/PettyCashPage';
 import { DriverManagementPage } from '@/pages/DriverManagementPage';
@@ -45,6 +46,7 @@ export type AppRoute =
   | 'files/:id'
   | 'declaration'
   | 'operations'
+  | 'delivery'
   | 'shipping-line'
   | 'petty-cash'
   | 'petty-cash/history'
@@ -127,6 +129,8 @@ function App() {
         return <DeclarationPage navigate={navigate} />;
       case 'operations':
         return <OperationsPage navigate={navigate} />;
+      case 'delivery':
+        return <DeliveryPage navigate={navigate} />;
       case 'shipping-line':
         return <ShippingLinePage navigate={navigate} />;
       case 'petty-cash':
