@@ -276,18 +276,17 @@ export const useLeaveStore = (): LeaveState => {
           r.startDate.getFullYear() === currentYear
       );
 
-      // Calculate total annual leave taken (only ANNUAL leave type is limited)
-      const annualLeaveTaken = approvedRequests
-        .filter((r) => r.leaveType === 'ANNUAL')
-        .reduce((sum, r) => sum + r.numberOfDays, 0);
+      // Calculate total leave taken from annual leave balance
+      // ALL LEAVE TYPES deduct from annual leave days (regardless of type)
+      const totalLeaveTaken = approvedRequests.reduce((sum, r) => sum + r.numberOfDays, 0);
 
-      // Standard allocation - only annual leave has a limit
+      // Standard annual leave allocation per year
       const annualLeaveAllocation = 28;
 
       return {
-        annualLeaveBalance: Math.max(0, annualLeaveAllocation - annualLeaveTaken),
-        sickLeaveBalance: 0, // No limit on sick leave
-        totalLeaveTaken: approvedRequests.reduce((sum, r) => sum + r.numberOfDays, 0),
+        annualLeaveBalance: Math.max(0, annualLeaveAllocation - totalLeaveTaken),
+        sickLeaveBalance: 0, // Not tracked separately - deducts from annual
+        totalLeaveTaken: totalLeaveTaken,
       };
     },
   };
