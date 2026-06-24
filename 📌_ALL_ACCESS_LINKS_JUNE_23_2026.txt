@@ -1,0 +1,472 @@
+═══════════════════════════════════════════════════════════════════════════════
+   📌 COMPLETE ACCESS LINKS & CREDENTIALS - JUNE 23, 2026
+═══════════════════════════════════════════════════════════════════════════════
+
+System Version: 1.3.2
+Last Updated: June 23, 2026
+Status: ✅ PRODUCTION READY
+
+═══════════════════════════════════════════════════════════════════════════════
+🌐 SYSTEM ACCESS URLS
+═══════════════════════════════════════════════════════════════════════════════
+
+PRIMARY ACCESS (Network - Recommended):
+────────────────────────────────────────
+http://192.168.0.114:5173/
+
+Use this link to access from:
+  ✓ Any computer on the same network
+  ✓ Mobile devices (phones/tablets)
+  ✓ Multiple users simultaneously
+  ✓ Different locations in the office
+
+LOCAL ACCESS (This Computer Only):
+──────────────────────────────────
+http://localhost:5173/
+
+Use this link for:
+  ✓ Testing on the server computer
+  ✓ When network is unavailable
+  ✓ Single user development
+
+DEVELOPMENT SERVER PORT:
+───────────────────────
+Port: 5173
+Protocol: HTTP
+
+═══════════════════════════════════════════════════════════════════════════════
+🔗 DIRECT MODULE LINKS
+═══════════════════════════════════════════════════════════════════════════════
+
+MAIN MODULES:
+────────────
+Dashboard:          http://192.168.0.114:5173/
+File Opening:       http://192.168.0.114:5173/ (Navigate to Files > Open New File)
+Declaration:        http://192.168.0.114:5173/ (Click Declaration from sidebar)
+Operations:         http://192.168.0.114:5173/ (Click Operations from sidebar)
+Delivery:           http://192.168.0.114:5173/ (Click Driver Management from sidebar)
+Shipping Line:      http://192.168.0.114:5173/ (Click Shipping Line from sidebar)
+
+FINANCE MODULES:
+───────────────
+Petty Cash:         http://192.168.0.114:5173/ (Click Petty Cash from sidebar)
+Petty Cash History: http://192.168.0.114:5173/ (Navigate from Petty Cash page)
+
+HR MODULES:
+──────────
+Leave Management:   http://192.168.0.114:5173/ (Click Leave Management from sidebar)
+User Management:    http://192.168.0.114:5173/ (Click User Management from sidebar)
+Payroll:           http://192.168.0.114:5173/ (Click Payroll from sidebar)
+
+TRANSPORT MODULES:
+─────────────────
+Driver Management:  http://192.168.0.114:5173/ (HR Manager - small trucks)
+Drivers:           http://192.168.0.114:5173/ (Transport Manager - big trucks)
+
+OTHER:
+─────
+Documents:         http://192.168.0.114:5173/ (Click Documents from sidebar)
+Reports:           http://192.168.0.114:5173/ (Click Reports from sidebar)
+
+═══════════════════════════════════════════════════════════════════════════════
+👥 USER ACCOUNTS (28 TOTAL)
+═══════════════════════════════════════════════════════════════════════════════
+
+📋 DOCUMENTATION DEPARTMENT (1 user)
+────────────────────────────────────
+Documentation Officer
+  Email:    documentation_officer@company.com
+  Password: documentation_officer123
+  Access:   File Opening, Dashboard, Documents
+
+📝 DECLARATION DEPARTMENT (4 users)
+───────────────────────────────────
+Declaration Manager
+  Email:    declaration_manager@company.com
+  Password: declaration_manager123
+  Access:   Declaration Module (Full), All department files
+
+Declarant 1
+  Email:    declarant@company.com
+  Password: declarant123
+  Access:   Declaration Module, Assigned files only
+
+Declarant 2
+  Email:    declarant2@company.com
+  Password: declarant123
+  Access:   Declaration Module, Assigned files only
+
+Declarant 3
+  Email:    declarant3@company.com
+  Password: declarant123
+  Access:   Declaration Module, Assigned files only
+
+📦 OPERATIONS DEPARTMENT (7 users)
+──────────────────────────────────
+Operations Manager
+  Email:    operations_manager@company.com
+  Password: operations_manager123
+  Access:   Operations Module (Full), All operations files
+
+Operation Clerk 1
+  Email:    operation_clerk@company.com
+  Password: operation_clerk123
+  Access:   Operations Module, Assigned files only
+
+Operation Clerk 2
+  Email:    operation_clerk2@company.com
+  Password: operation_clerk123
+  Access:   Operations Module, Assigned files only
+
+Operation Clerk 3
+  Email:    operation_clerk3@company.com
+  Password: operation_clerk123
+  Access:   Operations Module, Assigned files only
+
+Permits Clerk
+  Email:    permits_clerk@company.com
+  Password: permits_clerk123
+  Access:   Operations Module (Permits section)
+
+Shipping Line Clerk
+  Email:    shipping_line_clerk@company.com
+  Password: shipping_line_clerk123
+  Access:   Shipping Line Module
+
+Delivery Clerk
+  Email:    delivery_clerk@company.com
+  Password: delivery_clerk123
+  Access:   Delivery Module (REQUEST DRIVER function)
+
+💰 FINANCE DEPARTMENT (2 users)
+───────────────────────────────
+Finance Manager
+  Email:    finance_manager@company.com
+  Password: finance_manager123
+  Access:   Petty Cash, Payment Approvals, Finance Reports
+
+Cashier
+  Email:    cashier@company.com
+  Password: cashier123
+  Access:   Petty Cash Payments, Payment Processing
+
+👥 HR DEPARTMENT (1 user)
+─────────────────────────
+HR Manager
+  Email:    hr_manager@company.com
+  Password: hr_manager123
+  Access:   Leave Management, User Management, Payroll, 
+            Driver Assignment (SMALL TRUCKS)
+
+🚚 TRANSPORT DEPARTMENT (7 users)
+─────────────────────────────────
+Transport Manager
+  Email:    transport_manager@company.com
+  Password: transport_manager123
+  Access:   Driver Management, Driver Assignment (BIG TRUCKS)
+
+Driver 1
+  Email:    driver@company.com
+  Password: driver123
+  Access:   Driver Module, Job Assignments
+
+Driver 2
+  Email:    driver2@company.com
+  Password: driver123
+  Access:   Driver Module, Job Assignments
+
+Driver 3
+  Email:    driver3@company.com
+  Password: driver123
+  Access:   Driver Module, Job Assignments
+
+Driver 4
+  Email:    driver4@company.com
+  Password: driver123
+  Access:   Driver Module, Job Assignments
+
+Driver 5
+  Email:    driver5@company.com
+  Password: driver123
+  Access:   Driver Module, Job Assignments
+
+Driver 6
+  Email:    driver6@company.com
+  Password: driver123
+  Access:   Driver Module, Job Assignments
+
+🏢 MANAGEMENT (3 users)
+──────────────────────
+Commercial Manager
+  Email:    commercial_manager@company.com
+  Password: commercial_manager123
+  Access:   Quotations, Commercial Reports, Executive Dashboard
+
+COO (Chief Operating Officer)
+  Email:    coo@company.com
+  Password: coo123
+  Access:   Full System View, Approvals, Executive Reports
+
+Managing Director
+  Email:    managing_director@company.com
+  Password: managing_director123
+  Access:   Complete System Access, All Reports
+
+👤 CLIENT SERVICES (1 user)
+───────────────────────────
+Contact Person
+  Email:    contact_person@company.com
+  Password: contact_person123
+  Access:   Client Portal, File Status Tracking
+
+🔧 SYSTEM ADMINISTRATION (1 user)
+─────────────────────────────────
+Administrator
+  Email:    administrator@company.com
+  Password: administrator123
+  Access:   FULL SYSTEM CONTROL, All Modules, User Management
+
+═══════════════════════════════════════════════════════════════════════════════
+🔐 PASSWORD PATTERN
+═══════════════════════════════════════════════════════════════════════════════
+
+All passwords follow this simple pattern:
+{role_name}123
+
+Examples:
+  declarant → declarant123
+  finance_manager → finance_manager123
+  driver → driver123
+  administrator → administrator123
+
+This makes testing easy but should be changed for production use!
+
+═══════════════════════════════════════════════════════════════════════════════
+🚀 SERVER START COMMANDS
+═══════════════════════════════════════════════════════════════════════════════
+
+METHOD 1: Batch File (Easiest)
+──────────────────────────────
+Location: C:\Users\user\Desktop\testproject\
+File: START_PRODUCTION_NOW.bat
+Action: Double-click to start server
+
+METHOD 2: Command Prompt
+────────────────────────
+1. Open CMD (not PowerShell!)
+2. cd C:\Users\user\Desktop\testproject\app
+3. npm run dev -- --host
+4. Wait for "Local: http://localhost:5173/"
+5. Access: http://192.168.0.114:5173/
+
+METHOD 3: Alternative Batch Files
+─────────────────────────────────
+🚀_START_SERVER_NOW.bat
+🚀_DOUBLE_CLICK_TO_START.bat
+START_PRODUCTION_NOW.bat
+
+All located in: C:\Users\user\Desktop\testproject\
+
+═══════════════════════════════════════════════════════════════════════════════
+📱 MOBILE ACCESS
+═══════════════════════════════════════════════════════════════════════════════
+
+To access from mobile devices (same WiFi network):
+
+1. Make sure your phone/tablet is on the same WiFi
+2. Open mobile browser (Chrome, Safari, etc.)
+3. Type: http://192.168.0.114:5173/
+4. Login with any user account above
+5. System is mobile-responsive!
+
+═══════════════════════════════════════════════════════════════════════════════
+🔄 LATEST FEATURES (June 23, 2026)
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ Payment Confirmation System
+   - Tax payment confirmation (Declaration)
+   - Wharfage payment confirmation (SEA only)
+   - Port charges confirmation (SEA operations)
+   - Swissport charges confirmation (AIR operations)
+   - Status preserved, flags set for workflow control
+
+✅ Complete Delivery Workflow
+   - Delivery Clerk module with file dashboard
+   - REQUEST DRIVER button (purple)
+   - Truck size selection (Small 🚙 / Big 🚛)
+   - Smart routing to managers
+   - Small trucks → HR Manager assigns
+   - Big trucks → Transport Manager assigns
+
+✅ Operations Done After Verification
+   - Button appears after verification form completed
+   - Routes file to Delivery Clerk automatically
+   - Notifications sent to all stakeholders
+
+✅ Notification System
+   - Real-time alerts for all users
+   - Role-based notifications
+   - Clear action items
+
+═══════════════════════════════════════════════════════════════════════════════
+🎯 QUICK TEST WORKFLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+COMPLETE END-TO-END TEST:
+
+1. LOGIN AS: documentation_officer@company.com / documentation_officer123
+   → Open new file with client details
+
+2. LOGIN AS: declaration_manager@company.com / declaration_manager123
+   → Assign file to declarant
+
+3. LOGIN AS: declarant@company.com / declarant123
+   → Acknowledge file
+   → Upload tax documents
+   → Click TAX PAID (blue button) ✓
+   → [SEA] Upload wharfage, click WHARFAGE PAID ✓
+   → Click DECLARATION DONE (green button)
+
+4. LOGIN AS: operations_manager@company.com / operations_manager123
+   → Assign file to operation clerk
+
+5. LOGIN AS: operation_clerk@company.com / operation_clerk123
+   → Upload release order
+   → Upload port charges (SEA) or swissport (AIR)
+
+6. LOGIN AS: finance_manager@company.com / finance_manager123
+   → Click PORT CHARGES PAID or SWISSPORT PAID (blue button) ✓
+
+7. LOGIN AS: operation_clerk@company.com / operation_clerk123
+   → Click OPERATIONS DONE (green button)
+   → Fill cargo verification form
+   → Click OPERATIONS DONE (blue button)
+
+8. LOGIN AS: delivery_clerk@company.com / delivery_clerk123
+   → See file in Delivery Module
+   → Click REQUEST DRIVER (purple button)
+   → Select truck size (Small or Big)
+
+9. LOGIN AS: hr_manager@company.com (for small truck)
+   OR: transport_manager@company.com (for big truck)
+   → Receive notification
+   → Assign driver to file
+
+10. LOGIN AS: driver@company.com / driver123
+    → Receive assignment notification
+    → Accept job
+    → Update status: Collecting → Collected → Delivered
+
+═══════════════════════════════════════════════════════════════════════════════
+📂 GITHUB REPOSITORY
+═══════════════════════════════════════════════════════════════════════════════
+
+Repository: https://github.com/SushiZeus/testProject
+Branch: main
+Latest Commit: e58b949
+Status: ✅ All changes pushed
+
+To clone or pull latest changes:
+git clone https://github.com/SushiZeus/testProject.git
+git pull origin main
+
+═══════════════════════════════════════════════════════════════════════════════
+📚 DOCUMENTATION FILES
+═══════════════════════════════════════════════════════════════════════════════
+
+All documentation in project root folder:
+
+MAIN GUIDES:
+  📌 📌_ALL_ACCESS_LINKS_JUNE_23_2026.txt (THIS FILE)
+  🎊 🎊_READY_FOR_PRODUCTION_JUNE_23_2026.txt
+  🚀 🚀_PRODUCTION_DEPLOYMENT_JUNE_23_2026.txt
+  🚚 🚚_DELIVERY_MODULE_QUICK_GUIDE_JUNE_23_2026.txt
+  🎉 🎉_ALL_FIXES_COMPLETE_JUNE_23_2026.txt
+
+TECHNICAL DOCS:
+  📄 PAYMENT_CONFIRMATION_FIXES_JUNE_23_2026.md
+  📄 DELIVERY_TRUCK_WORKFLOW_JUNE_23_2026.md
+  📄 ALL_USER_CREDENTIALS_APRIL_1_2026.md
+
+═══════════════════════════════════════════════════════════════════════════════
+🛠️ TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════════════════
+
+PROBLEM: Server won't start
+SOLUTION:
+  → Use Command Prompt (CMD), not PowerShell
+  → Check if port 5173 is already in use
+  → Close other instances first
+  → Try: netstat -ano | findstr :5173
+
+PROBLEM: Changes not visible
+SOLUTION:
+  → Hard refresh: Ctrl + Shift + R
+  → Clear cache: Ctrl + Shift + Delete
+  → Close and restart browser
+  → Make sure server was restarted after code changes
+
+PROBLEM: Can't access from network
+SOLUTION:
+  → Verify server started with --host flag
+  → Check firewall settings
+  → Confirm IP address: 192.168.0.114
+  → Make sure devices are on same network
+
+PROBLEM: Button not showing
+SOLUTION:
+  → Verify logged in with correct role
+  → Check file status is correct
+  → Ensure previous workflow steps completed
+  → Refresh page
+
+PROBLEM: Notification not received
+SOLUTION:
+  → Click notification bell icon (top right)
+  → Refresh the page
+  → Check user ID matches expected recipient
+  → Verify notification store is working
+
+═══════════════════════════════════════════════════════════════════════════════
+⚡ QUICK REFERENCE
+═══════════════════════════════════════════════════════════════════════════════
+
+SERVER STATUS CHECK:
+  → Look for terminal window showing "VITE ... ready"
+  → Access: http://localhost:5173/ should load
+  → Network access should show connected devices
+
+RESTART SERVER:
+  → Press Ctrl+C in server window
+  → Run: npm run dev -- --host
+  → Or double-click: START_PRODUCTION_NOW.bat
+
+QUICK LOGIN TEST:
+  → URL: http://192.168.0.114:5173/
+  → Email: administrator@company.com
+  → Password: administrator123
+  → Access: Full system control
+
+═══════════════════════════════════════════════════════════════════════════════
+📊 SYSTEM STATISTICS
+═══════════════════════════════════════════════════════════════════════════════
+
+Total Users: 28 accounts
+Departments: 8 (Documentation, Declaration, Operations, Delivery, 
+             Finance, HR, Transport, Management)
+Modules: 15+ functional modules
+Workflows: 3 complete (Clearance, Delivery, Finance)
+Status States: 30+ tracked statuses
+Roles: 17 different role types
+
+═══════════════════════════════════════════════════════════════════════════════
+✨ SYSTEM READY
+═══════════════════════════════════════════════════════════════════════════════
+
+All systems operational and ready for production use!
+
+Primary Access: http://192.168.0.114:5173/
+Version: 1.3.2
+Date: June 23, 2026
+
+═══════════════════════════════════════════════════════════════════════════════
