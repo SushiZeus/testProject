@@ -347,11 +347,23 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
   const handleTaxPaid = () => {
     if (!selectedFile || !user) return;
 
-    // Mark tax as paid - status stays in WAITING_FOR_TAX_PAYMENT but with confirmation flag set
-    // The Declaration Done button checks the confirmation flags, not just the status
+    // Determine new status based on transport mode
+    let newStatus = selectedFile.status;
+    let successMessage = '';
+    
+    if (selectedFile.transportMode === 'SEA') {
+      // SEA: Move to waiting for wharfage
+      newStatus = 'WAITING_FOR_WHARFAGE_PAYMENT';
+      successMessage = 'Tax payment confirmed ✓ - Now upload and confirm wharfage payment';
+    } else {
+      // AIR/ROAD/RAIL: Tax is only payment, mark as paid
+      newStatus = 'TAXES_PAID';
+      successMessage = 'Tax payment confirmed ✓ - Click DECLARATION DONE to proceed';
+    }
+
     updateFileStatus(
       selectedFile.id,
-      selectedFile.status, // Keep current status
+      newStatus, // UPDATE STATUS
       user.id,
       {
         taxPaymentConfirmed: true,
@@ -359,21 +371,17 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
       }
     );
 
-    if (selectedFile.transportMode === 'SEA') {
-      toast.success('Tax payment confirmed ✓ - Upload and confirm wharfage payment to enable Declaration Done');
-    } else {
-      toast.success('Tax payment confirmed ✓ - Declaration Done button is now available (GREEN)');
-    }
+    toast.success(successMessage);
     setSelectedFile(null);
   };
 
   const handleWharfagePaid = () => {
     if (!selectedFile || !user) return;
 
-    // Mark wharfage as paid - status stays in WAITING_FOR_WHARFAGE_PAYMENT but with confirmation flag set
+    // Mark wharfage as paid - both tax and wharfage confirmed, mark as TAXES_PAID
     updateFileStatus(
       selectedFile.id,
-      selectedFile.status, // Keep current status
+      'TAXES_PAID', // UPDATE STATUS - Both payments confirmed
       user.id,
       {
         wharfagePaymentConfirmed: true,
@@ -381,7 +389,7 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
       }
     );
 
-    toast.success('Wharfage payment confirmed ✓ - Declaration Done button is now available (GREEN)');
+    toast.success('Wharfage payment confirmed ✓ - Click DECLARATION DONE to proceed');
     setSelectedFile(null);
   };
 

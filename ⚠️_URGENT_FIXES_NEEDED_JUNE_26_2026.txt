@@ -1,0 +1,229 @@
+═══════════════════════════════════════════════════════════════════════════════
+   ⚠️ URGENT FIXES NEEDED - JUNE 26, 2026
+   Critical Status and Workflow Issues Identified
+═══════════════════════════════════════════════════════════════════════════════
+
+Based on screenshots provided, the following critical issues need immediate fixes:
+
+═══════════════════════════════════════════════════════════════════════════════
+🚨 CRITICAL ISSUES (Must Fix Immediately)
+═══════════════════════════════════════════════════════════════════════════════
+
+ISSUE 1: Status Not Updating After TAX PAID ❌
+───────────────────────────────────────────────
+Photo shows: "WAITING FOR TAX PAYMENT" even though "✓ Tax Paid" button visible
+Problem: handleTaxPaid() sets flag but doesn't update file status
+Fix Required: Update status to 'TAXES_PAID' (or 'WAITING_FOR_WHARFAGE_PAYMENT' for SEA)
+
+ISSUE 2: Status Stuck on "WAITING FINAL ASSESSMENT" ❌
+───────────────────────────────────────────────────────
+Photo shows: File stuck on assessment status after documents uploaded
+Problem: Status not progressing through declaration workflow
+Fix Required: Proper status transitions after each step
+
+ISSUE 3: Missing DO Review in Operations ❌
+──────────────────────────────────────────
+Required: Operations clerk needs "REVIEW DO" button
+Purpose: Review DO details before allowing Port Charges upload
+Fix Required: Add DO review dialog + approval button
+
+ISSUE 4: Operations Done Available Too Early ❌
+──────────────────────────────────────────────
+Problem: Can click Operations Done before all requirements met
+Required: Must validate:
+  • Port charges uploaded AND paid
+  • Verification form completed
+Fix Required: Add proper validation checks
+
+ISSUE 5: Missing DO Charges Payment System ❌
+────────────────────────────────────────────
+Required: Upload DO charges invoice + DO CHARGES PAID button
+Purpose: Track DO charges separate from DO document
+Fix Required: Add DO charges upload dialog + payment confirmation
+
+═══════════════════════════════════════════════════════════════════════════════
+📋 COMPLETE FIX LIST
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Declaration Status Updates
+   ✓ Fix handleTaxPaid() to update status
+   ✓ Fix handleWharfagePaid() to update status  
+   ✓ Ensure DECLARATION DONE only available when payments confirmed
+
+2. Operations DO Review
+   ✓ Add "REVIEW DO" button when DO received
+   ✓ Add DO review dialog showing details
+   ✓ Add "Approve DO" functionality
+   ✓ Update Port Charges to require DO approval
+
+3. Operations Done Validation
+   ✓ Check release order uploaded
+   ✓ Check port charges/swissport uploaded
+   ✓ Check port charges/swissport PAID
+   ✓ Check verification form completed
+
+4. DO Charges System
+   ✓ Add DO charges invoice upload
+   ✓ Add "DO CHARGES PAID" button (Finance)
+   ✓ Add status badge for DO charges
+   ✓ Track DO charges separately from DO payment
+
+5. BL Number Auto-Display
+   ✓ Show BL numbers from Documentation Officer
+   ✓ Display in Shipping Line module
+   ✓ Show if HBL (can add MBL) or MBL (complete)
+
+═══════════════════════════════════════════════════════════════════════════════
+📝 DETAILED IMPLEMENTATION GUIDE
+═══════════════════════════════════════════════════════════════════════════════
+
+See complete technical documentation:
+  → 🔧_CRITICAL_STATUS_FIXES_JUNE_26_2026.md
+
+This document contains:
+  • Exact code changes needed
+  • Before/after comparisons
+  • All new handlers and functions
+  • Complete validation logic
+  • Types to add to index.ts
+
+═══════════════════════════════════════════════════════════════════════════════
+🎯 IMPLEMENTATION PRIORITY
+═══════════════════════════════════════════════════════════════════════════════
+
+PHASE 1 (IMMEDIATE - Critical):
+  1. Fix Declaration status updates (Tax/Wharfage Paid)
+  2. Fix Operations Done validation
+  3. Add DO review/approval in Operations
+
+PHASE 2 (HIGH):
+  4. Add DO charges upload and payment
+  5. Add BL number auto-display
+
+PHASE 3 (ENHANCEMENT):
+  6. UI polish and additional feedback
+  7. Enhanced error messages
+  8. Better status badge colors
+
+═══════════════════════════════════════════════════════════════════════════════
+⚙️ FILES TO MODIFY
+═══════════════════════════════════════════════════════════════════════════════
+
+1. app/src/types/index.ts
+   Add: doReviewedByOperations, doChargesInvoiceUrl, doChargesPaid, etc.
+
+2. app/src/pages/DeclarationPage.tsx
+   Fix: handleTaxPaid(), handleWharfagePaid() status updates
+
+3. app/src/pages/OperationsPage.tsx
+   Add: DO review dialog, approval handler
+   Fix: Operations Done validation
+
+4. app/src/pages/ShippingLinePage.tsx
+   Add: DO charges upload, BL number display
+
+═══════════════════════════════════════════════════════════════════════════════
+💡 QUICK FIX EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+TAX PAID FIX (DeclarationPage.tsx):
+────────────────────────────────────
+const handleTaxPaid = () => {
+  if (!selectedFile || !user) return;
+  
+  // NEW: Determine new status
+  const newStatus = selectedFile.transportMode === 'SEA'
+    ? 'WAITING_FOR_WHARFAGE_PAYMENT'  // ✅ SEA: Next is wharfage
+    : 'TAXES_PAID';  // ✅ AIR/ROAD: Tax only, mark as paid
+  
+  updateFileStatus(
+    selectedFile.id,
+    newStatus,  // ✅ CHANGE STATUS
+    user.id,
+    {
+      taxPaymentConfirmed: true,
+      taxPaymentConfirmedAt: new Date(),
+    }
+  );
+  
+  toast.success('Tax payment confirmed ✓');
+  setSelectedFile(null);
+};
+
+OPERATIONS DONE FIX (OperationsPage.tsx):
+──────────────────────────────────────────
+const handleOperationsDone = () => {
+  // ... validation checks ...
+  
+  // NEW: Check payment confirmation
+  if (selectedFile.transportMode === 'SEA' && !selectedFile.portChargesPaidAt) {
+    toast.error('Port charges must be PAID before marking operations as done');
+    return;
+  }
+  
+  // NEW: Check verification form
+  if (!selectedFile.cargoVerificationCompletedAt) {
+    toast.error('Cargo verification form must be completed');
+    return;
+  }
+  
+  // All checks passed, proceed...
+};
+
+═══════════════════════════════════════════════════════════════════════════════
+🧪 TESTING CHECKLIST
+═══════════════════════════════════════════════════════════════════════════════
+
+After implementing fixes, test:
+
+Declaration Module:
+  ☐ Upload tax documents
+  ☐ Click TAX PAID → Status changes to TAXES_PAID (AIR) or WAITING_FOR_WHARFAGE (SEA)
+  ☐ [SEA] Upload wharfage, click WHARFAGE PAID → Status changes to TAXES_PAID
+  ☐ Click DECLARATION DONE → Status changes to DECLARATION_DONE
+  ☐ File moves to Operations
+
+Operations Module:
+  ☐ Receive file from Declaration
+  ☐ See DO from Shipping Line
+  ☐ Click REVIEW DO → Dialog opens with details
+  ☐ Approve DO → Port Charges button enables
+  ☐ Upload Port Charges
+  ☐ Finance clicks PORT CHARGES PAID
+  ☐ Fill verification form
+  ☐ Click OPERATIONS DONE → Validates all requirements
+  ☐ File moves to Delivery
+
+Shipping Line Module:
+  ☐ See BL numbers from Documentation Officer
+  ☐ Upload DO charges invoice
+  ☐ Finance clicks DO CHARGES PAID
+  ☐ Status badge updates correctly
+
+═══════════════════════════════════════════════════════════════════════════════
+📞 NEXT STEPS
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Review: 🔧_CRITICAL_STATUS_FIXES_JUNE_26_2026.md
+   (Complete technical implementation guide)
+
+2. Implement Phase 1 fixes (critical status updates)
+
+3. Test each fix thoroughly
+
+4. Implement Phase 2 (DO charges, BL display)
+
+5. Final end-to-end testing
+
+6. Commit changes to Git
+
+═══════════════════════════════════════════════════════════════════════════════
+
+⚠️ These fixes are CRITICAL for proper system operation!
+   Current status display issues will confuse users and break workflow.
+
+See full technical guide: 🔧_CRITICAL_STATUS_FIXES_JUNE_26_2026.md
+
+═══════════════════════════════════════════════════════════════════════════════
+Created: June 26, 2026 | Priority: URGENT | Status: Awaiting Implementation
+═══════════════════════════════════════════════════════════════════════════════

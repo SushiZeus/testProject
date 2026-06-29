@@ -176,6 +176,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
   const [releaseOrderDialogOpen, setReleaseOrderDialogOpen] = useState(false);
   const [portChargesDialogOpen, setPortChargesDialogOpen] = useState(false);
   const [swissportChargesDialogOpen, setSwissportChargesDialogOpen] = useState(false);
+  const [doReviewDialogOpen, setDoReviewDialogOpen] = useState(false); // NEW: DO Review
   const [verificationPhotos, setVerificationPhotos] = useState<File[]>([]);
   const [releaseOrderFile, setReleaseOrderFile] = useState<File | null>(null);
   const [portChargesFile, setPortChargesFile] = useState<File | null>(null);
@@ -703,46 +704,94 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     setSelectedFile(null);
   };
 
+  // NEW: Handle DO Review and Approval by Operations
+  const handleApproveDeliveryOrder = () => {
+    if (!selectedFile || !user) return;
+
+    updateFileStatus(
+      selectedFile.id,
+      selectedFile.status,
+      user.id,
+      {
+        doReviewedByOperations: true,
+        doReviewedByOperationsAt: new Date(),
+        doReviewedByOperationsUser: user.id,
+      }
+    );
+
+    toast.success('Delivery Order approved ✓ - Port Charges button now enabled');
+    setDoReviewDialogOpen(false);
+    setSelectedFile(null);
+  };
+
   const handleOperationsDone = () => {
     if (!selectedFile || !user) return;
 
-    // Validate that release order is uploaded
+    // 1. Validate that release order is uploaded
     if (!selectedFile.releaseOrderUrl) {
       toast.error('Release order must be uploaded before marking operations as done');
       return;
     }
 
-    // Validate that appropriate charges are paid based on transport mode (check payment flags, not status)
+    // 2. Validate that appropriate charges are UPLOADED based on transport mode
+    if (selectedFile.transportMode === 'SEA' && !selectedFile.portChargesUrl) {
+      toast.error('Port charges must be uploaded before marking operations as done');
+      return;
+    }
+
+    if (selectedFile.transportMode === 'AIR' && !selectedFile.swissportChargesUrl) {
+      toast.error('Swissport charges must be uploaded before marking operations as done');
+      return;
+    }
+
+    // 3. Validate that appropriate charges are PAID
     if (selectedFile.transportMode === 'SEA' && !selectedFile.portChargesPaidAt) {
-      toast.error('Port charges must be paid before marking operations as done');
+      toast.error('Port charges must be PAID by Finance before marking operations as done');
       return;
     }
 
     if (selectedFile.transportMode === 'AIR' && !selectedFile.swissportChargesPaidAt) {
-      toast.error('Swissport charges must be paid before marking operations as done');
+      toast.error('Swissport charges must be PAID by Finance before marking operations as done');
       return;
     }
 
+    // 4. Validate that cargo verification form is completed
+    if (!selectedFile.cargoVerificationCompletedAt) {
+      toast.error('Cargo verification form must be completed before marking operations as done');
+      return;
+    }
+
+    // All validations passed - mark operations as done
     updateFileStatus(
       selectedFile.id,
-      'VERIFICATION_FORM_PENDING',
+      'OPERATIONS_DONE',
       user.id,
       {
         operationsDoneAt: new Date(),
       } as Partial<ShipmentFile>
     );
 
-    // Notify operations manager and delivery team
+    // Notify delivery clerk - file ready for driver assignment
+    addNotification({
+      userId: '7', // Delivery Clerk
+      title: 'Operations Complete - Ready for Delivery',
+      message: `File ${selectedFile.fileNumber} operations complete and verified. Please request driver for delivery.`,
+      type: 'success',
+      fileId: selectedFile.id,
+      link: '/delivery',
+    });
+
+    // Notify operations manager
     addNotification({
       userId: '5', // Operations Manager
-      title: 'Operations Complete - Verification Required',
-      message: `Operations for file ${selectedFile.fileNumber} are complete. Cargo verification form must be filled before delivery`,
+      title: 'Operations Complete',
+      message: `File ${selectedFile.fileNumber} operations marked as done and moved to delivery`,
       type: 'success',
       fileId: selectedFile.id,
       link: '/operations',
     });
 
-    toast.success('Operations complete - Please fill the Cargo Verification Form before delivery');
+    toast.success('Operations marked as done ✓ - File moved to delivery');
     setSelectedFile(null);
   };
 
@@ -1240,26 +1289,83 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                     {file.releaseOrderUrl ? '✓ Release Order' : 'Release Order'}
                                   </Button>
 
-                                  {/* Upload Port Charges (SEA only) - Requires release order first */}
+                                  {/* Upload Port Charges (SEA only) - Requires release order AND DO document */}
                                   {file.transportMode === 'SEA' && (
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline"
-                                      onClick={() => { 
-                                        if (!file.releaseOrderUrl) {
-                                          toast.error('Please upload release order first');
-                                          return;
+                                    <>
+                                      {/* Show DO Document if received */}
+                                      {file.deliveryOrderDocumentUrl && (
+                                        <div className="flex items-center gap-2">
+                                          <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                                            DO Received
+                                          </Badge>
+                                          <Button 
+                                            size="sm" 
+                                            variant="ghost"
+                                            onClick={() => {
+                                              if (file.deliveryOrderDocumentUrl) {
+                                                window.open(file.deliveryOrderDocumentUrl, '_blank');
+                                              }
+                                            }}
+                                            title="Download Delivery Order"
+                                          >
+                                            <FileText className="w-3 h-3 mr-1" />
+                                            View DO
+                                          </Button>
+                                          
+                                          {/* NEW: REVIEW DO Button */}
+                                          {!file.doReviewedByOperations && (
+                                            <Button 
+                                              size="sm"
+                                              onClick={() => { setSelectedFile(file); setDoReviewDialogOpen(true); }}
+                                              className="bg-purple-600 hover:bg-purple-700 text-white"
+                                              title="Review and approve DO before Port Charges"
+                                            >
+                                              <CheckCircle className="w-3 h-3 mr-1" />
+                                              REVIEW DO
+                                            </Button>
+                                          )}
+                                          
+                                          {/* Badge showing DO is approved */}
+                                          {file.doReviewedByOperations && (
+                                            <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs">
+                                              ✓ DO Approved
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      )}
+                                      
+                                      <Button 
+                                        size="sm" 
+                                        variant="outline"
+                                        onClick={() => { 
+                                          if (!file.releaseOrderUrl) {
+                                            toast.error('Please upload release order first');
+                                            return;
+                                          }
+                                          if (!file.deliveryOrderDocumentUrl) {
+                                            toast.error('Delivery Order document must be received from Shipping Line before uploading port charges');
+                                            return;
+                                          }
+                                          if (!file.doReviewedByOperations) {
+                                            toast.error('Please review and approve the Delivery Order first');
+                                            return;
+                                          }
+                                          setSelectedFile(file); 
+                                          setPortChargesDialogOpen(true); 
+                                        }}
+                                        className={file.portChargesUrl ? 'bg-green-50 border-green-300' : ''}
+                                        disabled={!file.releaseOrderUrl || !file.deliveryOrderDocumentUrl || !file.doReviewedByOperations}
+                                        title={
+                                          !file.releaseOrderUrl ? 'Upload release order first' : 
+                                          !file.deliveryOrderDocumentUrl ? 'Wait for DO from Shipping Line' :
+                                          !file.doReviewedByOperations ? 'Review and approve DO first' :
+                                          'Upload port charges'
                                         }
-                                        setSelectedFile(file); 
-                                        setPortChargesDialogOpen(true); 
-                                      }}
-                                      className={file.portChargesUrl ? 'bg-green-50 border-green-300' : ''}
-                                      disabled={!file.releaseOrderUrl}
-                                      title={!file.releaseOrderUrl ? 'Upload release order first' : 'Upload port charges'}
-                                    >
-                                      <Upload className="w-3 h-3 mr-1" />
-                                      {file.portChargesUrl ? '✓ Port Charges' : 'Port Charges'}
-                                    </Button>
+                                      >
+                                        <Upload className="w-3 h-3 mr-1" />
+                                        {file.portChargesUrl ? '✓ Port Charges' : 'Port Charges'}
+                                      </Button>
+                                    </>
                                   )}
 
                                   {/* Upload Swissport Charges (AIR only) - Requires release order first */}
@@ -2641,6 +2747,72 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
             <Button onClick={handleSubmitVerificationForm}>
               <CheckCircle className="w-4 h-4 mr-2" />
               Submit Verification Form
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* DO Review Dialog - NEW: Phase 2 Implementation */}
+      <Dialog open={doReviewDialogOpen} onOpenChange={setDoReviewDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Review Delivery Order</DialogTitle>
+            <DialogDescription>
+              Verify DO details before allowing Port Charges upload
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <FileText className="w-6 h-6 text-blue-600 flex-shrink-0" />
+              <p className="text-sm text-blue-700">
+                Review the Delivery Order details received from Shipping Line Clerk
+              </p>
+            </div>
+
+            <Button 
+              variant="outline"
+              onClick={() => {
+                if (selectedFile?.deliveryOrderDocumentUrl) {
+                  window.open(selectedFile.deliveryOrderDocumentUrl, '_blank');
+                }
+              }}
+              className="w-full"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              View DO Document
+            </Button>
+            
+            <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+              <p className="font-semibold text-gray-700 mb-3">Shipping Details:</p>
+              {selectedFile?.containerNumbers && (
+                <p className="text-sm"><strong>Container Numbers:</strong> {selectedFile.containerNumbers}</p>
+              )}
+              {selectedFile?.blNumber && (
+                <p className="text-sm"><strong>BL Number:</strong> {selectedFile.blNumber}</p>
+              )}
+              {selectedFile?.doNumber && (
+                <p className="text-sm"><strong>DO Number:</strong> {selectedFile.doNumber}</p>
+              )}
+              {selectedFile?.hblNumber && (
+                <p className="text-sm"><strong>HBL:</strong> {selectedFile.hblNumber}</p>
+              )}
+              {selectedFile?.mblNumber && (
+                <p className="text-sm"><strong>MBL:</strong> {selectedFile.mblNumber}</p>
+              )}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDoReviewDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleApproveDeliveryOrder}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Approve DO - Enable Port Charges
             </Button>
           </DialogFooter>
         </DialogContent>

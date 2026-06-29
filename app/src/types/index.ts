@@ -248,6 +248,30 @@ export interface ShipmentFile {
   deliveryOrderDocumentUrl?: string;
   deliveryOrderPaymentsDoneAt?: Date;
   deliveryOrderSubmittedAt?: Date; // When shipping line clerk submits DO
+  deliveryOrderPaidAt?: Date; // When finance confirms DO payment
+  deliveryOrderPaidBy?: string; // User ID who confirmed payment
+  
+  // DO Payment Request fields (NEW)
+  doPaymentRequestAmount?: number;
+  doPaymentRequestCurrency?: string;
+  doPaymentRequestDescription?: string;
+  doPaymentRequestInvoiceUrl?: string;
+  doPaymentRequestStatus?: 'PENDING' | 'PAID' | 'REJECTED';
+  doPaymentRequestRequestedAt?: Date;
+  doPaymentRequestPaidAt?: Date;
+  
+  // DO Review by Operations (NEW - Phase 1)
+  doReviewedByOperations?: boolean;
+  doReviewedByOperationsAt?: Date;
+  doReviewedByOperationsUser?: string;
+  
+  // DO Charges (NEW - Phase 2)
+  doChargesInvoiceUrl?: string;
+  doChargesAmount?: number;
+  doChargesCurrency?: string;
+  doChargesPaid?: boolean;
+  doChargesPaidAt?: Date;
+  doChargesPaidBy?: string;
   
   // Shipping documentation fields (SEA only)
   hblNumber?: string; // House Bill of Lading

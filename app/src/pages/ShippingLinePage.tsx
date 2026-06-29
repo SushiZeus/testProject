@@ -48,12 +48,29 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
   const [deliveryOrderDialogOpen, setDeliveryOrderDialogOpen] = useState(false);
   const [shippingDetailsDialogOpen, setShippingDetailsDialogOpen] = useState(false);
   const [pettyCashDialogOpen, setPettyCashDialogOpen] = useState(false);
+  const [doPaymentRequestDialogOpen, setDoPaymentRequestDialogOpen] = useState(false);
   const [selectedFileForCash, setSelectedFileForCash] = useState<string>('none');
+  const [selectedFileForDoPayment, setSelectedFileForDoPayment] = useState<ShipmentFile | null>(null);
   const [pettyCashForm, setPettyCashForm] = useState({
     amount: '',
     currency: 'TZS',
     description: '',
   });
+
+  const [doPaymentForm, setDoPaymentForm] = useState({
+    amount: '',
+    currency: 'TZS',
+    description: '',
+    invoiceFile: null as File | null,
+  });
+
+  // NEW: DO Charges Form (separate from DO payment)
+  const [doChargesForm, setDoChargesForm] = useState({
+    invoiceFile: null as File | null,
+    amount: '',
+    currency: 'TZS',
+  });
+  const [doChargesDialogOpen, setDoChargesDialogOpen] = useState(false);
 
   const [etaEtbForm, setEtaEtbForm] = useState({ eta: '', etb: '' });
   const [deliveryOrderForm, setDeliveryOrderForm] = useState({
@@ -120,39 +137,6 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
     setSelectedFile(null);
   };
 
-  const handleDeliveryOrderInvoiceUpload = () => {
-    if (!selectedFile || !user) return;
-
-    if (!deliveryOrderForm.invoiceFile) {
-      toast.error('Please select an invoice file to upload');
-      return;
-    }
-
-    updateFileStatus(
-      selectedFile.id,
-      'WAITING_FOR_DO_PAYMENT',
-      user.id,
-      {
-        deliveryOrderInvoiceUrl: URL.createObjectURL(deliveryOrderForm.invoiceFile),
-        assignedShippingLineClerkId: user.id,
-      }
-    );
-
-    addNotification({
-      userId: '11',
-      title: 'Delivery Order Payment Required',
-      message: `Delivery order invoice uploaded for file ${selectedFile.fileNumber}`,
-      type: 'info',
-      fileId: selectedFile.id,
-      link: '/shipping-line',
-    });
-
-    toast.success('Delivery order invoice uploaded - Waiting for payment');
-    setDeliveryOrderDialogOpen(false);
-    setDeliveryOrderForm({ invoiceFile: null, documentFile: null });
-    setSelectedFile(null);
-  };
-
   const handleDeliveryOrderSubmit = () => {
     if (!selectedFile || !user) return;
 
@@ -171,16 +155,29 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
       }
     );
 
+    // Notify Operations Manager (ID: 5)
     addNotification({
       userId: '5',
       title: 'Delivery Order Submitted',
-      message: `Delivery order for file ${selectedFile.fileNumber} has been submitted`,
+      message: `Delivery order for file ${selectedFile.fileNumber} has been submitted and is now available in Operations`,
       type: 'success',
       fileId: selectedFile.id,
       link: '/operations',
     });
 
-    toast.success('Delivery order submitted successfully');
+    // Also notify all Operation Clerks (IDs: 6, 13, 14)
+    ['6', '13', '14'].forEach(clerkId => {
+      addNotification({
+        userId: clerkId,
+        title: 'Delivery Order Available',
+        message: `Delivery Order for file ${selectedFile.fileNumber} is now available. You can proceed with Release Order and Port Charges.`,
+        type: 'info',
+        fileId: selectedFile.id,
+        link: '/operations',
+      });
+    });
+
+    toast.success('Delivery order submitted successfully - Now available in Operations');
     setDeliveryOrderDialogOpen(false);
     setDeliveryOrderForm({ invoiceFile: null, documentFile: null });
     setSelectedFile(null);
@@ -248,6 +245,149 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
     setPettyCashDialogOpen(false);
     setPettyCashForm({ amount: '', currency: 'TZS', description: '' });
     setSelectedFileForCash('none');
+  };
+
+  // NEW: Handle DO Payment Request
+  const handleDoPaymentRequest = () => {
+    if (!selectedFileForDoPayment || !user) return;
+
+    const amount = parseFloat(doPaymentForm.amount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    if (!doPaymentForm.description.trim()) {
+      toast.error('Please provide a description');
+      return;
+    }
+
+    if (!doPaymentForm.invoiceFile) {
+      toast.error('Please upload an invoice for the DO payment request');
+      return;
+    }
+
+    // Create DO payment request on the file
+    updateFileStatus(
+      selectedFileForDoPayment.id,
+      selectedFileForDoPayment.status, // Keep current status
+      user.id,
+      {
+        doPaymentRequestAmount: amount,
+        doPaymentRequestCurrency: doPaymentForm.currency,
+        doPaymentRequestDescription: doPaymentForm.description,
+        doPaymentRequestInvoiceUrl: URL.createObjectURL(doPaymentForm.invoiceFile),
+        doPaymentRequestStatus: 'PENDING',
+        doPaymentRequestRequestedAt: new Date(),
+        doPaymentRequestPaidAt: undefined,
+      }
+    );
+
+    // Notify Operations Manager (ID: 5)
+    addNotification({
+      userId: '5',
+      title: 'DO Payment Request',
+      message: `Delivery Order payment request for ${doPaymentForm.currency} ${amount.toLocaleString()} on file ${selectedFileForDoPayment.fileNumber}`,
+      type: 'info',
+      fileId: selectedFileForDoPayment.id,
+      link: '/shipping-line',
+    });
+
+    // Also notify Finance Manager (ID: 11)
+    addNotification({
+      userId: '11',
+      title: 'DO Payment Request - Review Required',
+      message: `Delivery Order payment request for ${doPaymentForm.currency} ${amount.toLocaleString()} on file ${selectedFileForDoPayment.fileNumber}. Click to review and mark as paid.`,
+      type: 'info',
+      fileId: selectedFileForDoPayment.id,
+      link: '/shipping-line',
+    });
+
+    toast.success('DO payment request submitted - Waiting for Finance confirmation');
+    setDoPaymentRequestDialogOpen(false);
+    setDoPaymentForm({ amount: '', currency: 'TZS', description: '', invoiceFile: null });
+    setSelectedFileForDoPayment(null);
+  };
+
+  // NEW: Handle DO Charges Upload
+  const handleDoChargesUpload = () => {
+    if (!selectedFile || !user) return;
+
+    const amount = parseFloat(doChargesForm.amount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    if (!doChargesForm.invoiceFile) {
+      toast.error('Please upload the DO charges invoice');
+      return;
+    }
+
+    updateFileStatus(
+      selectedFile.id,
+      selectedFile.status,
+      user.id,
+      {
+        doChargesInvoiceUrl: URL.createObjectURL(doChargesForm.invoiceFile),
+        doChargesAmount: amount,
+        doChargesCurrency: doChargesForm.currency,
+        doChargesPaid: false,
+      }
+    );
+
+    // Notify Finance Manager (ID: 11)
+    addNotification({
+      userId: '11',
+      title: 'DO Charges Invoice Uploaded',
+      message: `DO charges invoice for ${doChargesForm.currency} ${amount.toLocaleString()} uploaded on file ${selectedFile.fileNumber}. Please confirm payment.`,
+      type: 'info',
+      fileId: selectedFile.id,
+      link: '/shipping-line',
+    });
+
+    // Also notify Cashier (ID: 12)
+    addNotification({
+      userId: '12',
+      title: 'DO Charges Invoice Uploaded',
+      message: `DO charges invoice for ${doChargesForm.currency} ${amount.toLocaleString()} uploaded on file ${selectedFile.fileNumber}. Please confirm payment.`,
+      type: 'info',
+      fileId: selectedFile.id,
+      link: '/shipping-line',
+    });
+
+    toast.success('DO charges invoice uploaded - Waiting for payment confirmation');
+    setDoChargesDialogOpen(false);
+    setDoChargesForm({ invoiceFile: null, amount: '', currency: 'TZS' });
+    setSelectedFile(null);
+  };
+
+  // NEW: Handle DO Charges Payment Confirmation
+  const handleDoChargesPaid = (file: ShipmentFile) => {
+    if (!user) return;
+
+    updateFileStatus(
+      file.id,
+      file.status,
+      user.id,
+      {
+        doChargesPaid: true,
+        doChargesPaidAt: new Date(),
+        doChargesPaidBy: user.id,
+      }
+    );
+
+    // Notify Shipping Line Clerk
+    addNotification({
+      userId: file.assignedShippingLineClerkId || '0',
+      title: 'DO Charges Payment Confirmed',
+      message: `DO charges for file ${file.fileNumber} have been paid`,
+      type: 'success',
+      fileId: file.id,
+      link: '/shipping-line',
+    });
+
+    toast.success('DO charges payment confirmed ✓');
   };
 
   return (
@@ -475,34 +615,204 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
                                 {file.eta ? '✓ ETA/ETB' : 'Set ETA/ETB'}
                               </Button>
 
-                              {/* Upload DO Invoice */}
-                              {file.status === 'PERMITS_DONE' && !file.deliveryOrderInvoiceUrl && (
+                              {/* REQUEST DO PAYMENT Button - NEW */}
+                              {file.status === 'PERMITS_DONE' && !file.doPaymentRequestStatus && (
                                 <Button 
                                   size="sm" 
-                                  onClick={() => { setSelectedFile(file); setDeliveryOrderDialogOpen(true); }}
+                                  onClick={() => { 
+                                    setSelectedFileForDoPayment(file);
+                                    setDoPaymentRequestDialogOpen(true);
+                                  }}
+                                  className="bg-purple-600 hover:bg-purple-700 text-white"
                                 >
                                   <Upload className="w-3 h-3 mr-1" />
-                                  Upload D.O Invoice
+                                  REQUEST DO PAYMENT
                                 </Button>
                               )}
 
-                              {/* Waiting for Payment Badge */}
-                              {file.status === 'WAITING_FOR_DO_PAYMENT' && (
+                              {/* DO Payment Status Badge */}
+                              {file.doPaymentRequestStatus === 'PENDING' && (
                                 <Badge variant="secondary" className="bg-amber-100 text-amber-700 text-xs">
-                                  Waiting Payment
+                                  DO Payment Pending
                                 </Badge>
                               )}
 
-                              {/* Submit Delivery Order */}
-                              {file.status === 'DELIVERY_ORDER_PAYMENTS_DONE' && !file.deliveryOrderSubmittedAt && (
+                              {/* DO PAID Button - Finance Manager Only */}
+                              {(user?.role === 'finance_manager' || user?.role === 'cashier') &&
+                               file.doPaymentRequestStatus === 'PENDING' && (
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => { 
+                                    setSelectedFile(file);
+                                    if (!file || !user) return;
+
+                                    updateFileStatus(
+                                      file.id,
+                                      file.status,
+                                      user.id,
+                                      {
+                                        doPaymentRequestStatus: 'PAID',
+                                        doPaymentRequestPaidAt: new Date(),
+                                        deliveryOrderPaymentsDoneAt: new Date(),
+                                      }
+                                    );
+
+                                    addNotification({
+                                      userId: file.assignedShippingLineClerkId || '0',
+                                      title: 'DO Payment Confirmed',
+                                      message: `Delivery Order payment for ${file.doPaymentRequestCurrency} ${file.doPaymentRequestAmount?.toLocaleString()} on file ${file.fileNumber} confirmed. You can now submit the DO document.`,
+                                      type: 'success',
+                                      fileId: file.id,
+                                      link: '/shipping-line',
+                                    });
+
+                                    toast.success('DO payment confirmed - Shipping clerk can now submit DO');
+                                    setSelectedFile(null);
+                                  }}
+                                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                                  title="Confirm DO payment"
+                                >
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  MARK DO PAID
+                                </Button>
+                              )}
+
+                              {/* SUBMIT DO Button - After payment confirmed */}
+                              {file.doPaymentRequestStatus === 'PAID' && 
+                               file.deliveryOrderPaymentsDoneAt && 
+                               !file.deliveryOrderSubmittedAt && (
                                 <Button 
                                   size="sm" 
                                   onClick={() => { setSelectedFile(file); setDeliveryOrderDialogOpen(true); }}
                                   className="bg-green-600 hover:bg-green-700 text-white"
                                 >
                                   <CheckCircle className="w-3 h-3 mr-1" />
-                                  Submit D.O
+                                  SUBMIT DO
                                 </Button>
+                              )}
+
+                              {/* REQUEST DO PAYMENT Button - NEW */}
+                              {file.status === 'PERMITS_DONE' && !file.doPaymentRequestStatus && (
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => { 
+                                    setSelectedFileForDoPayment(file);
+                                    setDoPaymentRequestDialogOpen(true);
+                                  }}
+                                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                                >
+                                  <Upload className="w-3 h-3 mr-1" />
+                                  REQUEST DO PAYMENT
+                                </Button>
+                              )}
+
+                              {/* DO Payment Status Badge */}
+                              {file.doPaymentRequestStatus === 'PENDING' && (
+                                <Badge variant="secondary" className="bg-amber-100 text-amber-700 text-xs">
+                                  DO Payment Pending
+                                </Badge>
+                              )}
+
+                              {/* DO PAID Button - Finance Manager Only */}
+                              {(user?.role === 'finance_manager' || user?.role === 'cashier') &&
+                               file.doPaymentRequestStatus === 'PENDING' && (
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => { 
+                                    setSelectedFile(file);
+                                    if (!file || !user) return;
+
+                                    updateFileStatus(
+                                      file.id,
+                                      file.status,
+                                      user.id,
+                                      {
+                                        doPaymentRequestStatus: 'PAID',
+                                        doPaymentRequestPaidAt: new Date(),
+                                        deliveryOrderPaymentsDoneAt: new Date(),
+                                      }
+                                    );
+
+                                    addNotification({
+                                      userId: file.assignedShippingLineClerkId || '0',
+                                      title: 'DO Payment Confirmed',
+                                      message: `Delivery Order payment for ${file.doPaymentRequestCurrency} ${file.doPaymentRequestAmount?.toLocaleString()} on file ${file.fileNumber} confirmed. You can now submit the DO document.`,
+                                      type: 'success',
+                                      fileId: file.id,
+                                      link: '/shipping-line',
+                                    });
+
+                                    toast.success('DO payment confirmed - Shipping clerk can now submit DO');
+                                    setSelectedFile(null);
+                                  }}
+                                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                                  title="Confirm DO payment"
+                                >
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  MARK DO PAID
+                                </Button>
+                              )}
+
+                              {/* SUBMIT DO Button - After payment confirmed */}
+                              {file.doPaymentRequestStatus === 'PAID' && 
+                               file.deliveryOrderPaymentsDoneAt && 
+                               !file.deliveryOrderSubmittedAt && (
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => { setSelectedFile(file); setDeliveryOrderDialogOpen(true); }}
+                                  className="bg-green-600 hover:bg-green-700 text-white"
+                                >
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  SUBMIT DO
+                                </Button>
+                              )}
+
+                              {/* DO Submitted Badge */}
+                              {file.deliveryOrderSubmittedAt && !file.doChargesInvoiceUrl && (
+                                <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                                  ✓ DO Submitted
+                                </Badge>
+                              )}
+
+                              {/* Upload DO Charges Button - After DO submitted */}
+                              {file.deliveryOrderSubmittedAt && !file.doChargesInvoiceUrl && (
+                                <Button 
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => { setSelectedFile(file); setDoChargesDialogOpen(true); }}
+                                  className="border-purple-300 text-purple-600 hover:bg-purple-50"
+                                >
+                                  <Upload className="w-3 h-3 mr-1" />
+                                  Upload DO Charges
+                                </Button>
+                              )}
+
+                              {/* DO Charges Pending Payment Badge */}
+                              {file.doChargesInvoiceUrl && !file.doChargesPaid && (
+                                <Badge variant="secondary" className="bg-amber-100 text-amber-700 text-xs">
+                                  DO Charges Pending Payment
+                                </Badge>
+                              )}
+
+                              {/* DO CHARGES PAID Button - Finance Manager/Cashier Only */}
+                              {(user?.role === 'finance_manager' || user?.role === 'cashier') &&
+                               file.doChargesInvoiceUrl && !file.doChargesPaid && (
+                                <Button 
+                                  size="sm"
+                                  onClick={() => handleDoChargesPaid(file)}
+                                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                                  title="Confirm DO charges payment"
+                                >
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  DO CHARGES PAID
+                                </Button>
+                              )}
+
+                              {/* DO Charges Paid Badge */}
+                              {file.doChargesPaid && (
+                                <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                                  ✓ DO Charges Paid
+                                </Badge>
                               )}
 
                               {/* Request Petty Cash for this file */}
@@ -550,6 +860,31 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
                 </p>
               </div>
             </div>
+
+            {/* NEW: BL Number Auto-Display from Documentation Officer */}
+            {selectedFile && (selectedFile.blType || selectedFile.blNumber) && (
+              <div className="p-4 bg-indigo-50 rounded-lg border-2 border-indigo-300">
+                <p className="text-sm font-semibold text-indigo-800 mb-2 flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  📋 Bill of Lading (from Documentation Officer)
+                </p>
+                <div className="space-y-1 text-sm text-indigo-700 ml-6">
+                  {selectedFile.blType && (
+                    <p><strong>Type:</strong> {selectedFile.blType}</p>
+                  )}
+                  {selectedFile.blNumber && (
+                    <p><strong>Number:</strong> {selectedFile.blNumber}</p>
+                  )}
+                </div>
+                <p className="text-xs text-indigo-600 mt-3 ml-6 p-2 bg-indigo-100 rounded">
+                  {selectedFile.blType === 'HBL' 
+                    ? '💡 This is HBL (House Bill of Lading) - You can fill MBL details below if available'
+                    : selectedFile.blType === 'MBL'
+                    ? '✅ MBL (Master Bill of Lading) already filled - No need to enter MBL again'
+                    : 'BL information retrieved from documentation'}
+                </p>
+              </div>
+            )}
 
             {/* Display auto-filled data from Documentation Officer */}
             {selectedFile && (selectedFile.seaFreightType || selectedFile.blType || selectedFile.fcl20ftQuantity || selectedFile.fcl40ftQuantity || selectedFile.cargoDescription) && (
@@ -707,102 +1042,53 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Delivery Order Dialog */}
+      {/* Delivery Order Document Dialog - Only for DO submission after payment confirmed */}
       <Dialog open={deliveryOrderDialogOpen} onOpenChange={setDeliveryOrderDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>
-              {selectedFile?.status === 'PERMITS_DONE' 
-                ? 'Upload Delivery Order Invoice' 
-                : 'Submit Delivery Order'}
-            </DialogTitle>
+            <DialogTitle>Submit Delivery Order Document</DialogTitle>
             <DialogDescription>
-              {selectedFile && `Delivery order workflow for file ${selectedFile.fileNumber}`}
+              {selectedFile && `Upload the Delivery Order document for file ${selectedFile.fileNumber}`}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            {selectedFile?.status === 'PERMITS_DONE' && (
-              <>
-                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <Upload className="w-6 h-6 text-blue-600 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm text-blue-700">
-                      Upload the delivery order invoice. After payment is confirmed, you can submit the delivery order document.
-                    </p>
-                  </div>
-                </div>
+            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+              <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
+              <div>
+                <p className="text-sm text-green-700">
+                  Payment confirmed! Upload the delivery order document to complete the submission.
+                </p>
+              </div>
+            </div>
 
-                <div className="space-y-2">
-                  <Label>Delivery Order Invoice *</Label>
-                  <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center hover:border-blue-400 transition-colors cursor-pointer">
-                    <input
-                      type="file"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          setDeliveryOrderForm({ ...deliveryOrderForm, invoiceFile: e.target.files[0] });
-                        }
-                      }}
-                      className="hidden"
-                      id="do-invoice-upload"
-                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls"
-                    />
-                    <label htmlFor="do-invoice-upload" className="cursor-pointer">
-                      <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
-                      <p className="text-sm text-gray-500">
-                        {deliveryOrderForm.invoiceFile 
-                          ? deliveryOrderForm.invoiceFile.name 
-                          : 'Click to upload invoice'}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Supported: PDF, DOC, Images, Excel
-                      </p>
-                    </label>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {selectedFile?.status === 'DELIVERY_ORDER_PAYMENTS_DONE' && (
-              <>
-                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                  <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm text-green-700">
-                      Payment confirmed! Upload the delivery order document to complete the submission.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Delivery Order Document *</Label>
-                  <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center hover:border-blue-400 transition-colors cursor-pointer">
-                    <input
-                      type="file"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          setDeliveryOrderForm({ ...deliveryOrderForm, documentFile: e.target.files[0] });
-                        }
-                      }}
-                      className="hidden"
-                      id="do-document-upload"
-                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                    />
-                    <label htmlFor="do-document-upload" className="cursor-pointer">
-                      <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
-                      <p className="text-sm text-gray-500">
-                        {deliveryOrderForm.documentFile 
-                          ? deliveryOrderForm.documentFile.name 
-                          : 'Click to upload delivery order'}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Supported: PDF, DOC, Images
-                      </p>
-                    </label>
-                  </div>
-                </div>
-              </>
-            )}
+            <div className="space-y-2">
+              <Label>Delivery Order Document *</Label>
+              <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center hover:border-blue-400 transition-colors cursor-pointer">
+                <input
+                  type="file"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setDeliveryOrderForm({ ...deliveryOrderForm, documentFile: e.target.files[0] });
+                    }
+                  }}
+                  className="hidden"
+                  id="do-document-upload"
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                />
+                <label htmlFor="do-document-upload" className="cursor-pointer">
+                  <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
+                  <p className="text-sm text-gray-500">
+                    {deliveryOrderForm.documentFile 
+                      ? deliveryOrderForm.documentFile.name 
+                      : 'Click to upload delivery order'}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Supported: PDF, DOC, Images
+                  </p>
+                </label>
+              </div>
+            </div>
           </div>
 
           <DialogFooter>
@@ -812,25 +1098,14 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
             }}>
               Cancel
             </Button>
-            {selectedFile?.status === 'PERMITS_DONE' && (
-              <Button 
-                onClick={handleDeliveryOrderInvoiceUpload}
-                disabled={!deliveryOrderForm.invoiceFile}
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                Upload Invoice
-              </Button>
-            )}
-            {selectedFile?.status === 'DELIVERY_ORDER_PAYMENTS_DONE' && (
-              <Button 
-                onClick={handleDeliveryOrderSubmit}
-                disabled={!deliveryOrderForm.documentFile}
-                className="bg-green-600 hover:bg-green-700 text-white"
-              >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Submit Delivery Order
-              </Button>
-            )}
+            <Button 
+              onClick={handleDeliveryOrderSubmit}
+              disabled={!deliveryOrderForm.documentFile}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Submit Delivery Order
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -937,6 +1212,217 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
             >
               <DollarSign className="w-4 h-4 mr-2" />
               Submit Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* DO Payment Request Dialog - NEW */}
+      <Dialog open={doPaymentRequestDialogOpen} onOpenChange={setDoPaymentRequestDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Request Delivery Order Payment</DialogTitle>
+            <DialogDescription>
+              {selectedFileForDoPayment && `Request funds for Delivery Order payment - File ${selectedFileForDoPayment.fileNumber}`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+              <DollarSign className="w-6 h-6 text-purple-600 flex-shrink-0" />
+              <div>
+                <p className="text-sm text-purple-700">
+                  Request funds for Delivery Order from shipping line. Once approved and paid by Finance, you can submit the DO document.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Amount *</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  placeholder="Enter DO payment amount"
+                  value={doPaymentForm.amount}
+                  onChange={(e) => setDoPaymentForm({ ...doPaymentForm, amount: e.target.value })}
+                  className="flex-1"
+                />
+                <Select
+                  value={doPaymentForm.currency}
+                  onValueChange={(value) => setDoPaymentForm({ ...doPaymentForm, currency: value })}
+                >
+                  <SelectTrigger className="w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="TZS">TZS</SelectItem>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Invoice Upload *</Label>
+              <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center hover:border-purple-400 transition-colors cursor-pointer">
+                <input
+                  type="file"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setDoPaymentForm({ ...doPaymentForm, invoiceFile: e.target.files[0] });
+                    }
+                  }}
+                  className="hidden"
+                  id="do-payment-invoice-upload"
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls"
+                />
+                <label htmlFor="do-payment-invoice-upload" className="cursor-pointer">
+                  <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
+                  <p className="text-sm text-gray-500">
+                    {doPaymentForm.invoiceFile 
+                      ? doPaymentForm.invoiceFile.name 
+                      : 'Click to upload DO invoice'}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Supported: PDF, DOC, Images, Excel
+                  </p>
+                </label>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Description *</Label>
+              <Textarea
+                placeholder="Enter description for the DO payment request..."
+                value={doPaymentForm.description}
+                onChange={(e) => setDoPaymentForm({ ...doPaymentForm, description: e.target.value })}
+                rows={4}
+              />
+            </div>
+
+            <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <p className="text-sm text-amber-700">
+                This request will be sent to Operations Manager and Finance Manager for approval and payment processing.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setDoPaymentRequestDialogOpen(false);
+              setDoPaymentForm({ amount: '', currency: 'TZS', description: '', invoiceFile: null });
+              setSelectedFileForDoPayment(null);
+            }}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleDoPaymentRequest}
+              disabled={!doPaymentForm.amount || !doPaymentForm.description || !doPaymentForm.invoiceFile}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Submit DO Payment Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* DO Charges Upload Dialog - NEW: Phase 2 */}
+      <Dialog open={doChargesDialogOpen} onOpenChange={setDoChargesDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Upload DO Charges Invoice</DialogTitle>
+            <DialogDescription>
+              {selectedFile && `Upload DO charges invoice for file ${selectedFile.fileNumber}`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <FileText className="w-6 h-6 text-blue-600 flex-shrink-0" />
+              <p className="text-sm text-blue-700">
+                Upload the invoice for DO charges (separate from DO payment). Finance will confirm payment after upload.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>DO Charges Invoice *</Label>
+              <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center hover:border-blue-400 transition-colors cursor-pointer">
+                <input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setDoChargesForm({ ...doChargesForm, invoiceFile: file });
+                    }
+                  }}
+                  className="hidden"
+                  id="do-charges-invoice-upload"
+                />
+                <label htmlFor="do-charges-invoice-upload" className="cursor-pointer">
+                  <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                  <p className="text-sm text-gray-600">
+                    {doChargesForm.invoiceFile ? doChargesForm.invoiceFile.name : 'Click to upload DO charges invoice'}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    PDF, JPG, or PNG (max 10MB)
+                  </p>
+                </label>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Amount *</Label>
+                <Input
+                  type="number"
+                  placeholder="0.00"
+                  value={doChargesForm.amount}
+                  onChange={(e) => setDoChargesForm({ ...doChargesForm, amount: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Currency *</Label>
+                <Select 
+                  value={doChargesForm.currency} 
+                  onValueChange={(v: string) => setDoChargesForm({ ...doChargesForm, currency: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="TZS">TZS</SelectItem>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <p className="text-sm text-amber-700">
+                After upload, Finance Manager or Cashier will confirm payment by clicking "DO CHARGES PAID" button.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setDoChargesDialogOpen(false);
+              setDoChargesForm({ invoiceFile: null, amount: '', currency: 'TZS' });
+              setSelectedFile(null);
+            }}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleDoChargesUpload}
+              disabled={!doChargesForm.amount || !doChargesForm.invoiceFile}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Upload DO Charges Invoice
             </Button>
           </DialogFooter>
         </DialogContent>

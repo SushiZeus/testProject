@@ -1,0 +1,350 @@
+═══════════════════════════════════════════════════════════════════════════════
+   🚢 SHIPPING LINE DELIVERY ORDER (DO) WORKFLOW - QUICK GUIDE
+   June 26, 2026 - Version 1.3.3
+═══════════════════════════════════════════════════════════════════════════════
+
+📋 OVERVIEW
+────────────────────────────────────────────────────────────────────────────────
+This guide explains the NEW Delivery Order payment and submission workflow
+for SEA shipments in the Shipping Line module.
+
+═══════════════════════════════════════════════════════════════════════════════
+🔄 COMPLETE WORKFLOW (3 STEPS)
+═══════════════════════════════════════════════════════════════════════════════
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ STEP 1: SHIPPING LINE CLERK - REQUEST DO PAYMENT                         │
+├───────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│ When to do this: After file status is PERMITS_DONE                       │
+│                                                                           │
+│ 1. Go to Shipping Line module                                            │
+│ 2. Find your file in the table                                           │
+│ 3. Click "REQUEST DO PAYMENT" (purple button)                            │
+│ 4. Fill in the dialog:                                                   │
+│    • Amount: Enter DO payment amount                                     │
+│    • Currency: Select TZS, USD, or EUR                                   │
+│    • Invoice: Click to upload invoice file                               │
+│    • Description: Explain what the payment is for                        │
+│ 5. Click "Submit DO Payment Request"                                     │
+│                                                                           │
+│ ✅ Result:                                                                │
+│    • Badge shows "DO Payment Pending"                                    │
+│    • Notifications sent to Operations Manager and Finance Manager        │
+│    • Wait for Finance to confirm payment                                 │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ STEP 2: FINANCE MANAGER - CONFIRM DO PAYMENT                             │
+├───────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│ Who can do this: Finance Manager OR Cashier                              │
+│                                                                           │
+│ 1. Go to Shipping Line module                                            │
+│ 2. Find file with "DO Payment Pending" badge                             │
+│ 3. Review payment request details (amount, currency, invoice)            │
+│ 4. Click "MARK DO PAID" (blue button)                                    │
+│                                                                           │
+│ ✅ Result:                                                                │
+│    • Payment marked as confirmed                                         │
+│    • Notification sent to Shipping Line Clerk                            │
+│    • Clerk can now submit DO document                                    │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ STEP 3: SHIPPING LINE CLERK - SUBMIT DO DOCUMENT                         │
+├───────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│ When to do this: After Finance confirms DO payment                       │
+│                                                                           │
+│ 1. Go to Shipping Line module                                            │
+│ 2. Find your file (payment now confirmed)                                │
+│ 3. Click "SUBMIT DO" (green button)                                      │
+│ 4. Upload the Delivery Order document                                    │
+│ 5. Click "Submit Delivery Order"                                         │
+│                                                                           │
+│ ✅ Result:                                                                │
+│    • DO document uploaded and available                                  │
+│    • File status changes to DELIVERY_ORDER_SUBMITTED                     │
+│    • Notifications sent to Operations Manager and Operation Clerks       │
+│    • DO appears in Operations module                                     │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════
+🎨 BUTTON COLORS
+═══════════════════════════════════════════════════════════════════════════════
+
+🟣 PURPLE - REQUEST DO PAYMENT
+   → Shipping Line Clerk requests funds for DO
+   → Opens dialog to enter amount, currency, invoice, description
+
+🔵 BLUE - MARK DO PAID
+   → Finance Manager confirms DO payment
+   → Single click to approve and enable DO submission
+
+🟢 GREEN - SUBMIT DO
+   → Shipping Line Clerk submits DO document
+   → Opens dialog to upload DO file
+
+🟡 AMBER BADGE - DO Payment Pending
+   → Payment request waiting for Finance approval
+
+🟢 GREEN BADGE - DO Received
+   → DO document available in Operations (visible to Operation Clerks)
+
+═══════════════════════════════════════════════════════════════════════════════
+📦 OPERATIONS MODULE - PORT CHARGES REQUIREMENT
+═══════════════════════════════════════════════════════════════════════════════
+
+⚠️ IMPORTANT CHANGE: Port Charges now requires BOTH documents
+
+BEFORE:
+  • Port Charges button available after Release Order only
+
+NOW:
+  • Port Charges button requires:
+    ✅ Release Order uploaded (by Operation Clerk)
+    ✅ DO document received (from Shipping Line)
+
+WHAT THIS MEANS:
+  • Operation Clerk uploads Release Order
+  • Operation Clerk waits for DO from Shipping Line
+  • Once both are available, Port Charges button is enabled
+  • Operation Clerk can then upload Port Charges
+
+VISUAL FEEDBACK:
+  • Button is disabled (grayed out) if DO not received
+  • Tooltip says "Wait for DO from Shipping Line"
+  • "DO Received" green badge shows when DO available
+  • "View DO" button to download/view the DO
+
+═══════════════════════════════════════════════════════════════════════════════
+👥 WHO DOES WHAT
+═══════════════════════════════════════════════════════════════════════════════
+
+SHIPPING LINE CLERK
+  ✓ Fills container numbers
+  ✓ Requests DO payment (purple button)
+  ✓ Submits DO document after payment confirmed (green button)
+  ✓ Can request petty cash for other expenses
+
+FINANCE MANAGER / CASHIER
+  ✓ Reviews DO payment requests
+  ✓ Confirms DO payment (blue button)
+  ✓ One-click approval process
+
+OPERATION CLERK
+  ✓ Views DO document when received
+  ✓ Downloads DO if needed
+  ✓ Uploads Release Order
+  ✓ Waits for DO before uploading Port Charges
+  ✓ Uploads Port Charges (after both Release Order + DO)
+
+OPERATIONS MANAGER
+  ✓ Receives notifications about DO requests
+  ✓ Receives notifications when DO submitted
+  ✓ Monitors overall workflow
+
+═══════════════════════════════════════════════════════════════════════════════
+📧 NOTIFICATIONS SENT
+═══════════════════════════════════════════════════════════════════════════════
+
+When Shipping Line Clerk requests DO payment:
+  → Operations Manager receives notification
+  → Finance Manager receives notification
+
+When Finance confirms DO payment:
+  → Shipping Line Clerk receives notification
+
+When Shipping Line Clerk submits DO:
+  → Operations Manager receives notification
+  → All Operation Clerks receive notification
+
+═══════════════════════════════════════════════════════════════════════════════
+🔑 LOGIN CREDENTIALS
+═══════════════════════════════════════════════════════════════════════════════
+
+SHIPPING LINE CLERK:
+  Email:    shipping_line_clerk@company.com
+  Password: shipping_line_clerk123
+
+FINANCE MANAGER:
+  Email:    finance_manager@company.com
+  Password: finance_manager123
+
+OPERATION CLERK:
+  Email:    operation_clerk@company.com
+  Password: operation_clerk123
+
+OPERATIONS MANAGER:
+  Email:    operations_manager@company.com
+  Password: operations_manager123
+
+═══════════════════════════════════════════════════════════════════════════════
+🌐 ACCESS SYSTEM
+═══════════════════════════════════════════════════════════════════════════════
+
+Local Access (Server computer):
+  http://localhost:5173/
+
+Network Access (All devices):
+  http://192.168.0.114:5173/
+
+Mobile Access:
+  • Connect to same WiFi
+  • Open browser
+  • Go to: http://192.168.0.114:5173/
+  • Login with any user account
+
+═══════════════════════════════════════════════════════════════════════════════
+❓ FREQUENTLY ASKED QUESTIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+Q: What happened to the old "Upload D.O Invoice" button?
+A: Replaced with "REQUEST DO PAYMENT" which combines invoice upload with
+   payment request in one step. More efficient workflow!
+
+Q: Why can't I see the Port Charges button?
+A: Port Charges now requires BOTH:
+   1. Release Order uploaded
+   2. DO document received from Shipping Line
+   Check that both are present. Button will be disabled (grayed) if missing.
+
+Q: How do I know if Finance confirmed my DO payment?
+A: You'll receive a notification and the "SUBMIT DO" green button will appear
+   in your file's action column.
+
+Q: Where can Operations see the DO document?
+A: In the Operations module, files with DO will show:
+   • "DO Received" green badge
+   • "View DO" button to download/view the document
+
+Q: Can I request DO payment before PERMITS_DONE?
+A: No, the "REQUEST DO PAYMENT" button only appears after the file status
+   is PERMITS_DONE. This ensures permits are completed first.
+
+Q: What if Finance rejects my DO payment request?
+A: Currently the system marks as PAID or keeps as PENDING. If rejected,
+   contact Finance Manager directly to discuss and resubmit.
+
+═══════════════════════════════════════════════════════════════════════════════
+🔧 TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════════════════
+
+PROBLEM: "REQUEST DO PAYMENT" button not visible
+SOLUTION:
+  ✓ Check file status is PERMITS_DONE
+  ✓ Check you're logged in as Shipping Line Clerk
+  ✓ Refresh the page (Ctrl + Shift + R)
+  ✓ Check file hasn't already has DO payment request
+
+PROBLEM: Can't upload Port Charges in Operations
+SOLUTION:
+  ✓ Verify Release Order is uploaded (green checkmark)
+  ✓ Verify DO document received from Shipping Line (DO Received badge)
+  ✓ Check you're logged in as Operation Clerk or Operations Manager
+  ✓ If DO not received, wait for Shipping Line to submit it
+
+PROBLEM: SUBMIT DO button not showing
+SOLUTION:
+  ✓ Check Finance has confirmed DO payment
+  ✓ Look for notification about payment confirmation
+  ✓ Refresh the page
+  ✓ Check you're logged in as Shipping Line Clerk
+
+PROBLEM: Can't see DO document in Operations
+SOLUTION:
+  ✓ Check Shipping Line Clerk has submitted DO
+  ✓ Look for "DELIVERY_ORDER_SUBMITTED" status
+  ✓ Refresh the page
+  ✓ Check you're in the correct file
+
+═══════════════════════════════════════════════════════════════════════════════
+📊 WORKFLOW COMPARISON
+═══════════════════════════════════════════════════════════════════════════════
+
+OLD WORKFLOW (Removed):
+  1. Shipping Clerk: Upload DO invoice
+  2. System: Status → WAITING_FOR_DO_PAYMENT
+  3. Finance: (No clear action)
+  4. System: Status → DELIVERY_ORDER_PAYMENTS_DONE
+  5. Shipping Clerk: Upload DO document
+
+NEW WORKFLOW (Current):
+  1. Shipping Clerk: REQUEST DO PAYMENT (amount, invoice, description)
+  2. Finance: MARK DO PAID (one click)
+  3. Shipping Clerk: SUBMIT DO (upload document)
+  4. Operations: See DO, proceed with Port Charges
+
+BENEFITS:
+  ✅ Clearer workflow with specific buttons
+  ✅ Finance has clear action item
+  ✅ Better tracking with doPaymentRequestStatus
+  ✅ Comprehensive notifications
+  ✅ Operations gate ensures DO received
+
+═══════════════════════════════════════════════════════════════════════════════
+📝 QUICK TIPS
+═══════════════════════════════════════════════════════════════════════════════
+
+1. CONTAINER NUMBERS: Fill these early! They're visible to everyone and
+   help track shipments.
+
+2. PAYMENT DESCRIPTION: Be specific in DO payment description. Include
+   shipping line name, vessel info, or reference numbers.
+
+3. INVOICE UPLOAD: Make sure invoice is clear and readable. PDF preferred.
+
+4. CHECK NOTIFICATIONS: Click the bell icon (top right) to see all
+   notifications about your files.
+
+5. DOWNLOAD DO: Operations team should download DO for reference before
+   proceeding with Port Charges.
+
+6. TRACK STATUS: Watch the status badges to know where your file is in
+   the workflow.
+
+═══════════════════════════════════════════════════════════════════════════════
+📚 MORE INFORMATION
+═══════════════════════════════════════════════════════════════════════════════
+
+Detailed Technical Documentation:
+  → ✅_SHIPPING_LINE_DO_WORKFLOW_COMPLETE_JUNE_26_2026.md
+
+Complete System Access Info:
+  → 📌_ALL_ACCESS_LINKS_JUNE_26_2026.txt
+
+Quick Start Guide:
+  → 🎯_QUICK_START_JUNE_25_2026.txt
+
+Implementation Details:
+  → SHIPPING_LINE_DO_WORKFLOW_JUNE_26_2026.md
+
+═══════════════════════════════════════════════════════════════════════════════
+✨ SUMMARY
+═══════════════════════════════════════════════════════════════════════════════
+
+NEW WORKFLOW IS:
+  ✓ Simpler: 3 clear steps instead of confusing status changes
+  ✓ Faster: One-click payment confirmation by Finance
+  ✓ Clearer: Dedicated buttons and badges for each action
+  ✓ Safer: Port Charges gate ensures DO is received
+  ✓ Better: Everyone gets notified at the right time
+
+REMEMBER:
+  🟣 Purple = Request payment
+  🔵 Blue = Confirm payment
+  🟢 Green = Submit document
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🚢 Happy Shipping! 🚢
+
+For questions or support, contact your system administrator.
+
+═══════════════════════════════════════════════════════════════════════════════
+Updated: June 26, 2026 | Version 1.3.3 | Status: Production Ready
+═══════════════════════════════════════════════════════════════════════════════
