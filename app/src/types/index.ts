@@ -47,7 +47,8 @@ export type FileStatus =
   | 'WAITING_FOR_FINAL_ASSESSMENT'
   | 'DECLARATION_DONE'
   | 'WAITING_FOR_TAX_PAYMENT'
-  | 'WAITING_FOR_WHARFAGE_PAYMENT' // NEW: When tax is paid but wharfage is pending (SEA only)
+  | 'WAITING_FOR_WHARFAGE_CHARGES' // NEW: When tax is paid but wharfage docs not uploaded yet (SEA only)
+  | 'WAITING_FOR_WHARFAGE_PAYMENT' // NEW: When wharfage docs uploaded but payment not confirmed (SEA only)
   | 'TAXES_PAID'
   | 'READY_FOR_OPERATIONS'
   | 'WAITING_FOR_RELEASE_ORDER' // NEW: After file assigned to operations, waiting for release order

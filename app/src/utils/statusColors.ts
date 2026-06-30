@@ -7,6 +7,7 @@ export const statusColors: Record<FileStatus, string> = {
   WAITING_FOR_FINAL_ASSESSMENT: 'bg-purple-100 text-purple-700',
   DECLARATION_DONE: 'bg-green-100 text-green-700',
   WAITING_FOR_TAX_PAYMENT: 'bg-amber-100 text-amber-700',
+  WAITING_FOR_WHARFAGE_CHARGES: 'bg-amber-100 text-amber-700',
   WAITING_FOR_WHARFAGE_PAYMENT: 'bg-amber-100 text-amber-700',
   TAXES_PAID: 'bg-green-100 text-green-700',
   READY_FOR_OPERATIONS: 'bg-blue-100 text-blue-700',
