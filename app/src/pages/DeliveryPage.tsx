@@ -301,6 +301,20 @@ export function DeliveryPage({ navigate }: DeliveryPageProps) {
                                 View
                               </Button>
 
+                              {/* View Delivery Order Document (if available) */}
+                              {file.deliveryOrderDocumentUrl && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => window.open(file.deliveryOrderDocumentUrl, '_blank')}
+                                  className="bg-green-50 border-green-300 text-green-700"
+                                  title="View Delivery Order from Shipping Line"
+                                >
+                                  <FileText className="w-3 h-3 mr-1" />
+                                  View DO
+                                </Button>
+                              )}
+
                               {/* REQUEST DRIVER button - only for delivery clerk and when status is DRIVER_REQUESTED */}
                               {user?.role === 'delivery_clerk' && file.status === 'DRIVER_REQUESTED' && (
                                 <Button

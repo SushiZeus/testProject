@@ -1422,19 +1422,20 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                 </Button>
                               )}
 
-                              {/* OPERATIONS DONE Button - After payment confirmation (both SEA and AIR) - Only for assigned user */}
+                              {/* OPERATIONS DONE Button - ONLY AFTER payment AND verification form completed */}
                               {user?.role === 'operation_clerk' && 
                                file.assignedOperationClerkId === user?.id &&
                                ((file.transportMode === 'SEA' && file.portChargesPaidAt) ||
                                 (file.transportMode === 'AIR' && file.swissportChargesPaidAt)) &&
                                file.releaseOrderUrl && 
+                               file.cargoVerificationCompletedAt && // MUST have verification completed
                                file.status !== 'VERIFICATION_FORM_PENDING' &&
                                file.status !== 'VERIFICATION_FORM_COMPLETED' && (
                                 <Button 
                                   size="sm" 
                                   onClick={() => { setSelectedFile(file); handleOperationsDone(); }}
                                   className="bg-green-600 hover:bg-green-700 text-white"
-                                  title="Mark operations as complete and proceed to verification"
+                                  title="Mark operations as complete (charges paid + verification done)"
                                 >
                                   <CheckCircle className="w-3 h-3 mr-1" />
                                   OPERATIONS DONE
