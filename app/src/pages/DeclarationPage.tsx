@@ -370,6 +370,12 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
   const handleWharfagePaid = () => {
     if (!selectedFile || !user) return;
 
+    // CRITICAL CHECK: Tax must be paid BEFORE wharfage payment is confirmed
+    if (!selectedFile.taxPaymentConfirmed) {
+      toast.error('Tax payment must be confirmed first before confirming wharfage payment');
+      return;
+    }
+
     // Mark wharfage as paid - both tax and wharfage confirmed, mark as TAXES_PAID
     updateFileStatus(
       selectedFile.id,
@@ -381,7 +387,7 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
       }
     );
 
-    toast.success('Wharfage payment confirmed ✓ - Click DECLARATION DONE to proceed');
+    toast.success('Wharfage payment confirmed ✓ - Both tax and wharfage paid. Click DECLARATION DONE to proceed');
     setSelectedFile(null);
   };
 
@@ -912,12 +918,16 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
                                     </Badge>
                                   )}
                                   
-                                  {/* WHARFAGE PAID Button (SEA only) - Available when wharfage documents uploaded */}
-                                  {file.transportMode === 'SEA' && file.wharfageDocumentUrl && !file.wharfagePaymentConfirmed && (
+                                  {/* WHARFAGE PAID Button (SEA only) - Available when wharfage documents uploaded AND tax payment confirmed */}
+                                  {file.transportMode === 'SEA' && 
+                                   file.wharfageDocumentUrl && 
+                                   !file.wharfagePaymentConfirmed && 
+                                   file.taxPaymentConfirmed && ( // MUST have tax paid first
                                     <Button 
                                       size="sm" 
                                       onClick={() => { setSelectedFile(file); handleWharfagePaid(); }}
                                       className="bg-blue-600 hover:bg-blue-700 text-white"
+                                      title="Confirm wharfage payment (tax must be paid first)"
                                     >
                                       <DollarSign className="w-3 h-3 mr-1" />
                                       WHARFAGE PAID
