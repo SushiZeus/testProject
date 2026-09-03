@@ -1,152 +1,42 @@
-# TAX & WHARFAGE BUTTON VISIBILITY FIX - MARCH 15, 2026
+# Tax & Wharfage Button Visibility Fix - March 16, 2026
 
-## ✅ CRITICAL FIXES IMPLEMENTED
+## Issue Fixed
+**Problem**: When tax documents were uploaded for SEA shipments, the wharfage upload button would disappear, making it impossible to upload wharfage documents.
 
-### 🎯 **ISSUES IDENTIFIED & RESOLVED**
+## Root Cause
+The button visibility logic had two separate sections:
+1. **Assessment Phase Section** (lines 830-865): Showed upload buttons during `WAITING_FOR_FINAL_ASSESSMENT`, `WAITING_FOR_TAX_PAYMENT`, and `WAITING_FOR_PAYMENTS`
+2. **Payment Phase Section** (lines 867-920): Showed payment buttons during `WAITING_FOR_TAX_PAYMENT` and `WAITING_FOR_PAYMENTS`
 
-#### **Issue 1: Wharfage Button Disappears After Tax Upload**
-- **Problem**: When tax documents were uploaded, status changed to `WAITING_FOR_TAX_PAYMENT`
-- **Result**: Upload buttons only showed for `WAITING_FOR_FINAL_ASSESSMENT` status
-- **Impact**: Wharfage upload button disappeared, preventing wharfage document upload
+The wharfage upload button was only in the first section. When tax documents were uploaded, the status changed to `WAITING_FOR_TAX_PAYMENT`, but the wharfage button was missing from the payment phase section.
 
-#### **Issue 2: Incomplete Status Logic**
-- **Problem**: Status changes were too rigid and didn't account for independent uploads
-- **Result**: Users couldn't upload documents in any order
-- **Impact**: Workflow was broken for SEA shipments requiring both documents
+## Solution Implemented
+Added upload buttons (both tax and wharfage) to the payment phase section, ensuring they remain available throughout the entire declaration process.
 
-### 🔧 **FIXES IMPLEMENTED**
+### Changes Made
+- **File**: `app/src/pages/D.tsx`
+t phase section)
+- **Added**: Tax and wharfage upload buttons with same styling and functionality as assessment phase
 
-#### **Fix 1: Extended Button Visibility**
-**Before**: Upload buttons only visible during `WAITING_FOR_FINAL_ASSESSMENT`
-```typescript
-// ❌ BEFORE (Broken)
-file.status === 'WAITING_FOR_FINAL_ASSESSMENT'
-```
+### Button Availability Matrix
+| Status | Tax Upload | Wharfage Upload (SEA) | Tax Paid | Wharfage Paid |
+|--------|------------|----------------------|----------|---------------|
+| `WAITING_FOR_FINAL_ASSESSMENT` | ✅ | ✅ | ❌ | ❌ |
+| `WAITING_FOR_TAX_PAYMENT` | ✅ | ✅ | ✅ | ❌ |
+| `WAITING_FOR_PAYMENTS` | ✅ | ✅ | ✅ | ✅ |
 
-**After**: Upload buttons visible across multiple statuses
-```typescript
-// ✅ AFTER (Fixed)
-(file.status === 'WAITING_FOR_FINAL_ASSESSMENT' || 
- file.status === 'WAITING_FOR_TAX_PAYMENT' || 
- file.status === 'WAITING_FOR_PAYMENTS')
-```
+## Testing Scenarios
+1. **SEA Shipment - Tax First**: Upload tax → StatuG_FOR_TAX_PAYMENT` → Wharfage button still visible ✅
+2. **SEA Shipment - Wharfage First**: Upload wharfage → Status: `WAITING_FOR_FINAL_ASSESSMENT` → Tax button visible ✅
+3. **SEA Shipment - Both Together**: Upload both → Status: `WAITING_FOR_PAYMENTS` → Both payment buttons visible ✅
+4. **AIR Shipment**: Upload tax → Status: `WAITING_FOR_TAX_PAYMENT` → No wharfage button (correct) ✅
 
-#### **Fix 2: Smart Status Logic**
-**Tax Upload Logic**:
-```typescript
-// For SEA: If wharfage already uploaded → WAITING_FOR_PAYMENTS
-// For AIR or SEA without wharfage → WAITING_FOR_TAX_PAYMENT
-let newStatus = 'WAITING_FOR_TAX_PAYMENT';
-if (selectedFile.transportMode === 'SEA' && selectedFile.wharfageDocumentUrl) {
-  newStatus = 'WAITING_FOR_PAYMENTS';
-}
-```
+## Key Features Maintained
+- ✅ Independent tax and wharfage uploads
+- ✅ Separate delete and reupload functionality
+- ✅ Status changes based on document uploads
+- ✅ Transport mode-specific logic (SEA vs AIR)
+- ✅ Declaration Done requires both payments for SEA, only tax for AIR
 
-**Wharfage Upload Logic**:
-```typescript
-// If tax already uploaded → WAITING_FOR_PAYMENTS
-// If tax not uploaded → Keep current status (allow independent upload)
-let newStatus = selectedFile.status;
-if (selectedFile.taxDocumentUrl) {
-  newStatus = 'WAITING_FOR_PAYMENTS';
-}
-```
-
-### 📊 **NEW WORKFLOW BEHAVIOR**
-
-#### **Scenario A: Tax First, Then Wharfage (SEA)**
-1. **Initial**: `WAITING_FOR_FINAL_ASSESSMENT`
-2. **Upload Tax**: Status → `WAITING_FOR_TAX_PAYMENT` (Wharfage button still visible ✅)
-3. **Upload Wharfage**: Status → `WAITING_FOR_PAYMENTS` (Both buttons still visible ✅)
-4. **Pay Both**: Ready for Declaration Done
-
-#### **Scenario B: Wharfage First, Then Tax (SEA)**
-1. **Initial**: `WAITING_FOR_FINAL_ASSESSMENT`
-2. **Upload Wharfage**: Status → `WAITING_FOR_FINAL_ASSESSMENT` (Tax button still visible ✅)
-3. **Upload Tax**: Status → `WAITING_FOR_PAYMENTS` (Both buttons still visible ✅)
-4. **Pay Both**: Ready for Declaration Done
-
-#### **Scenario C: AIR Shipment (Tax Only)**
-1. **Initial**: `WAITING_FOR_FINAL_ASSESSMENT`
-2. **Upload Tax**: Status → `WAITING_FOR_TAX_PAYMENT`
-3. **Pay Tax**: Ready for Declaration Done
-
-### 🎯 **BUTTON VISIBILITY MATRIX**
-
-| Status | Tax Upload Button | Wharfage Upload Button (SEA) | Tax Paid Button | Wharfage Paid Button |
-|--------|------------------|------------------------------|-----------------|---------------------|
-| `WAITING_FOR_FINAL_ASSESSMENT` | ✅ Visible | ✅ Visible | ❌ Hidden | ❌ Hidden |
-| `WAITING_FOR_TAX_PAYMENT` | ✅ Visible | ✅ Visible | ✅ Visible | ❌ Hidden |
-| `WAITING_FOR_PAYMENTS` | ✅ Visible | ✅ Visible | ✅ Visible | ✅ Visible |
-
-### 🚀 **BENEFITS OF THE FIX**
-
-#### **For Users**:
-- ✅ **Flexible Upload Order**: Can upload tax or wharfage in any order
-- ✅ **Always Accessible**: Upload buttons never disappear unexpectedly
-- ✅ **Clear Status**: Status reflects what's been uploaded and what's pending
-- ✅ **Error Recovery**: Can always reupload documents if needed
-
-#### **For System**:
-- ✅ **Robust Logic**: Handles all upload combinations correctly
-- ✅ **Independent Tracking**: Tax and wharfage truly independent
-- ✅ **Status Accuracy**: Status reflects actual document and payment state
-- ✅ **Workflow Flexibility**: Supports different user preferences
-
-### 🔍 **TECHNICAL DETAILS**
-
-#### **Files Modified**:
-- **File**: `app/src/pages/DeclarationPage.tsx`
-- **Functions**: `handleUploadTaxDocuments`, `handleUploadWharfageDocuments`
-- **UI Conditions**: Upload button visibility logic
-
-#### **Key Changes**:
-1. **Extended Status Conditions**: Upload buttons visible across 3 statuses
-2. **Smart Status Transitions**: Status changes based on what's already uploaded
-3. **Independent Upload Logic**: Each document type can be uploaded independently
-4. **Preserved Functionality**: All existing features maintained
-
-### 🧪 **TESTING SCENARIOS**
-
-#### **Test Case 1: SEA Shipment - Tax First**
-1. File in Assessment → Upload Tax → Status: `WAITING_FOR_TAX_PAYMENT`
-2. Verify: Wharfage upload button still visible ✅
-3. Upload Wharfage → Status: `WAITING_FOR_PAYMENTS`
-4. Verify: Both upload buttons still visible ✅
-
-#### **Test Case 2: SEA Shipment - Wharfage First**
-1. File in Assessment → Upload Wharfage → Status: `WAITING_FOR_FINAL_ASSESSMENT`
-2. Verify: Tax upload button still visible ✅
-3. Upload Tax → Status: `WAITING_FOR_PAYMENTS`
-4. Verify: Both upload buttons still visible ✅
-
-#### **Test Case 3: AIR Shipment**
-1. File in Assessment → Upload Tax → Status: `WAITING_FOR_TAX_PAYMENT`
-2. Verify: No wharfage button (AIR doesn't need wharfage) ✅
-3. Pay Tax → Ready for Declaration Done ✅
-
-### 🚀 **DEPLOYMENT STATUS**
-
-- ✅ **Button Visibility Fixed**: Upload buttons remain visible across all relevant statuses
-- ✅ **Status Logic Enhanced**: Smart transitions based on existing uploads
-- ✅ **Independent Uploads**: Tax and wharfage can be uploaded in any order
-- ✅ **Hot Reloaded**: Changes applied to running server
-- ✅ **No Errors**: All diagnostics clear
-
-### 🔗 **ACCESS LINKS**
-
-- **Local**: http://localhost:5174/
-- **Network**: http://192.168.0.11:5174/
-
-### 📱 **IMMEDIATE TESTING**
-
-1. **Login**: `declarant@company.com` / `declarant123`
-2. **Find SEA File**: In Assessment status
-3. **Upload Tax**: Verify wharfage button remains visible ✅
-4. **Upload Wharfage**: Verify both buttons remain visible ✅
-5. **Test Payments**: Both payment buttons should work independently ✅
-
----
-
-*Tax & Wharfage Button Visibility Fix Completed: March 15, 2026*
-*Upload buttons now remain visible throughout the entire workflow*
+## Status: COMPLETE ✅
+The wharfage upload button now remains visible throughout the entire declaration process for SEA shipments, ensuring users can upload wharfage documents at any time during the payment phases.
