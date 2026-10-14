@@ -139,6 +139,9 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
   // Cargo description state
   const [cargoDescription, setCargoDescription] = useState('');
 
+  // Authorization letters state
+  const [authorizationLetters, setAuthorizationLetters] = useState<Record<string, File | null>>({});
+
   // Get all users that can be contact persons (managed by HR)
   // Exclude specific roles as requested
   const contactPersons = mockUsers.filter(u => 
@@ -160,6 +163,7 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
   );
 
   const fileInputRefs = useRef<Record<DocumentType, HTMLInputElement | null>>({} as Record<DocumentType, HTMLInputElement | null>);
+  const authLetterInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Auto-set transport mode based on service type and shipment type
   useEffect(() => {
@@ -210,6 +214,61 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
       ...prev,
       [docType]: prev[docType]?.filter((_, i) => i !== index) || [],
     }));
+  };
+
+  const getRequiredAuthLetters = (): { key: string; label: string }[] => {
+    switch (transportMode) {
+      case 'AIR':
+        return [
+          { key: 'swissport', label: 'Swissport Authorization Letter' },
+          { key: 'customs', label: 'Customs Authorization Letter' },
+          { key: 'tbs', label: 'TBS Authorization Letter' },
+        ];
+      case 'SEA':
+        return [
+          { key: 'shipping_line', label: 'Shipping Line Authorization Letter' },
+          { key: 'customs', label: 'Customs Authorization Letter' },
+          { key: 'tbs', label: 'TBS Authorization Letter' },
+        ];
+      case 'ROAD':
+      case 'RAIL':
+        return [
+          { key: 'customs', label: 'Customs Authorization Letter' },
+          { key: 'tbs', label: 'TBS Authorization Letter' },
+        ];
+      default:
+        return [];
+    }
+  };
+
+  const handleAuthLetterUpload = (letterType: string, files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    
+    const file = files[0]; // Only take the first file
+    if (file.type !== 'application/pdf') {
+      toast.error('Only PDF files are allowed for authorization letters');
+      return;
+    }
+    
+    setAuthorizationLetters(prev => ({
+      ...prev,
+      [letterType]: file,
+    }));
+    
+    // Clear validation error for this letter type
+    setValidationErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[letterType];
+      return newErrors;
+    });
+  };
+
+  const removeAuthLetter = (letterType: string) => {
+    setAuthorizationLetters(prev => {
+      const newLetters = { ...prev };
+      delete newLetters[letterType];
+      return newLetters;
+    });
   };
 
   const validateStep = () => {
@@ -273,6 +332,26 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
         setValidationErrors({});
         return true;
       case 3:
+        // Validate authorization letters
+        const requiredLetters = getRequiredAuthLetters();
+        const missingLetters: string[] = [];
+        
+        for (const letter of requiredLetters) {
+          if (!authorizationLetters[letter.key]) {
+            errors[letter.key] = true;
+            missingLetters.push(letter.label);
+          }
+        }
+        
+        if (missingLetters.length > 0) {
+          toast.error(`Please upload all required authorization letters (${missingLetters.length} missing)`);
+          setValidationErrors(errors);
+          return false;
+        }
+        
+        setValidationErrors({});
+        return true;
+      case 4:
         // Validate SEA freight details (only for SEA transport)
         if (transportMode === 'SEA') {
           if (!seaFreightDetails.seaFreightType) {
@@ -296,7 +375,7 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
         }
         setValidationErrors({});
         return true;
-      case 4:
+      case 5:
         // Validate cargo description
         if (!cargoDescription || cargoDescription.length < 10) {
           errors.cargoDescription = true;
@@ -312,7 +391,7 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
         }
         setValidationErrors({});
         return true;
-      case 5:
+      case 6:
         // Only validate if documents were selected
         if (selectedDocuments.length > 0) {
           for (const docType of selectedDocuments) {
@@ -390,6 +469,20 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
           }));
         }
       });
+
+      // Add authorization letters to documents
+      const authLetters = Object.entries(authorizationLetters)
+        .filter(([_, file]) => file !== null)
+        .map(([letterType, file]) => {
+          const letterLabel = getRequiredAuthLetters().find(l => l.key === letterType)?.label || letterType;
+          return {
+            type: 'authorization_letter' as DocumentType,
+            name: `${file!.name} - ${letterLabel}`,
+            url: URL.createObjectURL(file!),
+          };
+        });
+      
+      documents.push(...authLetters);
 
       const file = createFile({
         clientId,
@@ -993,6 +1086,109 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
     </div>
   );
 
+  const renderAuthorizationLettersStep = () => {
+    const requiredLetters = getRequiredAuthLetters();
+    
+    return (
+      <div className="space-y-6">
+        <div>
+          <Label className="text-base font-medium">Authorization Letters</Label>
+          <p className="text-sm text-gray-500 mt-1">
+            Upload required authorization letters for {transportMode} shipment
+          </p>
+          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-700">
+              {transportMode === 'AIR' && 'For AIR shipments, you need: Swissport, Customs, and TBS Authorization Letters (3 letters required)'}
+              {transportMode === 'SEA' && 'For SEA shipments, you need: Shipping Line, Customs, and TBS Authorization Letters (3 letters required)'}
+              {(transportMode === 'ROAD' || transportMode === 'RAIL') && 'For ROAD/RAIL shipments, you need: Customs and TBS Authorization Letters (2 letters required)'}
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {requiredLetters.map(({ key, label }) => {
+            const uploadedFile = authorizationLetters[key];
+            const hasError = validationErrors[key];
+            
+            return (
+              <Card key={key} className={cn("border-2", hasError && "border-red-500")}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <FileText className="w-5 h-5 text-blue-600" />
+                      <span className="font-medium">{label}</span>
+                      {hasError && (
+                        <Badge variant="destructive" className="text-xs">Required</Badge>
+                      )}
+                    </div>
+                    <Badge variant={uploadedFile ? 'default' : 'secondary'}>
+                      {uploadedFile ? 'Uploaded' : 'Not uploaded'}
+                    </Badge>
+                  </div>
+
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    ref={(el) => { authLetterInputRefs.current[key] = el; }}
+                    onChange={(e) => handleAuthLetterUpload(key, e.target.files)}
+                    className="hidden"
+                  />
+
+                  {uploadedFile ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between p-2 bg-green-50 rounded-lg border border-green-200">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-green-600" />
+                          <div>
+                            <p className="text-sm font-medium truncate max-w-xs">{uploadedFile.name}</p>
+                            <p className="text-xs text-gray-500">
+                              ({(uploadedFile.size / 1024).toFixed(1)} KB)
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => removeAuthLetter(key)}
+                          className="p-1 hover:bg-red-100 rounded transition-colors"
+                        >
+                          <X className="w-4 h-4 text-red-500" />
+                        </button>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => authLetterInputRefs.current[key]?.click()}
+                        className="w-full"
+                        size="sm"
+                      >
+                        Replace File
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => authLetterInputRefs.current[key]?.click()}
+                      className="w-full"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload PDF
+                    </Button>
+                  )}
+
+                  {hasError && (
+                    <p className="text-sm text-red-500 mt-2">
+                      This authorization letter is required
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   const renderStep3 = () => {
     // Only show SEA freight details for SEA transport
     if (transportMode !== 'SEA') {
@@ -1440,6 +1636,7 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
             setDocumentNumbers({ commercialInvoiceNumber: '', blType: '', blNumber: '', awbType: '', awbNumber: '', roadConsignmentNumber: '' });
             setSeaFreightDetails({ seaFreightType: '', fcl20ftQuantity: '', fcl40ftQuantity: '', fclContainerOtherDescription: '' });
             setCargoDescription('');
+            setAuthorizationLetters({});
           }}>
             Create Another File
           </Button>
@@ -1452,10 +1649,11 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
     const baseSteps = [
       { number: 1, title: 'Client & Shipment', description: 'Enter client and shipment details' },
       { number: 2, title: 'Documents & Numbers', description: 'Select documents and enter numbers' },
+      { number: 3, title: 'Authorization Letters', description: 'Upload required authorization letters' },
     ];
     
     if (transportMode === 'SEA') {
-      baseSteps.push({ number: 3, title: 'SEA Freight Details', description: 'Container type and specifications' });
+      baseSteps.push({ number: 4, title: 'SEA Freight Details', description: 'Container type and specifications' });
     }
     
     baseSteps.push(
@@ -1530,10 +1728,11 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
         <CardContent>
           {step === 1 && renderStep1()}
           {step === 2 && renderStep2()}
-          {step === 3 && (transportMode === 'SEA' ? renderStep3() : renderStep4())}
-          {step === 4 && (transportMode === 'SEA' ? renderStep4() : renderStep5())}
-          {step === 5 && (transportMode === 'SEA' ? renderStep5() : renderStep6())}
-          {step === 6 && renderStep6()}
+          {step === 3 && renderAuthorizationLettersStep()}
+          {step === 4 && (transportMode === 'SEA' ? renderStep3() : renderStep4())}
+          {step === 5 && (transportMode === 'SEA' ? renderStep4() : renderStep5())}
+          {step === 6 && (transportMode === 'SEA' ? renderStep5() : renderStep6())}
+          {step === 7 && renderStep6()}
         </CardContent>
       </Card>
 

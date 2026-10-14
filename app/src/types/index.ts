@@ -37,6 +37,7 @@ export type DocumentType =
   | 'road_consignment_note'
   | 'coc'
   | 'coo'
+  | 'authorization_letter'
   | 'other';
 
 // File Status
@@ -313,6 +314,19 @@ export interface ShipmentFile {
   cargoCollectedAt?: Date;
   deliveredToClientAt?: Date;
   arrivedAtWarehouseAt?: Date;
+  
+  // Authorization Letters (transport mode specific)
+  // AIR: Swissport, Customs, TBS
+  swissportAuthorizationUrl?: string;
+  swissportAuthorizationUploadedAt?: Date;
+  // SEA: Shipping Line, Customs, TBS
+  shippingLineAuthorizationUrl?: string;
+  shippingLineAuthorizationUploadedAt?: Date;
+  // ALL modes: Customs and TBS
+  customsAuthorizationUrl?: string;
+  customsAuthorizationUploadedAt?: Date;
+  tbsAuthorizationUrl?: string;
+  tbsAuthorizationUploadedAt?: Date;
   
   // Timestamps
   createdAt: Date;
