@@ -317,8 +317,15 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
       return;
     }
 
-    // For SEA shipments: Change status to WAITING_FOR_WHARFAGE_PAYMENT when docs uploaded
-    let newStatus: any = 'WAITING_FOR_WHARFAGE_PAYMENT';
+    // For SEA shipments: Upload wharfage and automatically mark as PAID
+    // If tax is already paid, move to TAXES_PAID status
+    // If tax is not paid yet, stay in current status but mark wharfage as uploaded and paid
+    let newStatus: any = selectedFile.status;
+    
+    // If tax is already confirmed, we can move to TAXES_PAID (both are done)
+    if (selectedFile.taxPaymentConfirmed) {
+      newStatus = 'TAXES_PAID';
+    }
 
     updateFileStatus(
       selectedFile.id,
@@ -327,10 +334,16 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
       {
         wharfageDocumentUrl: URL.createObjectURL(wharfageDocumentFiles[0]),
         wharfageDocumentUploadedAt: new Date(),
+        wharfagePaymentConfirmed: true,
+        wharfagePaymentConfirmedAt: new Date(),
       }
     );
 
-    toast.success('Wharfage documents uploaded - Click WHARFAGE PAID to confirm payment');
+    const message = selectedFile.taxPaymentConfirmed 
+      ? 'Wharfage uploaded and marked as PAID ✓ - Both payments complete. Click DECLARATION DONE to proceed'
+      : 'Wharfage uploaded and marked as PAID ✓ - Now click TAX PAID to confirm tax payment';
+    
+    toast.success(message);
     setWharfageUploadDialogOpen(false);
     // Don't clear selectedFile - keep it selected so user can see payment buttons
     setWharfageDocumentFiles([]);
@@ -344,9 +357,16 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
     let successMessage = '';
     
     if (selectedFile.transportMode === 'SEA') {
-      // SEA: Move to waiting for wharfage CHARGES (not yet uploaded)
-      newStatus = 'WAITING_FOR_WHARFAGE_CHARGES';
-      successMessage = 'Tax payment confirmed ✓ - Now upload wharfage charges documents';
+      // SEA: Check if wharfage is already paid
+      if (selectedFile.wharfagePaymentConfirmed) {
+        // Both tax and wharfage are paid - move to TAXES_PAID
+        newStatus = 'TAXES_PAID';
+        successMessage = 'Tax payment confirmed ✓ - Both tax and wharfage paid. Click DECLARATION DONE to proceed';
+      } else {
+        // Tax paid but wharfage not uploaded yet - move to waiting for wharfage
+        newStatus = 'WAITING_FOR_WHARFAGE_CHARGES';
+        successMessage = 'Tax payment confirmed ✓ - Now upload wharfage charges documents';
+      }
     } else {
       // AIR/ROAD/RAIL: Tax is only payment, mark as paid
       newStatus = 'TAXES_PAID';
