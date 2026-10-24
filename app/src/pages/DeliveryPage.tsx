@@ -3,8 +3,6 @@ import {
   Truck,
   CheckCircle,
   Clock,
-  AlertCircle,
-  MapPin,
   FileText,
   Filter,
   Search,
@@ -13,7 +11,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -24,20 +21,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Progress } from '@/components/ui/progress';
 import { useAuthStore } from '@/store/authStore';
 import { useFileStore } from '@/store/fileStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import type { ShipmentFile, TruckSize } from '@/types';
 import type { AppRoute } from '@/App';
-import { mockUsers } from '@/data/mockData';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { statusColors } from '@/utils/statusColors';
@@ -47,7 +35,7 @@ interface DeliveryPageProps {
 }
 
 export function DeliveryPage({ navigate }: DeliveryPageProps) {
-  const { user, hasPermission } = useAuthStore();
+  const { user } = useAuthStore();
   const { files, updateFileStatus } = useFileStore();
   const { addNotification } = useNotificationStore();
 
@@ -55,10 +43,6 @@ export function DeliveryPage({ navigate }: DeliveryPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFile, setSelectedFile] = useState<ShipmentFile | null>(null);
   const [truckSizeDialogOpen, setTruckSizeDialogOpen] = useState(false);
-  const [selectedTruckSize, setSelectedTruckSize] = useState<TruckSize | ''>('');
-  const [driverSelectionDialogOpen, setDriverSelectionDialogOpen] = useState(false);
-  const [selectedDriver, setSelectedDriver] = useState('');
-  const [pendingTruckSize, setPendingTruckSize] = useState<TruckSize | null>(null);
 
   // Delivery files - those with DRIVER_REQUESTED status that need assignment
   const deliveryFiles = files.filter((f: ShipmentFile) =>
@@ -95,8 +79,6 @@ export function DeliveryPage({ navigate }: DeliveryPageProps) {
   const handleTruckSizeSelect = (size: TruckSize) => {
     if (!selectedFile || !user) return;
 
-    setSelectedTruckSize(size);
-    setPendingTruckSize(size);
     setTruckSizeDialogOpen(false);
 
     // Determine who receives the request based on truck size
@@ -131,7 +113,6 @@ export function DeliveryPage({ navigate }: DeliveryPageProps) {
     toast.success(`Driver request sent to ${recipientRole} for ${size.toLowerCase()} truck assignment`);
     setTruckSizeDialogOpen(false);
     setSelectedFile(null);
-    setSelectedTruckSize('');
   };
 
   const stats = {
@@ -156,7 +137,7 @@ export function DeliveryPage({ navigate }: DeliveryPageProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -364,7 +345,7 @@ export function DeliveryPage({ navigate }: DeliveryPageProps) {
               Select the appropriate truck size for this shipment:
             </p>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Small Truck Option */}
               <button
                 onClick={() => handleTruckSizeSelect('SMALL')}
@@ -394,7 +375,6 @@ export function DeliveryPage({ navigate }: DeliveryPageProps) {
               onClick={() => {
                 setTruckSizeDialogOpen(false);
                 setSelectedFile(null);
-                setSelectedTruckSize('');
               }}
             >
               Cancel

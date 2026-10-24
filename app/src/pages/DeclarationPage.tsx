@@ -95,7 +95,7 @@ function WorkloadCard({ declarant, workload, onAssign }: WorkloadCardProps) {
             <Progress value={utilization} className="h-2" />
           </div>
 
-          <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-center">
             <div className="bg-gray-50 rounded-lg p-2">
               <p className="text-lg font-bold">{workload.totalAssigned}</p>
               <p className="text-xs text-gray-500">Total</p>
@@ -607,7 +607,7 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
         )}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -1135,7 +1135,7 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
             {selectedFile && (
               <div className="space-y-2 p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm font-medium">File Details:</p>
-                <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                   <div>
                     <span className="text-gray-500">File Number:</span>
                     <p className="font-mono font-medium">{selectedFile.fileNumber}</p>
@@ -1578,7 +1578,7 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
                 </div>
 
                 {/* Declarant-specific fields only */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Carry In Date</Label>
                     <Input
@@ -1619,7 +1619,7 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
                 {(selectedFile.eta || selectedFile.etb) && (
                   <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <p className="text-sm font-medium text-gray-700 mb-2">Shipping Line Information (Read-only):</p>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                       {selectedFile.eta && (
                         <div>
                           <span className="text-gray-500">ETA:</span>

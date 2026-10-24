@@ -180,6 +180,26 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
     }
   }, [serviceType, shipmentType]);
 
+  // Clear authorization letters when transport mode changes
+  useEffect(() => {
+    // Only clear if we already have letters (to avoid clearing on initial load)
+    if (Object.keys(authorizationLetters).some(key => authorizationLetters[key] !== null)) {
+      setAuthorizationLetters({});
+      // Clear validation errors for authorization letters
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        const letterKeys = ['swissport', 'customs', 'tbs', 'shipping_line'];
+        letterKeys.forEach(key => delete newErrors[key]);
+        return newErrors;
+      });
+      // If user is beyond step 3, move them back to step 3 to re-validate
+      if (step > 3) {
+        setStep(3);
+        toast.info('Transport mode changed. Please re-upload authorization letters.');
+      }
+    }
+  }, [transportMode]);
+
   const handleDocumentToggle = (docType: DocumentType) => {
     setSelectedDocuments(prev =>
       prev.includes(docType)
@@ -271,10 +291,23 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
     });
   };
 
+  // Map current step to validation case based on transport mode
+  const getValidationCase = (): number => {
+    if (step <= 3) return step; // Steps 1-3 are always the same
+    if (transportMode === 'SEA') {
+      return step; // For SEA: step 4 = SEA freight, 5 = cargo, 6 = documents
+    } else {
+      // For non-SEA: step 4 = cargo (validation case 5), step 5 = documents (validation case 6)
+      return step + 1; // Skip case 4 (SEA freight validation)
+    }
+  };
+
   const validateStep = () => {
     const errors: Record<string, boolean> = {};
     
-    switch (step) {
+    const validationCase = getValidationCase();
+    
+    switch (validationCase) {
       case 1:
         if (clientType === 'existing') {
           if (!selectedClient) {
@@ -349,6 +382,7 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
           return false;
         }
         
+        // Mark that auth letters were validated for this transport mode
         setValidationErrors({});
         return true;
       case 4:
@@ -470,9 +504,10 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
         }
       });
 
-      // Add authorization letters to documents
+      // Add authorization letters to documents (only required ones for current transport mode)
+      const requiredLetterKeys = getRequiredAuthLetters().map(l => l.key);
       const authLetters = Object.entries(authorizationLetters)
-        .filter(([_, file]) => file !== null)
+        .filter(([letterType, file]) => file !== null && requiredLetterKeys.includes(letterType))
         .map(([letterType, file]) => {
           const letterLabel = getRequiredAuthLetters().find(l => l.key === letterType)?.label || letterType;
           return {
@@ -811,7 +846,7 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
       {/* Shipment Type */}
       <div>
         <Label className="text-base font-medium">Shipment Type</Label>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mt-3">
           {serviceType === 'TRANSPORTATION' ? (
             // For TRANSPORTATION service, only show LOCAL and TRANSIT
             <>
@@ -872,7 +907,7 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
       {/* Transport Mode */}
       <div>
         <Label className="text-base font-medium">Mode of Transport</Label>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mt-3">
           {transportModes
             .filter(({ value }) => {
               // For TRANSPORTATION service, only show ROAD
@@ -1202,7 +1237,7 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
           <p className="text-sm text-gray-500 mt-1">
             Select the type of container for your SEA shipment
           </p>
-          <div className="grid grid-cols-2 gap-4 mt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
             <button
               type="button"
               onClick={() => {
@@ -1654,13 +1689,14 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
     
     if (transportMode === 'SEA') {
       baseSteps.push({ number: 4, title: 'SEA Freight Details', description: 'Container type and specifications' });
+      baseSteps.push({ number: 5, title: 'Cargo Description', description: 'Describe the cargo' });
+      baseSteps.push({ number: 6, title: 'Documents', description: 'Select existing or upload new documents' });
+      baseSteps.push({ number: 7, title: 'Confirmation', description: 'File creation complete' });
+    } else {
+      baseSteps.push({ number: 4, title: 'Cargo Description', description: 'Describe the cargo' });
+      baseSteps.push({ number: 5, title: 'Documents', description: 'Select existing or upload new documents' });
+      baseSteps.push({ number: 6, title: 'Confirmation', description: 'File creation complete' });
     }
-    
-    baseSteps.push(
-      { number: baseSteps.length + 1, title: 'Cargo Description', description: 'Describe the cargo' },
-      { number: baseSteps.length + 2, title: 'Documents', description: 'Select existing or upload new documents' },
-      { number: baseSteps.length + 3, title: 'Confirmation', description: 'File creation complete' }
-    );
     
     return baseSteps;
   };
@@ -1732,7 +1768,7 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
           {step === 4 && (transportMode === 'SEA' ? renderStep3() : renderStep4())}
           {step === 5 && (transportMode === 'SEA' ? renderStep4() : renderStep5())}
           {step === 6 && (transportMode === 'SEA' ? renderStep5() : renderStep6())}
-          {step === 7 && renderStep6()}
+          {step === 7 && transportMode === 'SEA' && renderStep6()}
         </CardContent>
       </Card>
 
@@ -1748,7 +1784,7 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
             Previous
           </Button>
           
-          {step < maxStep - 1 ? (
+          {step < maxStep ? (
             <Button onClick={() => validateStep() && setStep(step + 1)}>
               Next
               <ArrowRight className="w-4 h-4 ml-2" />

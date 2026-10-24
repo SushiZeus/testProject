@@ -234,7 +234,7 @@ export function AssetRegisterPage({ navigate }: AssetRegisterPageProps) {
                 <DialogHeader>
                   <DialogTitle>Register New Asset</DialogTitle>
                 </DialogHeader>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label>Asset Name *</Label>
                     <Input
@@ -398,7 +398,7 @@ export function AssetRegisterPage({ navigate }: AssetRegisterPageProps) {
         )}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -596,7 +596,7 @@ export function AssetRegisterPage({ navigate }: AssetRegisterPageProps) {
           <DialogHeader>
             <DialogTitle>Edit Asset</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label>Asset Name *</Label>
               <Input

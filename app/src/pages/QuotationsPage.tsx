@@ -54,7 +54,7 @@ const COMMERCIAL_STATUSES = [
   'COMMERCIAL_APPROVED',
 ];
 
-export function QuotationsPage({ navigate }: QuotationsPageProps) {
+export function QuotationsPage({ navigate: _navigate }: QuotationsPageProps) {
   const { user } = useAuthStore();
   const { files, updateFileStatus } = useFileStore();
   const { addNotification } = useNotificationStore();
@@ -283,7 +283,7 @@ export function QuotationsPage({ navigate }: QuotationsPageProps) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
         {[
           { label: 'Waiting', count: waiting.length, color: 'bg-amber-100', textColor: 'text-amber-700', icon: Clock },
           { label: 'Processing', count: processing.length, color: 'bg-blue-100', textColor: 'text-blue-700', icon: Package },
@@ -334,7 +334,7 @@ export function QuotationsPage({ navigate }: QuotationsPageProps) {
               <DialogTitle>File Details — {selectedFile.fileNumber}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-2">
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                 <div>
                   <p className="text-gray-500 text-xs">Client</p>
                   <p className="font-medium">{selectedFile.client?.name || '—'}</p>

@@ -353,7 +353,7 @@ export function PettyCashHistoryPage({ navigate }: PettyCashHistoryPageProps) {
 
           {selectedRequest && (
             <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-gray-500">Request Number</Label>
                   <p className="font-mono font-medium">{selectedRequest.requestNumber}</p>

@@ -110,7 +110,7 @@ export function AssignmentsPage({ navigate: _navigate }: AssignmentsPageProps) {
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {[
           { label: 'Total Assignments', value: stats.total, color: 'bg-blue-100 text-blue-600' },
           { label: 'Currently Assigned', value: stats.active, color: 'bg-green-100 text-green-600' },

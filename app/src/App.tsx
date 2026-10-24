@@ -31,11 +31,16 @@ import { RequestsPage } from '@/pages/Inventory/RequestsPage';
 import { PurchaseOrdersPage } from '@/pages/Inventory/PurchaseOrdersPage';
 import { GoodsReceivedPage } from '@/pages/Inventory/GoodsReceivedPage';
 import { InventoryDashboardPage } from '@/pages/InventoryDashboardPage';
+import { SuppliersPage } from '@/pages/Inventory/SuppliersPage';
 import { RecruitmentDashboardPage } from '@/pages/RecruitmentDashboardPage';
 import { TrainingDashboardPage } from '@/pages/TrainingDashboardPage';
 import { PerformanceDashboardPage } from '@/pages/PerformanceDashboardPage';
 import { OutsourcingDashboardPage } from '@/pages/OutsourcingDashboardPage';
 import { QuotationsPage } from '@/pages/QuotationsPage';
+import { ClaimsExpensesPage } from '@/pages/ClaimsExpensesPage';
+import { ClaimDetailPage } from '@/pages/ClaimDetailPage';
+import { LoansPage } from '@/pages/LoansPage';
+import { LoanDetailPage } from '@/pages/LoanDetailPage';
 import { useAuthStore } from '@/store/authStore';
 import { initializeSampleData } from '@/utils/initializeSampleData';
 
@@ -89,7 +94,11 @@ export type AppRoute =
   | 'outsourcing/vendors'
   | 'outsourcing/deliverables'
   | 'outsourcing/invoices'
-  | 'quotations';
+  | 'quotations'
+  | 'claims'
+  | 'claims/:id'
+  | 'loans'
+  | 'loans/:id';
 
 function App() {
   const { isAuthenticated } = useAuthStore();
@@ -156,6 +165,7 @@ function App() {
       case 'payroll/:id':
         return <PayrollRunDetailPage navigate={navigate} runId={routeParams.id} />;
       case 'assets':
+      case 'assets/new':
         return <AssetRegisterPage navigate={navigate} />;
       case 'assets/:id':
         return <AssetDetailPage navigate={navigate} assetId={routeParams.id} />;
@@ -169,6 +179,8 @@ function App() {
         return <DisposalsPage navigate={navigate} />;
       case 'inventory':
         return <InventoryDashboardPage navigate={navigate} />;
+      case 'inventory/suppliers':
+        return <SuppliersPage />;
       case 'inventory/items':
         return <ItemsPage navigate={navigate} />;
       case 'inventory/requests':
@@ -178,15 +190,36 @@ function App() {
       case 'inventory/goods-received':
         return <GoodsReceivedPage navigate={navigate} />;
       case 'recruitment':
+      case 'recruitment/jobs':
+      case 'recruitment/applicants':
+      case 'recruitment/interviews':
         return <RecruitmentDashboardPage navigate={navigate} />;
       case 'training':
+      case 'training/courses':
+      case 'training/enrollments':
+      case 'training/certificates':
         return <TrainingDashboardPage navigate={navigate} />;
       case 'performance':
+      case 'performance/appraisals':
+      case 'performance/goals':
+      case 'performance/pips':
         return <PerformanceDashboardPage navigate={navigate} />;
       case 'outsourcing':
+      case 'outsourcing/contracts':
+      case 'outsourcing/vendors':
+      case 'outsourcing/deliverables':
+      case 'outsourcing/invoices':
         return <OutsourcingDashboardPage navigate={navigate} />;
       case 'quotations':
         return <QuotationsPage navigate={navigate} />;
+      case 'claims':
+        return <ClaimsExpensesPage navigate={navigate} />;
+      case 'claims/:id':
+        return <ClaimDetailPage navigate={navigate} claimId={routeParams.id} />;
+      case 'loans':
+        return <LoansPage navigate={navigate} />;
+      case 'loans/:id':
+        return <LoanDetailPage navigate={navigate} loanId={routeParams.id} />;
       default:
         return <DashboardPage navigate={navigate} />;
     }

@@ -97,7 +97,7 @@ export function DisposalsPage({ navigate: _navigate }: DisposalsPageProps) {
                     ))}
                   </select>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label>Disposal Method</Label>
                     <select value={disposeData.method} onChange={e => setDisposeData({ ...disposeData, method: e.target.value as DisposalMethod })} className="w-full h-10 px-3 rounded-md border border-gray-300">
@@ -123,7 +123,7 @@ export function DisposalsPage({ navigate: _navigate }: DisposalsPageProps) {
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {[
           { label: 'Total Disposals', value: disposals.length },
           { label: 'Total Disposal Value', value: formatCurrency(disposals.reduce((s, d) => s + d.disposalValue, 0)) },

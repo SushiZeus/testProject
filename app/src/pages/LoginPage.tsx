@@ -192,12 +192,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
         {/* Footer */}
         <div className="px-8 pb-6 text-center">
-          <a 
-            href="#" 
-            className="text-sm text-orange-300 hover:text-orange-400 transition-colors"
-          >
-            Forgot your password?
-          </a>
+          <button type="button" onClick={() => toast.info('Please contact your system administrator to reset your password.')} className="text-sm text-orange-300 hover:text-orange-400 transition-colors">Forgot your password?</button>
         </div>
       </div>
 

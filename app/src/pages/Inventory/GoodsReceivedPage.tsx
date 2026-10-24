@@ -72,7 +72,7 @@ export function GoodsReceivedPage({ navigate: _navigate }: GoodsReceivedPageProp
                     {items.map(i => <option key={i.id} value={i.id}>{i.code} — {i.name}</option>)}
                   </select>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div><Label>Quantity Received *</Label><Input type="number" value={formData.quantity} onChange={e => setFormData({ ...formData, quantity: e.target.value })} placeholder="0" /></div>
                   <div><Label>Storage Location *</Label><Input value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} placeholder="e.g., Main Store" /></div>
                 </div>
@@ -87,7 +87,7 @@ export function GoodsReceivedPage({ navigate: _navigate }: GoodsReceivedPageProp
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card><CardContent className="p-4"><p className="text-sm text-gray-500">Total Items</p><p className="text-2xl font-bold">{items.length}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-sm text-gray-500">Pending POs</p><p className="text-2xl font-bold text-amber-600">{approvedPOs.length}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-sm text-gray-500">Total Stock Value</p><p className="text-xl font-bold text-green-600">{formatCurrency(items.reduce((s, i) => s + (i.locations.reduce((q, l) => q + l.quantity, 0) * i.unitCost), 0))}</p></CardContent></Card>
@@ -103,8 +103,8 @@ export function GoodsReceivedPage({ navigate: _navigate }: GoodsReceivedPageProp
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <table className="w-full">
+        <CardContent className="overflow-x-auto">
+          <table className="w-full min-w-[640px]">
             <thead>
               <tr className="border-b">
                 {['Code', 'Item', 'Category', 'Location', 'Qty', 'Unit Cost', 'Total Value', 'Status'].map(h => (

@@ -76,7 +76,7 @@ function DriverWorkloadCard({ driver, workload, onAssign }: DriverWorkloadCardPr
             <Progress value={utilization} className="h-2" />
           </div>
 
-          <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-center">
             <div className="bg-gray-50 rounded-lg p-2">
               <p className="text-lg font-bold">{workload.totalAssigned}</p>
               <p className="text-xs text-gray-500">Active</p>
@@ -210,7 +210,7 @@ export function DriversPage({ navigate }: DriversPageProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">

@@ -856,7 +856,13 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
     }
   };
 
-  const recentFiles = files.slice(-5).reverse();
+  const recentUploads = files
+    .flatMap((file) => file.documents.map((document) => ({ file, document })))
+    .sort((a, b) => new Date(b.document.uploadedAt).getTime() - new Date(a.document.uploadedAt).getTime())
+    .slice(0, 8);
+  const recentFiles = [...files]
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .slice(0, 5);
 
   const getQuickActions = () => {
     if (!user) return [];
@@ -1154,6 +1160,35 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
           )}
         </div>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Uploads</CardTitle>
+          <CardDescription>Latest documents attached to shipment files</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {recentUploads.length === 0 ? (
+            <div className="py-8 text-center text-sm text-gray-500">No documents uploaded yet</div>
+          ) : (
+            <div className="divide-y">
+              {recentUploads.map(({ file, document }) => (
+                <button
+                  key={`${file.id}-${document.id}`}
+                  type="button"
+                  onClick={() => navigate('files/:id', { id: file.id })}
+                  className="flex w-full min-w-0 items-center justify-between gap-4 py-3 text-left hover:bg-gray-50"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium text-gray-900">{document.documentName}</span>
+                    <span className="block truncate text-sm text-gray-500">{file.fileNumber} · {file.client?.name || 'Unknown client'}</span>
+                  </span>
+                  <span className="shrink-0 text-xs text-gray-500">{new Date(document.uploadedAt).toLocaleString()}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

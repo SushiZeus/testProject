@@ -36,16 +36,12 @@ export function RequestsPage({ navigate: _navigate }: RequestsPageProps) {
     const item = items.find(i => i.id === formData.itemId);
     if (!item) return;
     createStockRequest({
-      itemId: formData.itemId,
-      itemCode: item.code,
-      itemName: item.name,
-      quantity: parseInt(formData.quantity),
-      unit: item.unit,
-      requestedBy: user.name,
-      requestedFor: formData.requestedFor || user.name,
+      requestedBy: user.id,
+      requestedByName: user.name,
+      department: formData.requestedFor || user.department || 'General',
+      items: [{ id: crypto.randomUUID(), itemId: item.id, itemName: item.name, requestedQuantity: parseInt(formData.quantity, 10) }],
       requestDate: new Date(),
       status: 'PENDING',
-      notes: formData.notes,
     });
     toast.success('Stock request submitted');
     setFormData({ itemId: '', quantity: '', requestedFor: '', notes: '' });
@@ -56,7 +52,7 @@ export function RequestsPage({ navigate: _navigate }: RequestsPageProps) {
     PENDING: 'bg-amber-100 text-amber-700',
     APPROVED: 'bg-green-100 text-green-700',
     REJECTED: 'bg-red-100 text-red-700',
-    FULFILLED: 'bg-blue-100 text-blue-700',
+    ISSUED: 'bg-blue-100 text-blue-700',
   };
 
   const formatDate = (d: Date) => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -92,12 +88,12 @@ export function RequestsPage({ navigate: _navigate }: RequestsPageProps) {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
           { label: 'Total', value: stockRequests.length, cls: 'text-gray-900' },
           { label: 'Pending', value: stockRequests.filter(r => r.status === 'PENDING').length, cls: 'text-amber-600' },
           { label: 'Approved', value: stockRequests.filter(r => r.status === 'APPROVED').length, cls: 'text-green-600' },
-          { label: 'Fulfilled', value: stockRequests.filter(r => r.status === 'FULFILLED').length, cls: 'text-blue-600' },
+          { label: 'Issued', value: stockRequests.filter(r => r.status === 'ISSUED').length, cls: 'text-blue-600' },
         ].map(({ label, value, cls }) => (
           <Card key={label}><CardContent className="p-4"><p className="text-sm text-gray-500">{label}</p><p className={`text-2xl font-bold ${cls}`}>{value}</p></CardContent></Card>
         ))}
@@ -113,8 +109,8 @@ export function RequestsPage({ navigate: _navigate }: RequestsPageProps) {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <table className="w-full">
+        <CardContent className="overflow-x-auto">
+          <table className="w-full min-w-[640px]">
             <thead>
               <tr className="border-b">
                 {['Request #', 'Item', 'Qty', 'Requested By', 'Date', 'Status', 'Actions'].map(h => (
@@ -130,9 +126,9 @@ export function RequestsPage({ navigate: _navigate }: RequestsPageProps) {
               ) : filtered.map(r => (
                 <tr key={r.id} className="border-b hover:bg-gray-50">
                   <td className="py-3 px-4 font-mono text-blue-600 font-medium">{r.requestNumber}</td>
-                  <td className="py-3 px-4"><p className="font-medium">{r.itemName}</p><p className="text-sm text-gray-500">{r.itemCode}</p></td>
-                  <td className="py-3 px-4 font-medium">{r.quantity} {r.unit}</td>
-                  <td className="py-3 px-4 text-sm">{r.requestedBy}</td>
+                  <td className="py-3 px-4"><p className="font-medium">{r.items.map(i => i.itemName).join(', ')}</p></td>
+                  <td className="py-3 px-4 font-medium">{r.items.reduce((sum, i) => sum + i.requestedQuantity, 0)}</td>
+                  <td className="py-3 px-4 text-sm">{r.requestedByName}</td>
                   <td className="py-3 px-4 text-sm">{formatDate(r.requestDate)}</td>
                   <td className="py-3 px-4"><Badge className={cn('text-xs', statusColor[r.status] || 'bg-gray-100 text-gray-700')}>{r.status}</Badge></td>
                   <td className="py-3 px-4">

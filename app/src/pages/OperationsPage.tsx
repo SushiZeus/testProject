@@ -98,7 +98,7 @@ function WorkloadCard({ clerk, workload, onAssign }: WorkloadCardProps) {
             <Progress value={utilization} className="h-2" />
           </div>
 
-          <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-center">
             <div className="bg-gray-50 rounded-lg p-2">
               <p className="text-lg font-bold">{workload.totalAssigned}</p>
               <p className="text-xs text-gray-500">Total</p>
@@ -686,24 +686,6 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     setSelectedFile(null);
   };
 
-  const handleCargoCleared = () => {
-    if (!selectedFile || !user) return;
-
-    // This function is no longer needed - we go straight to OPERATIONS_DONE after Swissport payment
-    // Keeping for backwards compatibility but not used in new workflow
-    updateFileStatus(
-      selectedFile.id,
-      'CARGO_CLEARED',
-      user.id,
-      {
-        cargoClearedAt: new Date(),
-      }
-    );
-
-    toast.success('Cargo cleared');
-    setSelectedFile(null);
-  };
-
   // NEW: Handle DO Review and Approval by Operations
   const handleApproveDeliveryOrder = () => {
     if (!selectedFile || !user) return;
@@ -1072,7 +1054,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
         )}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -1181,7 +1163,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-3 md:grid-cols-6">
+        <TabsList className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="ready">Ready</TabsTrigger>
           <TabsTrigger value="permits">Permits</TabsTrigger>
@@ -1736,7 +1718,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Amount</Label>
                 <Input
@@ -2033,7 +2015,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
             {selectedFile && (
               <div className="mt-4 space-y-2 p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm font-medium">File Details:</p>
-                <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                   <div>
                     <span className="text-gray-500">File Number:</span>
                     <p className="font-mono font-medium">{selectedFile.fileNumber}</p>
@@ -2513,7 +2495,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
           
           <div className="space-y-6 py-4">
             {/* Header Information */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="station">Station (ICD) *</Label>
                 <Input

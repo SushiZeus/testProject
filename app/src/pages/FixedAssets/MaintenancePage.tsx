@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, Wrench, AlertCircle, Calendar, Edit, Trash2, CheckCircle, Clock, X } from 'lucide-react';
+import { Plus, Search, Wrench, AlertCircle, Calendar, Edit, CheckCircle, Clock, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -205,7 +205,7 @@ export function MaintenancePage({ navigate: _navigate }: MaintenancePageProps) {
                     rows={3}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label>Type</Label>
                     <select
@@ -233,7 +233,7 @@ export function MaintenancePage({ navigate: _navigate }: MaintenancePageProps) {
                     </select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label>Scheduled Date *</Label>
                     <Input
@@ -287,7 +287,7 @@ export function MaintenancePage({ navigate: _navigate }: MaintenancePageProps) {
         )}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'Total', value: stats.total, color: 'bg-blue-100', icon: Wrench, iconColor: 'text-blue-600' },
           { label: 'Scheduled', value: stats.scheduled, color: 'bg-blue-100', icon: Calendar, iconColor: 'text-blue-600' },
@@ -489,7 +489,7 @@ export function MaintenancePage({ navigate: _navigate }: MaintenancePageProps) {
                 rows={3}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>Type</Label>
                 <select
@@ -517,7 +517,7 @@ export function MaintenancePage({ navigate: _navigate }: MaintenancePageProps) {
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>Scheduled Date *</Label>
                 <Input

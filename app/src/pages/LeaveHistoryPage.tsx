@@ -361,7 +361,7 @@ export function LeaveHistoryPage({ navigate }: LeaveHistoryPageProps) {
 
           {selectedRequest && (
             <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-gray-500">Request Number</Label>
                   <p className="font-mono font-medium">{selectedRequest.requestNumber}</p>
@@ -374,7 +374,7 @@ export function LeaveHistoryPage({ navigate }: LeaveHistoryPageProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-gray-500">Start Date</Label>
                   <p className="font-medium">{new Date(selectedRequest.startDate).toLocaleDateString('en-GB')}</p>

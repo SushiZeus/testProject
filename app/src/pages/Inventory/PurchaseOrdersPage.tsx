@@ -34,14 +34,13 @@ export function PurchaseOrdersPage({ navigate: _navigate }: PurchaseOrdersPagePr
   const handleCreate = () => {
     if (!formData.supplierName || !formData.totalAmount) { toast.error('Please fill required fields'); return; }
     createPO({
+      supplierId: `SUP-${Date.now()}`,
       supplierName: formData.supplierName,
-      supplierCode: `SUP-${Date.now()}`,
       items: [],
       totalAmount: parseFloat(formData.totalAmount),
       status: 'PENDING',
       expectedDelivery: formData.expectedDelivery ? new Date(formData.expectedDelivery) : new Date(),
-      createdBy: user.id,
-      notes: formData.description,
+      requestedBy: user.id,
     });
     toast.success('Purchase order created');
     setFormData({ supplierName: '', description: '', totalAmount: '', expectedDelivery: '' });
@@ -86,7 +85,7 @@ export function PurchaseOrdersPage({ navigate: _navigate }: PurchaseOrdersPagePr
         )}
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
           { label: 'Total POs', value: purchaseOrders.length, cls: 'text-gray-900' },
           { label: 'Pending', value: purchaseOrders.filter(p => p.status === 'PENDING').length, cls: 'text-amber-600' },
@@ -107,8 +106,8 @@ export function PurchaseOrdersPage({ navigate: _navigate }: PurchaseOrdersPagePr
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <table className="w-full">
+        <CardContent className="overflow-x-auto">
+          <table className="w-full min-w-[640px]">
             <thead>
               <tr className="border-b">
                 {['PO Number', 'Supplier', 'Amount', 'Expected Delivery', 'Status', 'Actions'].map(h => (
@@ -126,7 +125,7 @@ export function PurchaseOrdersPage({ navigate: _navigate }: PurchaseOrdersPagePr
                   <td className="py-3 px-4 font-mono text-blue-600 font-medium">{po.poNumber}</td>
                   <td className="py-3 px-4 font-medium">{po.supplierName}</td>
                   <td className="py-3 px-4 font-medium">{formatCurrency(po.totalAmount)}</td>
-                  <td className="py-3 px-4 text-sm">{formatDate(po.expectedDelivery)}</td>
+                  <td className="py-3 px-4 text-sm">{po.expectedDelivery ? formatDate(po.expectedDelivery) : '—'}</td>
                   <td className="py-3 px-4"><Badge className={cn('text-xs', statusColor[po.status] || 'bg-gray-100 text-gray-700')}>{po.status}</Badge></td>
                   <td className="py-3 px-4">
                     {canManage && po.status === 'PENDING' && (

@@ -95,6 +95,18 @@ const navItems: NavItem[] = [
     href: 'payroll', 
     roles: ['hr_manager', 'finance_manager', 'cashier', 'administrator'] 
   },
+  {
+    label: 'Expense Claims',
+    icon: Receipt,
+    href: 'claims',
+    roles: ['*'],
+  },
+  {
+    label: 'Employee Loans',
+    icon: DollarSign,
+    href: 'loans',
+    roles: ['*'],
+  },
   { 
     label: 'Fixed Assets', 
     icon: Package, 
@@ -117,6 +129,7 @@ const navItems: NavItem[] = [
       { label: 'Requests', icon: FileText, href: 'inventory/requests', roles: ['hr_manager', 'administrator', 'commercial_manager', 'coo', 'managing_director'] },
       { label: 'Purchase Orders', icon: Receipt, href: 'inventory/po', roles: ['hr_manager', 'administrator', 'commercial_manager', 'coo', 'managing_director'] },
       { label: 'Goods Received', icon: Banknote, href: 'inventory/goods-received', roles: ['hr_manager', 'administrator', 'commercial_manager', 'coo', 'managing_director'] },
+      { label: 'Suppliers', icon: Users, href: 'inventory/suppliers', roles: ['hr_manager', 'administrator', 'commercial_manager', 'coo', 'managing_director'] },
     ]
   },
   { 

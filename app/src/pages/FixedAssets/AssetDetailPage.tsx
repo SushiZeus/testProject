@@ -108,7 +108,7 @@ export function AssetDetailPage({ navigate, assetId }: AssetDetailPageProps) {
                 <CardTitle>Asset Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-500">Category</p>
                     <p className="font-medium">{asset.category}</p>
@@ -142,7 +142,7 @@ export function AssetDetailPage({ navigate, assetId }: AssetDetailPageProps) {
                 <CardTitle>Financial Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-500">Purchase Cost</p>
                     <p className="font-medium">{formatCurrency(asset.purchaseCost)}</p>
@@ -191,7 +191,7 @@ export function AssetDetailPage({ navigate, assetId }: AssetDetailPageProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="grid grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
                   <div>
                     <p className="text-sm text-gray-500">Method</p>
                     <p className="font-medium">Straight Line (SL)</p>

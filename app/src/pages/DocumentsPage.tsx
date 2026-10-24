@@ -82,7 +82,7 @@ const formatFileSize = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-export function DocumentsPage({}: DocumentsPageProps) {
+export function DocumentsPage({ navigate }: DocumentsPageProps) {
   const { user } = useAuthStore();
   const { getUserAccessibleDocuments, searchDocuments } = useDocumentStore();
 
@@ -162,7 +162,7 @@ export function DocumentsPage({}: DocumentsPageProps) {
           </p>
         </div>
         <Button 
-          onClick={() => window.location.href = '#files/open'} 
+          onClick={() => navigate('files/open')} 
           className="flex items-center gap-2"
         >
           <Upload className="w-4 h-4" />

@@ -820,7 +820,7 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Card 
           className="cursor-pointer hover:shadow-lg transition-shadow"
           onClick={() => setActiveTab('pending')}
@@ -1252,7 +1252,7 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
               <p className="text-gray-600 mb-6">Request #{selectedRequest.requestNumber}</p>
               
               <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label className="text-gray-500">Requester</Label>
                     <p className="font-medium">{selectedRequest.requester?.name}</p>

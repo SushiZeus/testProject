@@ -406,7 +406,7 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -476,7 +476,7 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
 
       {/* Tabs and Files Table */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-5">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 h-auto">
           <TabsTrigger value="all">All SEA</TabsTrigger>
           <TabsTrigger value="import">Imports</TabsTrigger>
           <TabsTrigger value="export">Exports</TabsTrigger>
@@ -919,7 +919,7 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>HBL Number (House Bill of Lading)</Label>
                 <Input
@@ -1373,7 +1373,7 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Amount *</Label>
                 <Input

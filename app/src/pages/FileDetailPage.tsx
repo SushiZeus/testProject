@@ -307,7 +307,7 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
                     <>
                       <div>
                         <h3 className="text-sm font-medium text-gray-500 mb-3">Client Information</h3>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="p-4 bg-gray-50 rounded-lg">
                             <p className="text-sm text-gray-500">Client Name</p>
                             <p className="font-medium">{file.client?.name}</p>
@@ -333,7 +333,7 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
 
                   <div>
                     <h3 className="text-sm font-medium text-gray-500 mb-3">Shipment Details</h3>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="p-4 bg-gray-50 rounded-lg">
                         <p className="text-sm text-gray-500">Shipment Type</p>
                         <p className="font-medium">{file.shipmentType}</p>
@@ -400,7 +400,7 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
                         <h3 className="text-sm font-medium text-gray-500 mb-3">
                           Arrival Dates {file.transportMode === 'SEA' ? '🚢' : '✈️'}
                         </h3>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           {file.eta && (
                             <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                               <p className="text-sm text-gray-500">ETA (Estimated Time of Arrival)</p>
@@ -463,7 +463,7 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
                         <h3 className="text-sm font-medium text-gray-500 mb-3">
                           Payment Confirmation Dates 💰
                         </h3>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           {file.taxPaymentConfirmedAt && (
                             <div className="p-4 bg-green-50 rounded-lg border border-green-300">
                               <p className="text-sm text-gray-500 flex items-center gap-1">
@@ -501,7 +501,7 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
                         <h3 className="text-sm font-medium text-gray-500 mb-3">
                           Verification Photos 📸 ({file.verificationPhotos.length}/7)
                         </h3>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                           {file.verificationPhotos.map((photoUrl: string, index: number) => (
                             <div key={index} className="relative group">
                               <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 border-2 border-gray-200 hover:border-blue-400 transition-colors">
