@@ -159,9 +159,19 @@ export const useFileStore = (): FileState => {
   
   useEffect(() => {
     const listener = () => setTick(t => t + 1);
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== 'fileStore') return;
+
+      state = loadState();
+      cacheInvalidated = true;
+      listeners.forEach((notifyListener) => notifyListener());
+    };
+
     listeners.add(listener);
+    window.addEventListener('storage', handleStorage);
     return () => {
       listeners.delete(listener);
+      window.removeEventListener('storage', handleStorage);
     };
   }, []);
 
