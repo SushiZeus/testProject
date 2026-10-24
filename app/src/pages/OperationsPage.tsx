@@ -709,6 +709,11 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
       return;
     }
 
+    if (selectedFile.transportMode === 'SEA' && !selectedFile.deliveryOrderDocumentUrl) {
+      toast.error('Delivery Order must be uploaded before marking operations as done');
+      return;
+    }
+
     // 2. Validate that appropriate charges are UPLOADED based on transport mode
     if (selectedFile.transportMode === 'SEA' && !selectedFile.portChargesUrl) {
       toast.error('Port charges must be uploaded before marking operations as done');
@@ -732,7 +737,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     }
 
     // 4. Validate that cargo verification form is completed
-    if (!selectedFile.cargoVerificationCompletedAt) {
+    if (!selectedFile.cargoVerificationCompletedAt || !selectedFile.cargoVerificationForm) {
       toast.error('Cargo verification form must be completed before marking operations as done');
       return;
     }
@@ -1336,14 +1341,15 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                               )}
 
                               {/* OPERATIONS DONE Button - ONLY AFTER payment AND verification form completed */}
-                              {user?.role === 'operation_clerk' && 
+                              {user?.role === 'operation_clerk' &&
                                file.assignedOperationClerkId === user?.id &&
-                               ((file.transportMode === 'SEA' && file.portChargesPaidAt) ||
-                                (file.transportMode === 'AIR' && file.swissportChargesPaidAt)) &&
-                               file.releaseOrderUrl && 
-                               file.cargoVerificationCompletedAt && // MUST have verification completed
+                               !!file.releaseOrderUrl &&
+                               (file.transportMode !== 'SEA' || !!file.deliveryOrderDocumentUrl) &&
+                               ((file.transportMode === 'SEA' && !!file.portChargesUrl && !!file.portChargesPaidAt) ||
+                                (file.transportMode === 'AIR' && !!file.swissportChargesUrl && !!file.swissportChargesPaidAt)) &&
+                               !!file.cargoVerificationCompletedAt && !!file.cargoVerificationForm &&
                                file.status !== 'VERIFICATION_FORM_PENDING' &&
-                               file.status !== 'VERIFICATION_FORM_COMPLETED' && (
+                               file.status !== 'OPERATIONS_DONE' && (
                                 <Button 
                                   size="sm" 
                                   onClick={() => { setSelectedFile(file); handleOperationsDone(); }}
@@ -1398,22 +1404,6 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                 >
                                   <Printer className="w-3 h-3 mr-1" />
                                   View/Print Form
-                                </Button>
-                              )}
-
-                              {/* OPERATIONS DONE - Move to Delivery (After Verification Form Completed) */}
-                              {user?.role === 'operation_clerk' && 
-                               file.assignedOperationClerkId === user?.id &&
-                               file.status === 'VERIFICATION_FORM_COMPLETED' &&
-                               file.cargoVerificationForm && (
-                                <Button 
-                                  size="sm" 
-                                  onClick={() => { setSelectedFile(file); handleOperationsDone(); }}
-                                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                                  title="Mark operations complete after charges are paid"
-                                >
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  OPERATIONS DONE
                                 </Button>
                               )}
 
