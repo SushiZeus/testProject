@@ -1784,7 +1784,7 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
             Previous
           </Button>
           
-          {step < maxStep ? (
+          {step < maxStep - 1 ? (
             <Button onClick={() => validateStep() && setStep(step + 1)}>
               Next
               <ArrowRight className="w-4 h-4 ml-2" />
