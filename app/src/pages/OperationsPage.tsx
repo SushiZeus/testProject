@@ -258,7 +258,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     }
 
     assignOperationClerk(selectedFile.id, selectedClerk, user.id);
-    
+
     addNotification({
       userId: selectedClerk,
       title: 'File Assigned',
@@ -562,12 +562,6 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
       return;
     }
 
-    // Validate that release order is uploaded first
-    if (!selectedFile.releaseOrderUrl) {
-      toast.error('Please upload release order before uploading port charges');
-      return;
-    }
-
     updateFileStatus(
       selectedFile.id,
       'WAITING_FOR_PORT_CHARGES_PAYMENT',
@@ -774,49 +768,6 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     });
 
     toast.success('Operations marked as done ✓ - File moved to delivery');
-    setSelectedFile(null);
-  };
-
-  const handleMoveToDelivery = () => {
-    if (!selectedFile || !user) return;
-
-    // Validate that verification form is completed
-    if (!selectedFile.cargoVerificationForm) {
-      toast.error('Cargo verification form must be completed before moving to delivery');
-      return;
-    }
-
-    // Move file to DRIVER_REQUESTED status for delivery clerk assignment
-    updateFileStatus(
-      selectedFile.id,
-      'DRIVER_REQUESTED',
-      user.id,
-      {
-        operationsFinalizedAt: new Date(),
-      } as Partial<ShipmentFile>
-    );
-
-    // Notify delivery clerk
-    addNotification({
-      userId: '7', // Delivery Clerk (User ID based on credentials)
-      title: 'File Ready for Driver Request',
-      message: `File ${selectedFile.fileNumber} is ready for delivery. Please request an appropriate truck and driver.`,
-      type: 'success',
-      fileId: selectedFile.id,
-      link: '/delivery',
-    });
-
-    // Also notify transport manager
-    addNotification({
-      userId: '8', // Transport Manager
-      title: 'File Ready for Delivery',
-      message: `File ${selectedFile.fileNumber} verification complete and ready for transport.`,
-      type: 'info',
-      fileId: selectedFile.id,
-      link: '/drivers',
-    });
-
-    toast.success('File moved to delivery - Delivery Clerk can now request drivers');
     setSelectedFile(null);
   };
 
@@ -1240,7 +1191,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                   Accept
                                 </Button>
                               )}
-                              
+
                               {/* OPERATION CLERK UPLOADS - Only for assigned user */}
                               {(user?.role === 'operation_clerk' || user?.role === 'operations_manager') && 
                                file.assignedOperationClerkId === user?.id &&
@@ -1271,7 +1222,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                     {file.releaseOrderUrl ? '✓ Release Order' : 'Release Order'}
                                   </Button>
 
-                                  {/* Upload Port Charges (SEA only) - Requires release order AND DO document */}
+                                  {/* Upload Port Charges (SEA only) */}
                                   {file.transportMode === 'SEA' && (
                                     <>
                                       {/* Show DO Document if received */}
@@ -1293,7 +1244,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                             <FileText className="w-3 h-3 mr-1" />
                                             View DO
                                           </Button>
-                                          
+
                                           {/* NEW: REVIEW DO Button */}
                                           {!file.doReviewedByOperations && (
                                             <Button 
@@ -1306,7 +1257,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                               REVIEW DO
                                             </Button>
                                           )}
-                                          
+
                                           {/* Badge showing DO is approved */}
                                           {file.doReviewedByOperations && (
                                             <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs">
@@ -1315,34 +1266,14 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                           )}
                                         </div>
                                       )}
-                                      
+
                                       <Button 
                                         size="sm" 
                                         variant="outline"
-                                        onClick={() => { 
-                                          if (!file.releaseOrderUrl) {
-                                            toast.error('Please upload release order first');
-                                            return;
-                                          }
-                                          if (!file.deliveryOrderDocumentUrl) {
-                                            toast.error('Delivery Order document must be received from Shipping Line before uploading port charges');
-                                            return;
-                                          }
-                                          if (!file.doReviewedByOperations) {
-                                            toast.error('Please review and approve the Delivery Order first');
-                                            return;
-                                          }
-                                          setSelectedFile(file); 
-                                          setPortChargesDialogOpen(true); 
-                                        }}
+                                        onClick={() => { setSelectedFile(file); setPortChargesDialogOpen(true); }}
                                         className={file.portChargesUrl ? 'bg-green-50 border-green-300' : ''}
-                                        disabled={!file.releaseOrderUrl || !file.deliveryOrderDocumentUrl || !file.doReviewedByOperations}
-                                        title={
-                                          !file.releaseOrderUrl ? 'Upload release order first' : 
-                                          !file.deliveryOrderDocumentUrl ? 'Wait for DO from Shipping Line' :
-                                          !file.doReviewedByOperations ? 'Review and approve DO first' :
-                                          'Upload port charges'
-                                        }
+
+                                        title={file.portChargesUrl ? 'Replace port charges document' : 'Upload port charges'}
                                       >
                                         <Upload className="w-3 h-3 mr-1" />
                                         {file.portChargesUrl ? '✓ Port Charges' : 'Port Charges'}
@@ -1477,15 +1408,15 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                file.cargoVerificationForm && (
                                 <Button 
                                   size="sm" 
-                                  onClick={() => { setSelectedFile(file); handleMoveToDelivery(); }}
+                                  onClick={() => { setSelectedFile(file); handleOperationsDone(); }}
                                   className="bg-blue-600 hover:bg-blue-700 text-white"
-                                  title="Move file to delivery for driver assignment"
+                                  title="Mark operations complete after charges are paid"
                                 >
                                   <CheckCircle className="w-3 h-3 mr-1" />
                                   OPERATIONS DONE
                                 </Button>
                               )}
-                              
+
                               {/* PERMITS CLERK WORKFLOW */}
                               {user?.role === 'permits_clerk' && (
                                 <>
@@ -1653,7 +1584,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
               {selectedFile && `Accept file ${selectedFile.fileNumber} for processing`}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="py-4">
             <p className="text-sm text-gray-600">
               By accepting this file, you acknowledge that you will be responsible for:
@@ -1685,7 +1616,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
               Submit a petty cash request for operational expenses
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>File (Optional)</Label>
@@ -1792,7 +1723,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
               {selectedFile && `Assign an operation clerk to file ${selectedFile.fileNumber}`}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             {!selectedFile && (
               <div className="space-y-2">
@@ -1819,7 +1750,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                 </Select>
               </div>
             )}
-            
+
             <div className="space-y-2">
               <Label>Select Operation Clerk</Label>
               <Select value={selectedClerk} onValueChange={setSelectedClerk}>
@@ -1865,7 +1796,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
               {selectedFile && `Upload permit invoice for file ${selectedFile.fileNumber}`}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
               <Upload className="w-6 h-6 text-blue-600 flex-shrink-0" />
@@ -1932,7 +1863,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
               {selectedFile && `Upload permit document for file ${selectedFile.fileNumber}`}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
               <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
@@ -2000,7 +1931,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
               {selectedFile && `Confirm that all permits for file ${selectedFile.fileNumber} have been completed`}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="py-4">
             <div className="flex items-center gap-3 p-4 bg-green-50 rounded-lg border border-green-200">
               <FileCheck className="w-8 h-8 text-green-600 flex-shrink-0" />
@@ -2058,7 +1989,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
               {selectedFile && `Enter estimated arrival times for file ${selectedFile.fileNumber}`}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
               <Ship className="w-6 h-6 text-blue-600 flex-shrink-0" />
@@ -2144,7 +2075,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
               {selectedFile && `Delivery order workflow for file ${selectedFile.fileNumber}`}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             {selectedFile?.status === 'PERMITS_DONE' && (
               <>
@@ -2268,7 +2199,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
               {selectedFile && `Upload verification photos for file ${selectedFile.fileNumber} (Max 7 photos)`}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Select Photos (1-7)</Label>
@@ -2292,7 +2223,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                   <p className="text-xs text-gray-400 mt-1">Maximum 7 photos (JPG, PNG)</p>
                 </label>
               </div>
-              
+
               {verificationPhotos.length > 0 && (
                 <div className="mt-3 space-y-2">
                   <p className="text-sm font-medium">Selected Photos ({verificationPhotos.length}/7):</p>
@@ -2306,7 +2237,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                 </div>
               )}
             </div>
-            
+
             <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
               <p className="text-sm text-blue-700">
                 <span className="font-medium">Note:</span> Upload clear photos of the cargo for verification purposes. Maximum 7 photos allowed.
@@ -2333,7 +2264,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
               {selectedFile && `Upload release order for file ${selectedFile.fileNumber}`}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Select Release Order Document</Label>
@@ -2355,7 +2286,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                   <p className="text-xs text-gray-400 mt-1">PDF, JPG, PNG</p>
                 </label>
               </div>
-              
+
               {releaseOrderFile && (
                 <div className="mt-3 p-2 bg-green-50 rounded text-sm flex items-center gap-2">
                   <FileText className="w-4 h-4 text-green-600" />
@@ -2385,7 +2316,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
               {selectedFile && `Upload port charges for file ${selectedFile.fileNumber}`}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Select Port Charges Document</Label>
@@ -2407,7 +2338,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                   <p className="text-xs text-gray-400 mt-1">PDF, JPG, PNG</p>
                 </label>
               </div>
-              
+
               {portChargesFile && (
                 <div className="mt-3 p-2 bg-green-50 rounded text-sm flex items-center gap-2">
                   <FileText className="w-4 h-4 text-green-600" />
@@ -2437,7 +2368,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
               {selectedFile && `Upload Swissport charges for file ${selectedFile.fileNumber}`}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Select Swissport Charges Document</Label>
@@ -2459,7 +2390,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                   <p className="text-xs text-gray-400 mt-1">PDF, JPG, PNG</p>
                 </label>
               </div>
-              
+
               {swissportChargesFile && (
                 <div className="mt-3 p-2 bg-green-50 rounded text-sm flex items-center gap-2">
                   <FileText className="w-4 h-4 text-green-600" />
@@ -2492,7 +2423,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
               {selectedFile && `Complete cargo verification for file ${selectedFile.fileNumber}`}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-6 py-4">
             {/* Header Information */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2537,7 +2468,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
             {/* Inspection Checklist */}
             <div className="border rounded-lg p-4 space-y-4">
               <h3 className="font-semibold text-sm">Inspection Checklist</h3>
-              
+
               {/* Question 1 */}
               <div className="space-y-2 border-b pb-3">
                 <Label>1. Physical damage to external part? *</Label>
@@ -2744,7 +2675,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
               Verify DO details before allowing Port Charges upload
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
               <FileText className="w-6 h-6 text-blue-600 flex-shrink-0" />
@@ -2765,7 +2696,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
               <FileText className="w-4 h-4 mr-2" />
               View DO Document
             </Button>
-            
+
             <div className="bg-gray-50 p-4 rounded-lg space-y-2">
               <p className="font-semibold text-gray-700 mb-3">Shipping Details:</p>
               {selectedFile?.containerNumbers && (
@@ -2785,7 +2716,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
               )}
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setDoReviewDialogOpen(false)}>
               Cancel

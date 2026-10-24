@@ -317,14 +317,12 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
       return;
     }
 
-    // For SEA shipments: Upload wharfage and automatically mark as PAID
-    // If tax is already paid, move to TAXES_PAID status
-    // If tax is not paid yet, stay in current status but mark wharfage as uploaded and paid
-    let newStatus: any = selectedFile.status;
-    
-    // If tax is already confirmed, we can move to TAXES_PAID (both are done)
+    // Uploading the wharfage document does not confirm payment.
+    let newStatus = selectedFile.status;
     if (selectedFile.taxPaymentConfirmed) {
-      newStatus = 'TAXES_PAID';
+      newStatus = 'WAITING_FOR_WHARFAGE_PAYMENT';
+    } else if (selectedFile.taxDocumentUrl) {
+      newStatus = 'WAITING_FOR_TAX_PAYMENT';
     }
 
     updateFileStatus(
@@ -334,15 +332,14 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
       {
         wharfageDocumentUrl: URL.createObjectURL(wharfageDocumentFiles[0]),
         wharfageDocumentUploadedAt: new Date(),
-        wharfagePaymentConfirmed: true,
-        wharfagePaymentConfirmedAt: new Date(),
+        wharfagePaymentConfirmed: false,
+        wharfagePaymentConfirmedAt: undefined,
       }
     );
 
-    const message = selectedFile.taxPaymentConfirmed 
-      ? 'Wharfage uploaded and marked as PAID ✓ - Both payments complete. Click DECLARATION DONE to proceed'
-      : 'Wharfage uploaded and marked as PAID ✓ - Now click TAX PAID to confirm tax payment';
-    
+    const message = selectedFile.taxPaymentConfirmed
+      ? 'Wharfage documents uploaded. Select WHARFAGE PAID to confirm payment.'
+      : 'Wharfage documents uploaded. Confirm tax payment, then select WHARFAGE PAID.';
     toast.success(message);
     setWharfageUploadDialogOpen(false);
     // Don't clear selectedFile - keep it selected so user can see payment buttons
@@ -352,20 +349,24 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
   const handleTaxPaid = () => {
     if (!selectedFile || !user) return;
 
+    if (!selectedFile.taxDocumentUrl) {
+      toast.error('Upload the tax documents before confirming tax payment');
+      return;
+    }
     // Determine new status based on transport mode
     let newStatus = selectedFile.status;
     let successMessage = '';
     
     if (selectedFile.transportMode === 'SEA') {
-      // SEA: Check if wharfage is already paid
-      if (selectedFile.wharfagePaymentConfirmed) {
-        // Both tax and wharfage are paid - move to TAXES_PAID
-        newStatus = 'TAXES_PAID';
-        successMessage = 'Tax payment confirmed ✓ - Both tax and wharfage paid. Click DECLARATION DONE to proceed';
-      } else {
-        // Tax paid but wharfage not uploaded yet - move to waiting for wharfage
+      if (!selectedFile.wharfageDocumentUrl) {
         newStatus = 'WAITING_FOR_WHARFAGE_CHARGES';
-        successMessage = 'Tax payment confirmed ✓ - Now upload wharfage charges documents';
+        successMessage = 'Tax payment confirmed. Upload the wharfage documents, then confirm WHARFAGE PAID.';
+      } else if (!selectedFile.wharfagePaymentConfirmed) {
+        newStatus = 'WAITING_FOR_WHARFAGE_PAYMENT';
+        successMessage = 'Tax payment confirmed. Select WHARFAGE PAID after verifying the payment.';
+      } else {
+        newStatus = 'TAXES_PAID';
+        successMessage = 'Tax and wharfage payments are confirmed. Click DECLARATION DONE to proceed.';
       }
     } else {
       // AIR/ROAD/RAIL: Tax is only payment, mark as paid
@@ -393,6 +394,11 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
     // CRITICAL CHECK: Tax must be paid BEFORE wharfage payment is confirmed
     if (!selectedFile.taxPaymentConfirmed) {
       toast.error('Tax payment must be confirmed first before confirming wharfage payment');
+      return;
+    }
+
+    if (!selectedFile.wharfageDocumentUrl) {
+      toast.error('Upload the wharfage document before confirming payment');
       return;
     }
 
@@ -503,6 +509,10 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
   const handleDeclarationDone = () => {
     if (!selectedFile || !user) return;
 
+    if (!selectedFile.taxDocumentUrl) {
+      toast.error('Please upload the tax documents before completing the declaration');
+      return;
+    }
     // Check if tax payment is confirmed
     if (!selectedFile.taxPaymentConfirmed) {
       toast.error('Please confirm tax payment before marking declaration as done');
@@ -511,6 +521,10 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
 
     // For SEA shipments, check wharfage payment
     if (selectedFile.transportMode === 'SEA') {
+      if (!selectedFile.wharfageDocumentUrl) {
+        toast.error('Please upload the wharfage document before completing the declaration');
+        return;
+      }
       if (!selectedFile.wharfagePaymentConfirmed) {
         toast.error('Please confirm wharfage payment before marking declaration as done');
         return;
@@ -881,7 +895,7 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
                               
                               {/* Show payment buttons and status for tax and wharfage */}
                               {(user?.role === 'declarant' || user?.role === 'declaration_manager') && 
-                               (file.status === 'WAITING_FOR_TAX_PAYMENT' || file.status === 'WAITING_FOR_WHARFAGE_PAYMENT') && (
+                               (file.status === 'WAITING_FOR_TAX_PAYMENT' || file.status === 'WAITING_FOR_WHARFAGE_CHARGES' || file.status === 'WAITING_FOR_WHARFAGE_PAYMENT') && (
                                 <>
                                   {/* Only show Arrival Status button if user is the assigned declarant or declaration manager */}
                                   {(file.assignedDeclarantId === user.id || user.role === 'declaration_manager') && (
@@ -970,8 +984,8 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
                                 (() => {
                                   // For SEA: Both tax and wharfage must be paid
                                   // For AIR/ROAD/RAIL: Only tax must be paid
-                                  const isReady = file.taxPaymentConfirmed && 
-                                                  (file.transportMode !== 'SEA' || file.wharfagePaymentConfirmed);
+                                  const isReady = !!file.taxDocumentUrl && !!file.taxPaymentConfirmed &&
+                                                  (file.transportMode !== 'SEA' || (!!file.wharfageDocumentUrl && !!file.wharfagePaymentConfirmed));
                                   return (
                                     <Button 
                                       size="sm" 
