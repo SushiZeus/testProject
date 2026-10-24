@@ -209,6 +209,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     f.status === 'READY_FOR_OPERATIONS' ||
     f.status === 'WAITING_FOR_RELEASE_ORDER' ||
     f.status === 'RELEASE_ORDER_RECEIVED' ||
+    f.status === 'WAITING_FOR_DELIVERY_ORDER' ||
+    f.status === 'DELIVERY_ORDER_SUBMITTED' ||
     f.status === 'RECEIVED_BY_CLERK' ||
     f.status === 'WAITING_FOR_WHARFAGE_PAYMENT' ||
     f.status === 'WAITING_FOR_PERMIT_PAYMENTS' ||
@@ -540,7 +542,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
 
     updateFileStatus(
       selectedFile.id,
-      'RELEASE_ORDER_RECEIVED', // Change status to RELEASE_ORDER_RECEIVED
+      'WAITING_FOR_DELIVERY_ORDER', // Await Delivery Order from Shipping Line
       user.id,
       {
         releaseOrderUrl: URL.createObjectURL(releaseOrderFile),
@@ -964,6 +966,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
       f.assignedOperationClerkId && 
       (f.status === 'WAITING_FOR_RELEASE_ORDER' ||
        f.status === 'RELEASE_ORDER_RECEIVED' ||
+       f.status === 'WAITING_FOR_DELIVERY_ORDER' ||
+       f.status === 'DELIVERY_ORDER_SUBMITTED' ||
        f.status === 'RECEIVED_BY_CLERK' || 
        f.status === 'WAITING_FOR_WHARFAGE_PAYMENT' ||
        f.status === 'WAITING_FOR_PERMIT_PAYMENTS' ||
@@ -1169,8 +1173,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                             <p className="font-medium">{file.client?.name}</p>
                           </td>
                           <td className="py-4 px-4">
-                            <Badge variant="secondary" className={cn('text-xs', statusColors[file.status])}>
-                              {file.status.replace(/_/g, ' ')}
+                            <Badge variant="secondary" className={cn('text-xs', statusColors[file.status === 'RELEASE_ORDER_RECEIVED' && file.transportMode === 'SEA' && file.releaseOrderUrl && !file.deliveryOrderDocumentUrl ? 'WAITING_FOR_DELIVERY_ORDER' : file.status])}>
+                              {file.status === 'RELEASE_ORDER_RECEIVED' && file.transportMode === 'SEA' && file.releaseOrderUrl && !file.deliveryOrderDocumentUrl ? 'WAITING FOR DELIVERY ORDER' : file.status.replace(/_/g, ' ')}
                             </Badge>
                           </td>
                           <td className="py-4 px-4">
@@ -1201,7 +1205,9 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                               {(user?.role === 'operation_clerk' || user?.role === 'operations_manager') && 
                                file.assignedOperationClerkId === user?.id &&
                                (file.status === 'WAITING_FOR_RELEASE_ORDER' || 
-                                file.status === 'RELEASE_ORDER_RECEIVED' || 
+                                file.status === 'RELEASE_ORDER_RECEIVED' ||
+                                file.status === 'WAITING_FOR_DELIVERY_ORDER' ||
+                                file.status === 'DELIVERY_ORDER_SUBMITTED' ||
                                 file.status === 'WAITING_FOR_PORT_CHARGES_PAYMENT' || 
                                 file.status === 'WAITING_FOR_SWISSPORT_CHARGES_PAYMENT') && (
                                 <>
@@ -1340,18 +1346,31 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                 </Button>
                               )}
 
-                              {/* OPERATIONS DONE Button - ONLY AFTER payment AND verification form completed */}
+                              {/* OPERATIONS DONE - SEA button stays visible until all required steps are complete */}
                               {user?.role === 'operation_clerk' &&
                                file.assignedOperationClerkId === user?.id &&
-                               !!file.releaseOrderUrl &&
-                               (file.transportMode !== 'SEA' || !!file.deliveryOrderDocumentUrl) &&
-                               ((file.transportMode === 'SEA' && !!file.portChargesUrl && !!file.portChargesPaidAt) ||
-                                (file.transportMode === 'AIR' && !!file.swissportChargesUrl && !!file.swissportChargesPaidAt)) &&
-                               !!file.cargoVerificationCompletedAt && !!file.cargoVerificationForm &&
-                               file.status !== 'VERIFICATION_FORM_PENDING' &&
+                               file.transportMode === 'SEA' &&
                                file.status !== 'OPERATIONS_DONE' && (
-                                <Button 
-                                  size="sm" 
+                                <Button
+                                  size="sm"
+                                  disabled={!file.releaseOrderUrl || !file.deliveryOrderDocumentUrl || !file.portChargesUrl || !file.portChargesPaidAt || !file.cargoVerificationCompletedAt || !file.cargoVerificationForm}
+                                  onClick={() => { setSelectedFile(file); handleOperationsDone(); }}
+                                  className={!file.releaseOrderUrl || !file.deliveryOrderDocumentUrl || !file.portChargesUrl || !file.portChargesPaidAt || !file.cargoVerificationCompletedAt || !file.cargoVerificationForm ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}
+                                  title={!file.deliveryOrderDocumentUrl ? 'WAITING FOR DELIVERY ORDER' : !file.releaseOrderUrl ? 'Upload Release Order first' : !file.portChargesUrl ? 'Upload Port Charges first' : !file.portChargesPaidAt ? 'Waiting for Port Charges payment' : !file.cargoVerificationCompletedAt || !file.cargoVerificationForm ? 'Complete the cargo verification form first' : 'Mark operations as done'}
+                                >
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  OPERATIONS DONE
+                                </Button>
+                              )}
+
+                              {user?.role === 'operation_clerk' &&
+                               file.assignedOperationClerkId === user?.id &&
+                               file.transportMode === 'AIR' &&
+                               !!file.releaseOrderUrl && !!file.swissportChargesUrl && !!file.swissportChargesPaidAt &&
+                               !!file.cargoVerificationCompletedAt && !!file.cargoVerificationForm &&
+                               file.status !== 'VERIFICATION_FORM_PENDING' && file.status !== 'OPERATIONS_DONE' && (
+                                <Button
+                                  size="sm"
                                   onClick={() => { setSelectedFile(file); handleOperationsDone(); }}
                                   className="bg-green-600 hover:bg-green-700 text-white"
                                   title="Mark operations as complete (charges paid + verification done)"

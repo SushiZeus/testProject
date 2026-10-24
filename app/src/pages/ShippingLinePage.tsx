@@ -94,7 +94,7 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
     if (activeTab === 'all') return true;
     if (activeTab === 'import') return file.shipmentType === 'IMPORT';
     if (activeTab === 'export') return file.shipmentType === 'EXPORT';
-    if (activeTab === 'waiting_do') return file.status === 'PERMITS_DONE' && !file.deliveryOrderInvoiceUrl;
+    if (activeTab === 'waiting_do') return (file.status === 'PERMITS_DONE' || file.status === 'WAITING_FOR_DELIVERY_ORDER') && !file.deliveryOrderDocumentUrl;
     if (activeTab === 'processing_do') return file.status === 'WAITING_FOR_DO_PAYMENT' || file.status === 'DELIVERY_ORDER_PAYMENTS_DONE';
     return true;
   });
@@ -103,7 +103,7 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
     totalSea: seaShipments.length,
     imports: seaShipments.filter(f => f.shipmentType === 'IMPORT').length,
     exports: seaShipments.filter(f => f.shipmentType === 'EXPORT').length,
-    waitingDO: seaShipments.filter(f => f.status === 'PERMITS_DONE' && !f.deliveryOrderInvoiceUrl).length,
+    waitingDO: seaShipments.filter(f => (f.status === 'PERMITS_DONE' || f.status === 'WAITING_FOR_DELIVERY_ORDER') && !f.deliveryOrderDocumentUrl).length,
     processingDO: seaShipments.filter(f => f.status === 'WAITING_FOR_DO_PAYMENT' || f.status === 'DELIVERY_ORDER_PAYMENTS_DONE').length,
   };
 
@@ -170,7 +170,7 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
       addNotification({
         userId: clerkId,
         title: 'Delivery Order Available',
-        message: `Delivery Order for file ${selectedFile.fileNumber} is now available. You can proceed with Release Order and Port Charges.`,
+        message: `Delivery Order for file ${selectedFile.fileNumber} has been uploaded and is now available in Operations.`,
         type: 'info',
         fileId: selectedFile.id,
         link: '/operations',

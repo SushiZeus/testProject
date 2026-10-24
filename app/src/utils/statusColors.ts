@@ -34,6 +34,7 @@ export const statusColors: Record<FileStatus, string> = {
   WAITING_FOR_SWISSPORT_CHARGES_PAYMENT: 'bg-amber-100 text-amber-700',
   WAITING_FOR_SWISSPORT_PAYMENTS: 'bg-amber-100 text-amber-700',
   RELEASE_ORDER_RECEIVED: 'bg-blue-100 text-blue-700',
+  WAITING_FOR_DELIVERY_ORDER: 'bg-amber-100 text-amber-700',
   SWISSPORT_CHARGES_PAID: 'bg-green-100 text-green-700',
   CARGO_CLEARED: 'bg-green-100 text-green-700',
   OPERATIONS_DONE: 'bg-green-100 text-green-700',
