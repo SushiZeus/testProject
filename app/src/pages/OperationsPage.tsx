@@ -1236,6 +1236,18 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                   {/* Upload Port Charges (SEA only) */}
                                   {file.transportMode === 'SEA' && (
                                     <>
+                                      {!file.deliveryOrderDocumentUrl && (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          disabled
+                                          className="bg-gray-100 text-gray-500 border-gray-300 cursor-not-allowed"
+                                          title="WAITING FOR DELIVERY ORDER"
+                                        >
+                                          <FileText className="w-3 h-3 mr-1" />
+                                          DELIVERY ORDER
+                                        </Button>
+                                      )}
                                       {/* Show DO Document if received */}
                                       {file.deliveryOrderDocumentUrl && (
                                         <div className="flex items-center gap-2">
