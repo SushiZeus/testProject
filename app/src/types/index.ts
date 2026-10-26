@@ -56,6 +56,7 @@ export type FileStatus =
   | 'RECEIVED_BY_CLERK'
   | 'CLERK_WORKING_ON_FILE'
   | 'SHIPMENT_UNDER_VERIFICATION'
+  | 'WAITING_FOR_PERMIT'
   | 'WAITING_FOR_PERMITS'
   | 'WAITING_FOR_PERMIT_PAYMENTS'
   | 'PERMIT_PAYMENTS_DONE'
@@ -166,6 +167,19 @@ export interface ShippingDocument {
 }
 
 // Shipment File Interface
+export type ShipmentPermitKind = 'GLCA' | 'TMDA' | 'COC' | 'OTHER';
+
+export interface ShipmentPermitRequirement {
+  id: string;
+  kind: ShipmentPermitKind;
+  name: string;
+  invoiceUrl?: string;
+  invoiceDocumentId?: string;
+  invoiceUploadedAt?: Date;
+  paidAt?: Date;
+  paidBy?: string;
+}
+
 export interface ShipmentFile {
   id: string;
   fileNumber: string;
@@ -235,6 +249,7 @@ export interface ShipmentFile {
   cargoClearedAt?: Date; // When cargo is cleared after swissport charges paid
   
   // Permits fields
+  requiredPermits?: ShipmentPermitRequirement[];
   assignedPermitsClerkId?: string;
   assignedPermitsClerk?: User;
   permitPaymentOption?: PaymentOption;
@@ -302,6 +317,8 @@ export interface ShipmentFile {
   cargoVerificationForm?: CargoVerificationForm;
   cargoVerificationCompletedAt?: Date;
   cargoVerificationCompletedBy?: string;
+  cargoVerificationDocumentId?: string;
+  cargoVerificationDocumentUrl?: string;
 
   // Delivery fields
   assignedDeliveryClerkId?: string;

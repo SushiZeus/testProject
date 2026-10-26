@@ -37,8 +37,6 @@ import { TrainingDashboardPage } from '@/pages/TrainingDashboardPage';
 import { PerformanceDashboardPage } from '@/pages/PerformanceDashboardPage';
 import { OutsourcingDashboardPage } from '@/pages/OutsourcingDashboardPage';
 import { QuotationsPage } from '@/pages/QuotationsPage';
-import { ClaimsExpensesPage } from '@/pages/ClaimsExpensesPage';
-import { ClaimDetailPage } from '@/pages/ClaimDetailPage';
 import { LoansPage } from '@/pages/LoansPage';
 import { LoanDetailPage } from '@/pages/LoanDetailPage';
 import { useAuthStore } from '@/store/authStore';
@@ -55,6 +53,8 @@ export type AppRoute =
   | 'shipping-line'
   | 'petty-cash'
   | 'petty-cash/history'
+  | 'claims'
+  | 'claims/:id'
   | 'leave-management'
   | 'leave-management/history'
   | 'user-management'
@@ -95,8 +95,6 @@ export type AppRoute =
   | 'outsourcing/deliverables'
   | 'outsourcing/invoices'
   | 'quotations'
-  | 'claims'
-  | 'claims/:id'
   | 'loans'
   | 'loans/:id';
 
@@ -212,10 +210,6 @@ function App() {
         return <OutsourcingDashboardPage navigate={navigate} />;
       case 'quotations':
         return <QuotationsPage navigate={navigate} />;
-      case 'claims':
-        return <ClaimsExpensesPage navigate={navigate} />;
-      case 'claims/:id':
-        return <ClaimDetailPage navigate={navigate} claimId={routeParams.id} />;
       case 'loans':
         return <LoansPage navigate={navigate} />;
       case 'loans/:id':

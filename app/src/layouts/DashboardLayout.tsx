@@ -96,12 +96,6 @@ const navItems: NavItem[] = [
     roles: ['hr_manager', 'finance_manager', 'cashier', 'administrator'] 
   },
   {
-    label: 'Expense Claims',
-    icon: Receipt,
-    href: 'claims',
-    roles: ['*'],
-  },
-  {
     label: 'Employee Loans',
     icon: DollarSign,
     href: 'loans',
@@ -238,7 +232,6 @@ export function DashboardLayout({ children, navigate, currentRoute }: DashboardL
       'operations': ['/operations'],
       'shipping-line': ['/shipping-line'],
       'petty-cash': ['/petty-cash'],
-      'claims': ['/claims'],
       'payroll': ['/payroll'],
       'loans': ['/loans'],
       'leave-management': ['/leave-management'],

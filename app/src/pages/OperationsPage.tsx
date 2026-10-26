@@ -41,7 +41,8 @@ import { useAuthStore } from '@/store/authStore';
 import { useFileStore } from '@/store/fileStore';
 import { usePettyCashStore } from '@/store/pettyCashStore';
 import { useNotificationStore } from '@/store/notificationStore';
-import type { ShipmentFile, User, CargoVerificationForm, VerificationAnswer } from '@/types';
+import { useDocumentStore } from '@/store/documentStore';
+import type { ShipmentFile, ShipmentPermitRequirement, User, CargoVerificationForm, VerificationAnswer } from '@/types';
 import type { AppRoute } from '@/App';
 import { mockUsers, getOperationClerkWorkload } from '@/data/mockData';
 import { toast } from 'sonner';
@@ -136,6 +137,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
   const { files, assignOperationClerk, updateFileStatus } = useFileStore();
   const { createRequest } = usePettyCashStore();
   const { addNotification } = useNotificationStore();
+  const { uploadDocument } = useDocumentStore();
 
   const [activeTab, setActiveTab] = useState('all');
   const [selectedFile, setSelectedFile] = useState<ShipmentFile | null>(null);
@@ -207,6 +209,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
 
   const operationFiles = files.filter((f: ShipmentFile) => 
     f.status === 'READY_FOR_OPERATIONS' ||
+    f.status === 'WAITING_FOR_PERMIT' ||
     f.status === 'WAITING_FOR_RELEASE_ORDER' ||
     f.status === 'RELEASE_ORDER_RECEIVED' ||
     f.status === 'WAITING_FOR_DELIVERY_ORDER' ||
@@ -233,7 +236,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
 
   const filteredFiles = operationFiles.filter((file: ShipmentFile) => {
     if (activeTab === 'all') return true;
-    if (activeTab === 'ready') return file.status === 'READY_FOR_OPERATIONS';
+    if (activeTab === 'ready') return file.status === 'READY_FOR_OPERATIONS' || file.status === 'PERMITS_DONE';
     if (activeTab === 'permits') return file.status === 'WAITING_FOR_WHARFAGE_PAYMENT';
     if (activeTab === 'swissport') return file.status === 'WAITING_FOR_SWISSPORT_PAYMENTS';
     if (activeTab === 'delivery') return file.status === 'SWISSPORT_CHARGES_PAID' || file.status === 'CARGO_CLEARED' || file.status === 'OPERATIONS_DONE' || file.status === 'VERIFICATION_FORM_PENDING' || file.status === 'VERIFICATION_FORM_COMPLETED';
@@ -702,8 +705,62 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     setSelectedFile(null);
   };
 
+  const handleRequiredPermitInvoiceUpload = async (file: ShipmentFile, permitId: string, invoice: File) => {
+    if (!user || user.role !== 'permits_clerk') return;
+    let uploadedDocument;
+    try {
+      uploadedDocument = await uploadDocument({
+        file: invoice,
+        category: 'shipment',
+        subCategory: `${(file.requiredPermits || []).find((permit) => permit.id === permitId)?.name || 'Permit'} Invoice`,
+        description: `Permit invoice for file ${file.fileNumber}`,
+        tags: [file.fileNumber, 'permit-invoice'],
+        relatedFileId: file.id,
+        visibility: 'role_specific',
+      }, user.id);
+    } catch {
+      toast.error('Could not save the permit invoice. Please try again.');
+      return;
+    }
+    const requiredPermits = (file.requiredPermits || []).map((permit) => permit.id === permitId
+      ? { ...permit, invoiceUrl: uploadedDocument.fileUrl, invoiceDocumentId: uploadedDocument.id, invoiceUploadedAt: new Date(), paidAt: undefined, paidBy: undefined }
+      : permit);
+    updateFileStatus(file.id, 'WAITING_FOR_PERMIT_PAYMENTS', user.id, {
+      requiredPermits,
+      permitsDoneAt: undefined,
+      assignedPermitsClerkId: user.id,
+    });
+    toast.success(`Invoice uploaded for ${requiredPermits.find((permit) => permit.id === permitId)?.name}`);
+  };
+
+  const handleRequiredPermitPaid = (file: ShipmentFile, permitId: string) => {
+    if (!user || user.role !== 'permits_clerk') return;
+    const requiredPermits: ShipmentPermitRequirement[] = (file.requiredPermits || []).map((permit) => permit.id === permitId
+      ? { ...permit, paidAt: new Date(), paidBy: user.id }
+      : permit);
+    const allPaid = requiredPermits.length > 0 && requiredPermits.every((permit) => !!permit.invoiceUrl && !!permit.paidAt);
+    updateFileStatus(file.id, allPaid ? 'PERMIT_PAYMENTS_DONE' : 'WAITING_FOR_PERMIT_PAYMENTS', user.id, { requiredPermits });
+    toast.success(`Payment confirmed for ${requiredPermits.find((permit) => permit.id === permitId)?.name}`);
+  };
+
+  const handleRequiredPermitsDone = (file: ShipmentFile) => {
+    if (!user || user.role !== 'permits_clerk') return;
+    const requiredPermits = file.requiredPermits || [];
+    if (!requiredPermits.length || requiredPermits.some((permit) => !permit.invoiceUrl || !permit.paidAt)) {
+      toast.error('Upload each required permit invoice and confirm each payment first');
+      return;
+    }
+    updateFileStatus(file.id, 'PERMITS_DONE', user.id, { permitsDoneAt: new Date(), assignedPermitsClerkId: user.id });
+    addNotification({ userId: '5', title: 'Permits Done', message: `All required permits are complete for file ${file.fileNumber}`, type: 'success', fileId: file.id, link: '/operations' });
+    toast.success('PERMITS DONE - File is ready for Operations assignment');
+  };
   const handleOperationsDone = () => {
     if (!selectedFile || !user) return;
+
+    if (selectedFile.requiredPermits?.length && !selectedFile.permitsDoneAt) {
+      toast.error('WAITING FOR PERMIT - all selected permits must be paid and marked PERMITS DONE');
+      return;
+    }
 
     // 1. Validate that release order is uploaded
     if (!selectedFile.releaseOrderUrl) {
@@ -804,7 +861,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     setVerificationFormDialogOpen(true);
   };
 
-  const handleSubmitVerificationForm = () => {
+  const handleSubmitVerificationForm = async () => {
     if (!selectedFile || !user) return;
 
     // Validate all YES/NO questions are answered
@@ -829,6 +886,29 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
       completedBy: user.id,
     };
 
+        const escapeHtml = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[character] || character));
+    const verificationRows = Object.entries(completedForm).map(([field, value]) =>
+      `<tr><th>${escapeHtml(field.replace(/([A-Z])/g, ' $1').replace(/_/g, ' '))}</th><td>${escapeHtml(value)}</td></tr>`
+    ).join('');
+    const verificationHtml = `<!doctype html><html><head><meta charset="utf-8"><title>Cargo Verification - ${escapeHtml(selectedFile.fileNumber)}</title><style>body{font-family:Arial,sans-serif;margin:32px;color:#1f2937}h1{font-size:22px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #d1d5db;padding:8px;text-align:left}th{width:34%;background:#f3f4f6;text-transform:capitalize}</style></head><body><h1>Cargo Verification Form</h1><p>Shipment: ${escapeHtml(selectedFile.fileNumber)}</p><table>${verificationRows}</table></body></html>`;
+    let verificationDocument;
+    try {
+      const reportFile = new File([verificationHtml], `Cargo-Verification-${selectedFile.fileNumber}.html`, { type: 'text/html' });
+      verificationDocument = await uploadDocument({
+        file: reportFile,
+        category: 'shipment',
+        subCategory: 'Cargo Verification Form',
+        description: `Completed cargo verification form for file ${selectedFile.fileNumber}`,
+        tags: [selectedFile.fileNumber, 'cargo-verification'],
+        relatedFileId: selectedFile.id,
+        visibility: 'role_specific',
+      }, user.id);
+    } catch {
+      toast.error('Could not save the verification form to Documents. Please try again.');
+      return;
+    }
     updateFileStatus(
       selectedFile.id,
       'VERIFICATION_FORM_COMPLETED',
@@ -837,6 +917,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
         cargoVerificationForm: completedForm,
         cargoVerificationCompletedAt: new Date(),
         cargoVerificationCompletedBy: user.id,
+        cargoVerificationDocumentId: verificationDocument.id,
+        cargoVerificationDocumentUrl: verificationDocument.fileUrl,
       } as Partial<ShipmentFile>
     );
 
@@ -961,7 +1043,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
   };
 
   const stats = {
-    waiting: files.filter((f: ShipmentFile) => f.status === 'READY_FOR_OPERATIONS').length,
+    waiting: files.filter((f: ShipmentFile) => f.status === 'READY_FOR_OPERATIONS' || f.status === 'PERMITS_DONE').length,
     inProgress: files.filter((f: ShipmentFile) => 
       f.assignedOperationClerkId && 
       (f.status === 'WAITING_FOR_RELEASE_ORDER' ||
@@ -1104,7 +1186,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                 workload={getOperationClerkWorkload(clerk.id, files)}
                 onAssign={() => {
                   // Check if there are files ready for operations
-                  const readyFiles = files.filter(f => f.status === 'READY_FOR_OPERATIONS');
+                  const readyFiles = files.filter(f => f.status === 'READY_FOR_OPERATIONS' || f.status === 'PERMITS_DONE');
                   if (readyFiles.length === 0) {
                     toast.error('No files ready for operations assignment');
                     return;
@@ -1189,13 +1271,13 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                               <Button variant="ghost" size="sm" onClick={() => navigate('files/:id', { id: file.id })}>
                                 View
                               </Button>
-                              {canManipulate && user?.role === 'operations_manager' && file.status === 'READY_FOR_OPERATIONS' && (
+                              {canManipulate && user?.role === 'operations_manager' && (file.status === 'READY_FOR_OPERATIONS' || file.status === 'PERMITS_DONE') && (
                                 <Button size="sm" onClick={() => { setSelectedFile(file); setAssignDialogOpen(true); }}>
                                   Assign
                                 </Button>
                               )}
                               {canManipulate && (user?.role === 'operations_manager' || user?.role === 'operation_clerk') && 
-                               file.status === 'READY_FOR_OPERATIONS' && (
+                               (file.status === 'READY_FOR_OPERATIONS' || file.status === 'PERMITS_DONE') && (
                                 <Button size="sm" onClick={() => { setSelectedFile(file); setProcessDialogOpen(true); }}>
                                   Accept
                                 </Button>
@@ -1365,10 +1447,10 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                file.status !== 'OPERATIONS_DONE' && (
                                 <Button
                                   size="sm"
-                                  disabled={!file.releaseOrderUrl || !file.deliveryOrderDocumentUrl || !file.portChargesUrl || !file.portChargesPaidAt || !file.cargoVerificationCompletedAt || !file.cargoVerificationForm}
+                                  disabled={!file.releaseOrderUrl || !file.deliveryOrderDocumentUrl || !file.portChargesUrl || !file.portChargesPaidAt || !file.cargoVerificationCompletedAt || !file.cargoVerificationForm || (!!file.requiredPermits?.length && !file.permitsDoneAt)}
                                   onClick={() => { setSelectedFile(file); handleOperationsDone(); }}
-                                  className={!file.releaseOrderUrl || !file.deliveryOrderDocumentUrl || !file.portChargesUrl || !file.portChargesPaidAt || !file.cargoVerificationCompletedAt || !file.cargoVerificationForm ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}
-                                  title={!file.deliveryOrderDocumentUrl ? 'WAITING FOR DELIVERY ORDER' : !file.releaseOrderUrl ? 'Upload Release Order first' : !file.portChargesUrl ? 'Upload Port Charges first' : !file.portChargesPaidAt ? 'Waiting for Port Charges payment' : !file.cargoVerificationCompletedAt || !file.cargoVerificationForm ? 'Complete the cargo verification form first' : 'Mark operations as done'}
+                                  className={!file.releaseOrderUrl || !file.deliveryOrderDocumentUrl || !file.portChargesUrl || !file.portChargesPaidAt || !file.cargoVerificationCompletedAt || !file.cargoVerificationForm || (!!file.requiredPermits?.length && !file.permitsDoneAt) ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}
+                                  title={file.requiredPermits?.length && !file.permitsDoneAt ? 'WAITING FOR PERMIT' : !file.deliveryOrderDocumentUrl ? 'WAITING FOR DELIVERY ORDER' : !file.releaseOrderUrl ? 'Upload Release Order first' : !file.portChargesUrl ? 'Upload Port Charges first' : !file.portChargesPaidAt ? 'Waiting for Port Charges payment' : !file.cargoVerificationCompletedAt || !file.cargoVerificationForm ? 'Complete the cargo verification form first' : 'Mark operations as done'}
                                 >
                                   <CheckCircle className="w-3 h-3 mr-1" />
                                   OPERATIONS DONE
@@ -1438,8 +1520,64 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                 </Button>
                               )}
 
+                              {user?.role === 'permits_clerk' && !!file.requiredPermits?.length && (
+                                <div className="w-full basis-full rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-3">
+                                  <div>
+                                    <p className="font-semibold text-amber-900">Required permits</p>
+                                    <p className="text-sm text-amber-800">Upload each permit invoice, confirm it is paid, then select PERMITS DONE.</p>
+                                  </div>
+                                  {file.requiredPermits.map((permit) => (
+                                    <div key={permit.id} className="flex flex-wrap items-center gap-2 rounded-md border bg-white p-3">
+                                      <span className="min-w-24 font-medium">{permit.name}</span>
+                                      {!permit.invoiceUrl && (
+                                        <Input
+                                          type="file"
+                                          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                          className="max-w-xs"
+                                          aria-label={`Upload ${permit.name} invoice`}
+                                          onChange={(event) => {
+                                            const invoice = event.currentTarget.files?.[0];
+                                            if (invoice) handleRequiredPermitInvoiceUpload(file, permit.id, invoice);
+                                            event.currentTarget.value = '';
+                                          }}
+                                        />
+                                      )}
+                                      {permit.invoiceUrl && (
+                                        <a href={permit.invoiceUrl} download={`${permit.name}-invoice`} className="text-sm text-blue-700 underline">
+                                          View/download invoice
+                                        </a>
+                                      )}
+                                      {permit.invoiceUrl && !permit.paidAt && (
+                                        <Button size="sm" onClick={() => handleRequiredPermitPaid(file, permit.id)}>
+                                          <CheckCircle className="w-3 h-3 mr-1" />
+                                          CONFIRM PAID
+                                        </Button>
+                                      )}
+                                      {permit.paidAt && <Badge className="bg-green-100 text-green-700">✓ Paid</Badge>}
+                                    </div>
+                                  ))}
+                                  {!file.permitsDoneAt ? (
+                                    <Button
+                                      size="sm"
+                                      disabled={file.requiredPermits.some((permit) => !permit.invoiceUrl || !permit.paidAt)}
+                                      onClick={() => handleRequiredPermitsDone(file)}
+                                      className="bg-green-600 text-white hover:bg-green-700"
+                                    >
+                                      <CheckCircle className="w-4 h-4 mr-1" />
+                                      PERMITS DONE
+                                    </Button>
+                                  ) : (
+                                    <Badge className="bg-green-100 text-green-700">✓ PERMITS DONE</Badge>
+                                  )}
+                                </div>
+                              )}
+                              {file.cargoVerificationDocumentUrl && (
+                                <a href={file.cargoVerificationDocumentUrl} download={`Cargo-Verification-${file.fileNumber}.html`} className="text-sm text-blue-700 underline">
+                                  Download Verification Form
+                                </a>
+                              )}
                               {/* PERMITS CLERK WORKFLOW */}
-                              {user?.role === 'permits_clerk' && (
+                              {user?.role === 'permits_clerk' && !file.requiredPermits?.length && (
                                 <>
                                   {/* Upload Permit Invoice Button */}
                                   {file.status === 'RECEIVED_BY_CLERK' && !file.permitInvoiceUrl && (
@@ -1761,7 +1899,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                   </SelectTrigger>
                   <SelectContent>
                     {files
-                      .filter(f => f.status === 'READY_FOR_OPERATIONS')
+                      .filter(f => f.status === 'READY_FOR_OPERATIONS' || f.status === 'PERMITS_DONE')
                       .map((file) => (
                         <SelectItem key={file.id} value={file.id}>
                           {file.fileNumber} - {file.client?.name}

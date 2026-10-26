@@ -15,6 +15,7 @@ export const statusColors: Record<FileStatus, string> = {
   RECEIVED_BY_CLERK: 'bg-blue-100 text-blue-700',
   CLERK_WORKING_ON_FILE: 'bg-blue-100 text-blue-700',
   SHIPMENT_UNDER_VERIFICATION: 'bg-purple-100 text-purple-700',
+  WAITING_FOR_PERMIT: 'bg-gray-100 text-gray-700',
   WAITING_FOR_PERMITS: 'bg-amber-100 text-amber-700',
   WAITING_FOR_PERMIT_PAYMENTS: 'bg-amber-100 text-amber-700',
   PERMIT_PAYMENTS_DONE: 'bg-green-100 text-green-700',

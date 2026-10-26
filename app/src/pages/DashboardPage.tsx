@@ -628,10 +628,10 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
         ];
       case 'permits_clerk':
         const pendingPermitsFiles = files.filter((f: ShipmentFile) => 
-          f.status === 'WAITING_FOR_PERMITS'
+          (f.status === 'WAITING_FOR_PERMIT' || f.status === 'WAITING_FOR_PERMITS' || f.status === 'WAITING_FOR_PERMIT_PAYMENTS')
         );
         const permitsApproved = files.filter((f: ShipmentFile) => 
-          f.status === 'PERMITS_DONE'
+          f.status === 'PERMITS_DONE' || f.status === 'PERMIT_PAYMENTS_DONE'
         );
         const pendingInspection = files.filter((f: ShipmentFile) => 
           f.status === 'SHIPMENT_UNDER_VERIFICATION'

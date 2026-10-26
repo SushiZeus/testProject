@@ -38,7 +38,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useFileStore } from '@/store/fileStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { usePettyCashStore } from '@/store/pettyCashStore';
-import type { ShipmentFile, User } from '@/types';
+import type { ShipmentFile, ShipmentPermitKind, ShipmentPermitRequirement, User } from '@/types';
 import type { AppRoute } from '@/App';
 import { mockUsers, getDeclarantWorkload } from '@/data/mockData';
 import { toast } from 'sonner';
@@ -142,9 +142,12 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
   const [taxUploadDialogOpen, setTaxUploadDialogOpen] = useState(false);
   const [wharfageUploadDialogOpen, setWharfageUploadDialogOpen] = useState(false);
   const [declarationDoneDialogOpen, setDeclarationDoneDialogOpen] = useState(false);
+  const [permitSelectionDialogOpen, setPermitSelectionDialogOpen] = useState(false);
   const [pettyCashDialogOpen, setPettyCashDialogOpen] = useState(false);
   const [arrivalStatusDialogOpen, setArrivalStatusDialogOpen] = useState(false);
   const [selectedDeclarant, setSelectedDeclarant] = useState('');
+  const [selectedPermitKinds, setSelectedPermitKinds] = useState<ShipmentPermitKind[]>([]);
+  const [otherPermitName, setOtherPermitName] = useState('');
   const [taxDocumentFiles, setTaxDocumentFiles] = useState<File[]>([]);
   const [wharfageDocumentFiles, setWharfageDocumentFiles] = useState<File[]>([]);
   const [arrivalDates, setArrivalDates] = useState({
@@ -506,6 +509,34 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
     });
   };
 
+  const openPermitSelection = (file: ShipmentFile) => {
+    setSelectedFile(file);
+    const permits = file.requiredPermits || [];
+    setSelectedPermitKinds(permits.map((permit) => permit.kind));
+    setOtherPermitName(permits.find((permit) => permit.kind === 'OTHER')?.name || '');
+    setPermitSelectionDialogOpen(true);
+  };
+
+  const savePermitSelection = () => {
+    if (!selectedFile || !user) return;
+    if (selectedPermitKinds.includes('OTHER') && !otherPermitName.trim()) {
+      toast.error('Enter the name of the other permit');
+      return;
+    }
+    const previousPermits = selectedFile.requiredPermits || [];
+    const requiredPermits: ShipmentPermitRequirement[] = selectedPermitKinds.map((kind) => {
+      const name = kind === 'OTHER' ? otherPermitName.trim() : kind;
+      const existing = previousPermits.find((permit) => permit.kind === kind && permit.name === name);
+      return existing || { id: `${selectedFile.id}-${kind.toLowerCase()}-${Date.now()}`, kind, name };
+    });
+    updateFileStatus(selectedFile.id, selectedFile.status, user.id, {
+      requiredPermits,
+      permitsDoneAt: undefined,
+    });
+    toast.success(requiredPermits.length ? 'Required permits saved for this shipment' : 'Permit requirements cleared');
+    setPermitSelectionDialogOpen(false);
+    setSelectedFile(null);
+  };
   const handleDeclarationDone = () => {
     if (!selectedFile || !user) return;
 
@@ -531,24 +562,32 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
       }
     }
 
-    // Move to READY_FOR_OPERATIONS when both tax and wharfage (if SEA) are paid
-    updateFileStatus(
-      selectedFile.id,
-      'READY_FOR_OPERATIONS',
-      user.id,
-      { declarationDoneAt: new Date() }
-    );
+    const waitingForPermits = !!selectedFile.requiredPermits?.length && !selectedFile.permitsDoneAt;
+    const nextStatus = waitingForPermits ? 'WAITING_FOR_PERMIT' : 'READY_FOR_OPERATIONS';
+    updateFileStatus(selectedFile.id, nextStatus, user.id, { declarationDoneAt: new Date() });
 
+    if (waitingForPermits) {
+      mockUsers.filter((candidate) => candidate.role === 'permits_clerk').forEach((permitsClerk) => {
+        addNotification({
+          userId: permitsClerk.id,
+          title: 'Permit Action Required',
+          message: `File ${selectedFile.fileNumber} requires ${selectedFile.requiredPermits?.map((permit) => permit.name).join(', ')}`,
+          type: 'info',
+          fileId: selectedFile.id,
+          link: '/operations',
+        });
+      });
+    }
     addNotification({
       userId: '5',
-      title: 'Declaration Complete - Ready for Operations',
-      message: `File ${selectedFile.fileNumber} declaration complete and ready for operations assignment`,
+      title: waitingForPermits ? 'Permit Action Required' : 'Declaration Complete - Ready for Operations',
+      message: waitingForPermits ? `File ${selectedFile.fileNumber} requires ${selectedFile.requiredPermits?.map((permit) => permit.name).join(', ')} before operations clearance` : `File ${selectedFile.fileNumber} declaration complete and ready for operations assignment`,
       type: 'success',
       fileId: selectedFile.id,
       link: '/operations',
     });
 
-    toast.success('Declaration complete - Status: READY FOR OPERATIONS');
+    toast.success(waitingForPermits ? 'Declaration complete - Status: WAITING FOR PERMIT' : 'Declaration complete - Status: READY FOR OPERATIONS');
     setDeclarationDoneDialogOpen(false);
     setSelectedFile(null);
   };
@@ -975,6 +1014,12 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
                                 </>
                               )}
                               
+                              {(user?.role === 'declarant' || user?.role === 'declaration_manager') && (file.status === 'ASSIGNED_TO_DECLARANT' || file.status === 'DECLARANT_ACKNOWLEDGED' || file.status === 'WAITING_FOR_FINAL_ASSESSMENT' || file.status === 'WAITING_FOR_TAX_PAYMENT' || file.status === 'WAITING_FOR_WHARFAGE_CHARGES' || file.status === 'WAITING_FOR_WHARFAGE_PAYMENT' || file.status === 'TAXES_PAID') && (
+                                <Button size="sm" variant="outline" onClick={() => openPermitSelection(file)}>
+                                  <FileText className="w-3 h-3 mr-1" />
+                                  {file.requiredPermits?.length ? `Permits (${file.requiredPermits.length})` : 'Select Permits'}
+                                </Button>
+                              )}
                               {/* Declaration Done button - Both tax and wharfage (SEA) must be paid */}
                               {(user?.role === 'declarant' || user?.role === 'declaration_manager') && 
                                (file.status === 'WAITING_FOR_TAX_PAYMENT' || 
@@ -1415,6 +1460,35 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={permitSelectionDialogOpen} onOpenChange={setPermitSelectionDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Select Required Permits</DialogTitle>
+            <DialogDescription>
+              {selectedFile && `Choose every permit required for file ${selectedFile.fileNumber}. The Permits Clerk will upload its invoice and confirm payment.`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            {(['GLCA', 'TMDA', 'COC', 'OTHER'] as ShipmentPermitKind[]).map((kind) => (
+              <label key={kind} className="flex items-center gap-3 rounded-md border p-3">
+                <input
+                  type="checkbox"
+                  checked={selectedPermitKinds.includes(kind)}
+                  onChange={(event) => setSelectedPermitKinds((current) => event.target.checked ? [...current, kind] : current.filter((item) => item !== kind))}
+                />
+                <span>{kind === 'OTHER' ? 'Other permit' : kind}</span>
+              </label>
+            ))}
+            {selectedPermitKinds.includes('OTHER') && (
+              <Input value={otherPermitName} onChange={(event) => setOtherPermitName(event.target.value)} placeholder="Enter permit name" />
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPermitSelectionDialogOpen(false)}>Cancel</Button>
+            <Button onClick={savePermitSelection}>Save Permits</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog open={declarationDoneDialogOpen} onOpenChange={setDeclarationDoneDialogOpen}>
         <DialogContent>
           <DialogHeader>
