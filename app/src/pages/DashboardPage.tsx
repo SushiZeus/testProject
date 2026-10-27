@@ -908,6 +908,53 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
     return actions;
   };
 
+  const canViewClerkWorkflowOverview = !!user && [
+    'operations_manager',
+    'commercial_manager',
+    'coo',
+    'managing_director',
+  ].includes(user.role);
+  const seaFiles = files.filter((file) => file.transportMode === 'SEA');
+  const permitPendingFiles = files.filter((file) =>
+    file.status === 'WAITING_FOR_PERMIT' ||
+    file.status === 'WAITING_FOR_PERMITS' ||
+    file.status === 'WAITING_FOR_PERMIT_PAYMENTS'
+  );
+  const permitPaymentsPendingCompletion = files.filter((file) => file.status === 'PERMIT_PAYMENTS_DONE');
+  const permitsDoneFiles = files.filter((file) => file.status === 'PERMITS_DONE');
+  const pendingShippingLineFiles = seaFiles.filter((file) =>
+    file.status === 'PROCESSING_DELIVERY_ORDER' ||
+    file.status === 'WAITING_FOR_DO_PAYMENT' ||
+    file.status === 'WAITING_FOR_DELIVERY_ORDER'
+  );
+  const shippingLineReadyFiles = seaFiles.filter((file) => file.status === 'DELIVERY_ORDER_READY');
+  const clerkWorkflowOverview = [
+    {
+      title: 'Permits Pending', value: permitPendingFiles.length, icon: Clock, color: 'amber' as const,
+      onClick: () => showFilteredFiles('Permits Pending', permitPendingFiles),
+    },
+    {
+      title: 'Permit Payments Confirmed', value: permitPaymentsPendingCompletion.length, icon: DollarSign, color: 'purple' as const,
+      onClick: () => showFilteredFiles('Permit Payments Confirmed', permitPaymentsPendingCompletion),
+    },
+    {
+      title: 'Permits Done', value: permitsDoneFiles.length, icon: CheckCircle, color: 'green' as const,
+      onClick: () => showFilteredFiles('Permits Done', permitsDoneFiles),
+    },
+    {
+      title: 'SEA Shipments', value: seaFiles.length, icon: Ship, color: 'blue' as const,
+      onClick: () => showFilteredFiles('SEA Shipments', seaFiles),
+    },
+    {
+      title: 'Delivery Orders Pending', value: pendingShippingLineFiles.length, icon: FileText, color: 'amber' as const,
+      onClick: () => showFilteredFiles('Delivery Orders Pending', pendingShippingLineFiles),
+    },
+    {
+      title: 'Ready for Collection', value: shippingLineReadyFiles.length, icon: CheckCircle, color: 'green' as const,
+      onClick: () => showFilteredFiles('Delivery Orders Ready for Collection', shippingLineReadyFiles),
+    },
+  ];
+
   return (
     <div className="space-y-8">
       {/* Page Header */}
@@ -943,6 +990,28 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
           />
         ))}
       </div>
+
+      {canViewClerkWorkflowOverview && (
+        <section aria-labelledby="clerk-workflow-overview-title" className="space-y-4">
+          <div>
+            <h2 id="clerk-workflow-overview-title" className="text-lg font-semibold text-gray-900">Permits &amp; Shipping Line Overview</h2>
+            <p className="text-sm text-gray-500">Combined workload from the Permits Clerk and Shipping Line Clerk dashboards.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {clerkWorkflowOverview.map((stat) => (
+              <StatCard
+                key={stat.title}
+                title={stat.title}
+                value={stat.value}
+                icon={stat.icon}
+                color={stat.color}
+                onClick={stat.onClick}
+                clickable
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Simple Modal for Files */}
       {filteredFilesDialog.open && (
