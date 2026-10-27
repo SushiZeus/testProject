@@ -48,6 +48,7 @@ import { mockUsers, getOperationClerkWorkload } from '@/data/mockData';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { statusColors } from '@/utils/statusColors';
+import { createPdfFile } from '@/utils/createPdfFile';
 
 interface WorkloadCardProps {
   clerk: User;
@@ -733,6 +734,38 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     toast.success(`Invoice uploaded for ${requiredPermits.find((permit) => permit.id === permitId)?.name}`);
   };
 
+  const handleRequiredPermitUpload = async (file: ShipmentFile, permitId: string, permitFile: File) => {
+    if (!user || user.role !== 'permits_clerk') return;
+    if (permitFile.type !== 'application/pdf' && !permitFile.name.toLowerCase().endsWith('.pdf')) {
+      toast.error('Please upload the issued permit as a PDF file');
+      return;
+    }
+    const permit = (file.requiredPermits || []).find((item) => item.id === permitId);
+    if (!permit) return;
+    const pdfName = `${permit.name.replace(/[\\/:*?"<>|]/g, '-').trim() || 'Permit'}.pdf`;
+    const namedPdf = new File([permitFile], pdfName, { type: 'application/pdf' });
+    let uploadedDocument;
+    try {
+      uploadedDocument = await uploadDocument({
+        file: namedPdf,
+        category: 'shipment',
+        subCategory: permit.name,
+        description: `Issued ${permit.name} permit for file ${file.fileNumber}`,
+        tags: [file.fileNumber, 'permit', permit.name],
+        relatedFileId: file.id,
+        visibility: 'public',
+      }, user.id);
+    } catch {
+      toast.error('Could not save the permit. Please try again.');
+      return;
+    }
+    const requiredPermits = (file.requiredPermits || []).map((item) => item.id === permitId
+      ? { ...item, permitUrl: uploadedDocument.fileUrl, permitDocumentId: uploadedDocument.id }
+      : item);
+    updateFileStatus(file.id, file.status, user.id, { requiredPermits });
+    toast.success(`${permit.name} permit uploaded and shared in Documents`);
+  };
+
   const handleRequiredPermitPaid = (file: ShipmentFile, permitId: string) => {
     if (!user || user.role !== 'permits_clerk') return;
     const requiredPermits: ShipmentPermitRequirement[] = (file.requiredPermits || []).map((permit) => permit.id === permitId
@@ -886,16 +919,16 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
       completedBy: user.id,
     };
 
-        const escapeHtml = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-    }[character] || character));
-    const verificationRows = Object.entries(completedForm).map(([field, value]) =>
-      `<tr><th>${escapeHtml(field.replace(/([A-Z])/g, ' $1').replace(/_/g, ' '))}</th><td>${escapeHtml(value)}</td></tr>`
-    ).join('');
-    const verificationHtml = `<!doctype html><html><head><meta charset="utf-8"><title>Cargo Verification - ${escapeHtml(selectedFile.fileNumber)}</title><style>body{font-family:Arial,sans-serif;margin:32px;color:#1f2937}h1{font-size:22px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #d1d5db;padding:8px;text-align:left}th{width:34%;background:#f3f4f6;text-transform:capitalize}</style></head><body><h1>Cargo Verification Form</h1><p>Shipment: ${escapeHtml(selectedFile.fileNumber)}</p><table>${verificationRows}</table></body></html>`;
     let verificationDocument;
     try {
-      const reportFile = new File([verificationHtml], `Cargo-Verification-${selectedFile.fileNumber}.html`, { type: 'text/html' });
+      const reportLines = [
+        'CARGO VERIFICATION FORM',
+        `Shipment: ${selectedFile.fileNumber}`,
+        `Completed: ${new Date().toLocaleString()}`,
+        '',
+        ...Object.entries(completedForm).map(([field, value]) => `${field.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ')}: ${String(value ?? '')}`),
+      ];
+      const reportFile = createPdfFile(`Cargo-Verification-${selectedFile.fileNumber}.pdf`, reportLines);
       verificationDocument = await uploadDocument({
         file: reportFile,
         category: 'shipment',
@@ -1439,6 +1472,11 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                   SWISSPORT PAID
                                 </Button>
                               )}
+                              {(user?.role === 'finance_manager' || user?.role === 'cashier') && file.transportMode === 'AIR' && file.swissportChargesPaidAt && (
+                                <Button size="sm" disabled className="bg-green-600 text-white opacity-100">
+                                  <CheckCircle className="w-3 h-3 mr-1" /> SWISSPORT PAID
+                                </Button>
+                              )}
 
                               {/* OPERATIONS DONE - SEA button stays visible until all required steps are complete */}
                               {user?.role === 'operation_clerk' &&
@@ -1462,6 +1500,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                file.transportMode === 'AIR' &&
                                !!file.releaseOrderUrl && !!file.swissportChargesUrl && !!file.swissportChargesPaidAt &&
                                !!file.cargoVerificationCompletedAt && !!file.cargoVerificationForm &&
+                               (!file.requiredPermits?.length || !!file.permitsDoneAt) &&
                                file.status !== 'VERIFICATION_FORM_PENDING' && file.status !== 'OPERATIONS_DONE' && (
                                 <Button
                                   size="sm"
@@ -1529,6 +1568,24 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                   {file.requiredPermits.map((permit) => (
                                     <div key={permit.id} className="flex flex-wrap items-center gap-2 rounded-md border bg-white p-3">
                                       <span className="min-w-24 font-medium">{permit.name}</span>
+                                      {!permit.permitUrl && (
+                                        <Input
+                                          type="file"
+                                          accept="application/pdf,.pdf"
+                                          className="max-w-xs"
+                                          aria-label={`Upload issued ${permit.name} permit PDF (optional)`}
+                                          onChange={(event) => {
+                                            const issuedPermit = event.currentTarget.files?.[0];
+                                            if (issuedPermit) handleRequiredPermitUpload(file, permit.id, issuedPermit);
+                                            event.currentTarget.value = '';
+                                          }}
+                                        />
+                                      )}
+                                      {permit.permitUrl && (
+                                        <a href={permit.permitUrl} download={`${permit.name.replace(/[\\/:*?"<>|]/g, '-')}.pdf`} className="text-sm text-green-700 underline">
+                                          Download {permit.name} permit (PDF)
+                                        </a>
+                                      )}
                                       {!permit.invoiceUrl && (
                                         <Input
                                           type="file"
@@ -1572,7 +1629,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                 </div>
                               )}
                               {file.cargoVerificationDocumentUrl && (
-                                <a href={file.cargoVerificationDocumentUrl} download={`Cargo-Verification-${file.fileNumber}.html`} className="text-sm text-blue-700 underline">
+                                <a href={file.cargoVerificationDocumentUrl} download={`Cargo-Verification-${file.fileNumber}.pdf`} className="text-sm text-blue-700 underline">
                                   Download Verification Form
                                 </a>
                               )}
