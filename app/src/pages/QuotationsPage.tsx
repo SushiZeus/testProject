@@ -22,6 +22,7 @@ import { useFileStore } from '@/store/fileStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import type { AppRoute } from '@/App';
 import type { ShipmentFile } from '@/types';
+import { getShipmentDisplayStatus } from '@/utils/shipmentStatus';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { mockUsers } from '@/data/mockData';
@@ -211,7 +212,7 @@ export function QuotationsPage({ navigate: _navigate }: QuotationsPageProps) {
             </div>
           </div>
           <div className="flex flex-col items-end gap-2 flex-shrink-0">
-            <Badge className={cn('text-xs', statusColors[file.status] || 'bg-gray-100 text-gray-700')}>
+            <Badge className={cn('text-xs', statusColors[getShipmentDisplayStatus(file)] || 'bg-gray-100 text-gray-700')}>
               {statusLabels[file.status] || file.status}
             </Badge>
             <p className="text-xs text-gray-400">
@@ -357,7 +358,7 @@ export function QuotationsPage({ navigate: _navigate }: QuotationsPageProps) {
                 </div>
                 <div>
                   <p className="text-gray-500 text-xs">Status</p>
-                  <Badge className={cn('text-xs', statusColors[selectedFile.status] || 'bg-gray-100 text-gray-700')}>
+                  <Badge className={cn('text-xs', statusColors[getShipmentDisplayStatus(selectedFile)] || 'bg-gray-100 text-gray-700')}>
                     {statusLabels[selectedFile.status] || selectedFile.status}
                   </Badge>
                 </div>

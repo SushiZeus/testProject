@@ -31,6 +31,7 @@ import type { AppRoute } from '@/App';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { statusColors } from '@/utils/statusColors';
+import { getShipmentDisplayStatus } from '@/utils/shipmentStatus';
 
 interface ShippingLinePageProps {
   navigate: (route: AppRoute, params?: Record<string, string>) => void;
@@ -529,8 +530,8 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
                             <p className="font-medium">{file.client?.name}</p>
                           </td>
                           <td className="py-4 px-4">
-                            <Badge variant="secondary" className={cn('text-xs', statusColors[file.status])}>
-                              {file.status.replace(/_/g, ' ')}
+                            <Badge variant="secondary" className={cn('text-xs', statusColors[getShipmentDisplayStatus(file)])}>
+                              {getShipmentDisplayStatus(file).replace(/_/g, ' ')}
                             </Badge>
                           </td>
                           <td className="py-4 px-4">

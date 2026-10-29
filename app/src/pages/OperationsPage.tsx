@@ -48,6 +48,7 @@ import { mockUsers, getOperationClerkWorkload } from '@/data/mockData';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { statusColors } from '@/utils/statusColors';
+import { getShipmentDisplayStatus } from '@/utils/shipmentStatus';
 import { createPdfFile } from '@/utils/createPdfFile';
 
 interface WorkloadCardProps {
@@ -207,6 +208,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
   const operationClerks = mockUsers.filter((u: User) => u.role === 'operation_clerk');
   const isUserExecutive = isExecutive();
   const canManipulate = canManipulateOperationsModule();
+  const hasPendingPermits = (file: Pick<ShipmentFile, 'requiredPermits' | 'permitsDoneAt'>) => !!file.requiredPermits?.length && !file.permitsDoneAt;
 
   const operationFiles = files.filter((f: ShipmentFile) => 
     f.status === 'READY_FOR_OPERATIONS' ||
@@ -237,7 +239,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
 
   const filteredFiles = operationFiles.filter((file: ShipmentFile) => {
     if (activeTab === 'all') return true;
-    if (activeTab === 'ready') return file.status === 'READY_FOR_OPERATIONS' || file.status === 'WAITING_FOR_PERMIT' || file.status === 'PERMITS_DONE';
+    if (activeTab === 'ready') return file.status === 'READY_FOR_OPERATIONS' || file.status === 'WAITING_FOR_PERMIT' || file.status === 'PERMITS_DONE' || hasPendingPermits(file);
     if (activeTab === 'permits') return file.status === 'WAITING_FOR_WHARFAGE_PAYMENT';
     if (activeTab === 'swissport') return file.status === 'WAITING_FOR_SWISSPORT_PAYMENTS';
     if (activeTab === 'delivery') return file.status === 'SWISSPORT_CHARGES_PAID' || file.status === 'CARGO_CLEARED' || file.status === 'OPERATIONS_DONE' || file.status === 'VERIFICATION_FORM_PENDING' || file.status === 'VERIFICATION_FORM_COMPLETED';
@@ -632,13 +634,13 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     setSelectedFile(null);
   };
 
-  const handlePortChargesPaid = () => {
-    if (!selectedFile || !user) return;
+  const handlePortChargesPaid = (file: ShipmentFile) => {
+    if (!user || !file.portChargesUrl || file.portChargesPaidAt) return;
 
-    // Mark port charges as paid - keep current status, set payment confirmation flag
+    // Advance only after Finance/Cashier confirms payment.
     updateFileStatus(
-      selectedFile.id,
-      selectedFile.status, // Keep current status
+      file.id,
+      'PORT_CHARGES_PAID',
       user.id,
       {
         portChargesPaidAt: new Date(),
@@ -649,14 +651,14 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     addNotification({
       userId: '5', // Operations Manager
       title: 'Port Charges Paid',
-      message: `Port charges for file ${selectedFile.fileNumber} have been paid - Click OPERATIONS DONE to complete`,
+      message: `Port charges for file ${file.fileNumber} have been paid. Complete remaining permits and verification before OPERATIONS DONE.`,
       type: 'success',
-      fileId: selectedFile.id,
+      fileId: file.id,
       link: '/operations',
     });
 
-    toast.success('Port charges payment confirmed ✓ - OPERATIONS DONE button is now available (GREEN)');
-    setSelectedFile(null);
+    toast.success('Port charges payment confirmed. Any required permits and verification must also be complete before OPERATIONS DONE.');
+
   };
 
   const handleSwissportChargesPaid = (file: ShipmentFile) => {
@@ -676,13 +678,13 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     addNotification({
       userId: '5', // Operations Manager
       title: 'Swissport Charges Paid',
-      message: `Swissport charges for file ${file.fileNumber} have been paid - Click OPERATIONS DONE to complete`,
+      message: `Swissport charges for file ${file.fileNumber} have been paid. Complete remaining permits and verification before OPERATIONS DONE.`,
       type: 'success',
       fileId: file.id,
       link: '/operations',
     });
 
-    toast.success('Swissport charges payment confirmed ✓ - OPERATIONS DONE button is now available (GREEN)');
+    toast.success('Swissport payment confirmed. Any required permits and verification must also be complete before OPERATIONS DONE.');
 
   };
 
@@ -1079,7 +1081,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
   };
 
   const stats = {
-    waiting: files.filter((f: ShipmentFile) => f.status === 'READY_FOR_OPERATIONS' || f.status === 'WAITING_FOR_PERMIT' || f.status === 'PERMITS_DONE').length,
+    waiting: files.filter((f: ShipmentFile) => f.status === 'READY_FOR_OPERATIONS' || f.status === 'WAITING_FOR_PERMIT' || f.status === 'PERMITS_DONE' || hasPendingPermits(f)).length,
     inProgress: files.filter((f: ShipmentFile) => 
       f.assignedOperationClerkId && 
       (f.status === 'WAITING_FOR_RELEASE_ORDER' ||
@@ -1222,7 +1224,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                 workload={getOperationClerkWorkload(clerk.id, files)}
                 onAssign={() => {
                   // Check if there are files ready for operations
-                  const readyFiles = files.filter(f => f.status === 'READY_FOR_OPERATIONS' || f.status === 'WAITING_FOR_PERMIT' || f.status === 'PERMITS_DONE');
+                  const readyFiles = files.filter(f => f.status === 'READY_FOR_OPERATIONS' || f.status === 'WAITING_FOR_PERMIT' || f.status === 'PERMITS_DONE' || hasPendingPermits(f));
                   if (readyFiles.length === 0) {
                     toast.error('No files ready or waiting for permits to assign');
                     return;
@@ -1291,8 +1293,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                             <p className="font-medium">{file.client?.name}</p>
                           </td>
                           <td className="py-4 px-4">
-                            <Badge variant="secondary" className={cn('text-xs', statusColors[file.status === 'RELEASE_ORDER_RECEIVED' && file.transportMode === 'SEA' && file.releaseOrderUrl && !file.deliveryOrderDocumentUrl ? 'WAITING_FOR_DELIVERY_ORDER' : file.status])}>
-                              {file.status === 'RELEASE_ORDER_RECEIVED' && file.transportMode === 'SEA' && file.releaseOrderUrl && !file.deliveryOrderDocumentUrl ? 'WAITING FOR DELIVERY ORDER' : file.status.replace(/_/g, ' ')}
+                            <Badge variant="secondary" className={cn('text-xs', statusColors[getShipmentDisplayStatus(file) === file.status && file.status === 'RELEASE_ORDER_RECEIVED' && file.transportMode === 'SEA' && file.releaseOrderUrl && !file.deliveryOrderDocumentUrl ? 'WAITING_FOR_DELIVERY_ORDER' : getShipmentDisplayStatus(file)])}>
+                              {getShipmentDisplayStatus(file) === file.status && file.status === 'RELEASE_ORDER_RECEIVED' && file.transportMode === 'SEA' && file.releaseOrderUrl && !file.deliveryOrderDocumentUrl ? 'WAITING FOR DELIVERY ORDER' : getShipmentDisplayStatus(file).replace(/_/g, ' ')}
                             </Badge>
                           </td>
                           <td className="py-4 px-4">
@@ -1307,7 +1309,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                               <Button variant="ghost" size="sm" onClick={() => navigate('files/:id', { id: file.id })}>
                                 View
                               </Button>
-                              {canManipulate && user?.role === 'operations_manager' && (file.status === 'READY_FOR_OPERATIONS' || file.status === 'WAITING_FOR_PERMIT' || file.status === 'PERMITS_DONE') && (
+                              {canManipulate && user?.role === 'operations_manager' && (file.status === 'READY_FOR_OPERATIONS' || file.status === 'WAITING_FOR_PERMIT' || file.status === 'PERMITS_DONE' || hasPendingPermits(file)) && (
                                 <Button size="sm" onClick={() => { setSelectedFile(file); setAssignDialogOpen(true); }}>
                                   Assign
                                 </Button>
@@ -1449,10 +1451,10 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                               {/* PORT CHARGES PAID Button - For SEA shipments - Only Finance Manager and Cashier can confirm payment */}
                               {(user?.role === 'finance_manager' || user?.role === 'cashier') && 
                                file.transportMode === 'SEA' && 
-                               file.status === 'WAITING_FOR_PORT_CHARGES_PAYMENT' && file.portChargesUrl && (
+                               !!file.portChargesUrl && !file.portChargesPaidAt && file.status !== 'OPERATIONS_DONE' && (
                                 <Button 
                                   size="sm" 
-                                  onClick={() => { setSelectedFile(file); handlePortChargesPaid(); }}
+                                  onClick={() => handlePortChargesPaid(file)}
                                   className="bg-blue-600 hover:bg-blue-700 text-white"
                                   title="Confirm port charges payment"
                                 >
@@ -1959,7 +1961,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                   </SelectTrigger>
                   <SelectContent>
                     {files
-                    .filter(f => f.status === 'READY_FOR_OPERATIONS' || f.status === 'WAITING_FOR_PERMIT' || f.status === 'PERMITS_DONE')
+                    .filter(f => f.status === 'READY_FOR_OPERATIONS' || f.status === 'WAITING_FOR_PERMIT' || f.status === 'PERMITS_DONE' || hasPendingPermits(f))
                       .map((file) => (
                         <SelectItem key={file.id} value={file.id}>
                           {file.fileNumber} - {file.client?.name}

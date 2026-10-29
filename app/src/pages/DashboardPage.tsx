@@ -25,6 +25,7 @@ import type { ShipmentFile, TransportMode } from '@/types';
 import type { AppRoute } from '@/App';
 import { cn } from '@/lib/utils';
 import { statusColors } from '@/utils/statusColors';
+import { getShipmentDisplayStatus } from '@/utils/shipmentStatus';
 
 interface StatCardProps {
   title: string;
@@ -113,8 +114,8 @@ function RecentFileCard({ file, onClick }: RecentFileCardProps) {
         </div>
       </div>
       <div className="flex items-center gap-4">
-        <Badge variant="secondary" className={cn('text-xs', statusColors[file.status])}>
-          {file.status.replace(/_/g, ' ')}
+        <Badge variant="secondary" className={cn('text-xs', statusColors[getShipmentDisplayStatus(file)])}>
+          {getShipmentDisplayStatus(file).replace(/_/g, ' ')}
         </Badge>
         <ArrowRight className="w-4 h-4 text-gray-400" />
       </div>
@@ -1099,8 +1100,8 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
-                        <Badge variant="secondary" className={cn('text-xs font-medium', statusColors[file.status])}>
-                          {file.status.replace(/_/g, ' ')}
+                        <Badge variant="secondary" className={cn('text-xs font-medium', statusColors[getShipmentDisplayStatus(file)])}>
+                          {getShipmentDisplayStatus(file).replace(/_/g, ' ')}
                         </Badge>
                         <ArrowRight className="w-5 h-5 text-gray-400" />
                       </div>

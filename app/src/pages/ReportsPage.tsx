@@ -26,6 +26,7 @@ import type { AppRoute } from '@/App';
 import { mockUsers, getDeclarantWorkload, getOperationClerkWorkload } from '@/data/mockData';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { getShipmentDisplayStatus } from '@/utils/shipmentStatus';
 
 interface ReportsPageProps {
   navigate: (route: AppRoute, params?: Record<string, string>) => void;
@@ -169,7 +170,7 @@ export function ReportsPage({ }: ReportsPageProps) {
     }, {} as Record<string, number>);
 
     const byStatus = departmentFiles.reduce((acc, file) => {
-      const status = file.status.replace(/_/g, ' ');
+      const status = getShipmentDisplayStatus(file).replace(/_/g, ' ');
       acc[status] = (acc[status] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
@@ -277,7 +278,7 @@ export function ReportsPage({ }: ReportsPageProps) {
       ...departmentFiles.map(file => [
         file.fileNumber,
         file.client?.name || '',
-        file.status.replace(/_/g, ' '),
+        getShipmentDisplayStatus(file).replace(/_/g, ' '),
         file.shipmentType,
         file.transportMode,
         new Date(file.createdAt).toLocaleDateString()

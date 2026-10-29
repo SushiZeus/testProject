@@ -23,6 +23,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useFileStore } from '@/store/fileStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import type { ShipmentFile, User } from '@/types';
+import { getShipmentDisplayStatus } from '@/utils/shipmentStatus';
 import type { AppRoute } from '@/App';
 import { mockUsers } from '@/data/mockData';
 import { toast } from 'sonner';
@@ -361,7 +362,7 @@ export function DriversPage({ navigate }: DriversPageProps) {
                             'bg-purple-100 text-purple-700'
                           )}
                         >
-                          {file.status.replace(/_/g, ' ')}
+                          {getShipmentDisplayStatus(file).replace(/_/g, ' ')}
                         </Badge>
                       </td>
                       <td className="py-4 px-4">

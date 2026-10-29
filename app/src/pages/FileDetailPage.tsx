@@ -43,6 +43,7 @@ import type { AppRoute } from '@/App';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { statusColors } from '@/utils/statusColors';
+import { getShipmentDisplayStatus } from '@/utils/shipmentStatus';
 
 interface TimelineItemProps {
   status: string;
@@ -231,8 +232,8 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-gray-900">{file.fileNumber}</h1>
-              <Badge className={cn(statusColors[file.status])}>
-                {file.status.replace(/_/g, ' ')}
+              <Badge className={cn(statusColors[getShipmentDisplayStatus(file)])}>
+                {getShipmentDisplayStatus(file).replace(/_/g, ' ')}
               </Badge>
             </div>
             <p className="text-gray-500 mt-1">
@@ -717,9 +718,9 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
             <CardContent className="space-y-4">
               <div className={cn(
                 'p-4 rounded-lg text-center',
-                statusColors[file.status]
+                statusColors[getShipmentDisplayStatus(file)]
               )}>
-                <p className="text-lg font-semibold">{file.status.replace(/_/g, ' ')}</p>
+                <p className="text-lg font-semibold">{getShipmentDisplayStatus(file).replace(/_/g, ' ')}</p>
               </div>
 
               <div className="space-y-3">

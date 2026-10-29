@@ -30,6 +30,7 @@ import { useFileStore } from '@/store/fileStore';
 import { useDriverStore } from '@/store/driverStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import type { User, DriverStatus, ShipmentFile } from '@/types';
+import { getShipmentDisplayStatus } from '@/utils/shipmentStatus';
 import type { AppRoute } from '@/App';
 import { mockUsers } from '@/data/mockData';
 import { toast } from 'sonner';
@@ -307,7 +308,7 @@ export function DriverManagementPage({ }: DriverManagementPageProps) {
                           </td>
                           <td className="py-4 px-4">
                             <Badge variant="secondary" className="bg-green-100 text-green-700">
-                              {file.status.replace(/_/g, ' ')}
+                              {getShipmentDisplayStatus(file).replace(/_/g, ' ')}
                             </Badge>
                           </td>
                           <td className="py-4 px-4">
