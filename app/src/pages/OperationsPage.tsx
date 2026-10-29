@@ -659,13 +659,13 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     setSelectedFile(null);
   };
 
-  const handleSwissportChargesPaid = () => {
-    if (!selectedFile || !user) return;
+  const handleSwissportChargesPaid = (file: ShipmentFile) => {
+    if (!user || !file.swissportChargesUrl || file.swissportChargesPaidAt) return;
 
-    // Mark swissport charges as paid - keep current status, set payment confirmation flag
+    // Advance only after Finance/Cashier confirms payment.
     updateFileStatus(
-      selectedFile.id,
-      selectedFile.status, // Keep current status
+      file.id,
+      'SWISSPORT_CHARGES_PAID',
       user.id,
       {
         swissportChargesPaidAt: new Date(),
@@ -676,14 +676,14 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     addNotification({
       userId: '5', // Operations Manager
       title: 'Swissport Charges Paid',
-      message: `Swissport charges for file ${selectedFile.fileNumber} have been paid - Click OPERATIONS DONE to complete`,
+      message: `Swissport charges for file ${file.fileNumber} have been paid - Click OPERATIONS DONE to complete`,
       type: 'success',
-      fileId: selectedFile.id,
+      fileId: file.id,
       link: '/operations',
     });
 
     toast.success('Swissport charges payment confirmed ✓ - OPERATIONS DONE button is now available (GREEN)');
-    setSelectedFile(null);
+
   };
 
   // NEW: Handle DO Review and Approval by Operations
@@ -942,9 +942,12 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
       toast.error('Could not save the verification form to Documents. Please try again.');
       return;
     }
+    const verificationStatus = selectedFile.transportMode === 'AIR' && selectedFile.swissportChargesUrl && !selectedFile.swissportChargesPaidAt
+      ? 'WAITING_FOR_SWISSPORT_CHARGES_PAYMENT'
+      : 'VERIFICATION_FORM_COMPLETED';
     updateFileStatus(
       selectedFile.id,
-      'VERIFICATION_FORM_COMPLETED',
+      verificationStatus,
       user.id,
       {
         cargoVerificationForm: completedForm,
@@ -1461,10 +1464,10 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                               {/* SWISSPORT CHARGES PAID Button - For AIR shipments - Only Finance Manager and Cashier can confirm payment */}
                               {(user?.role === 'finance_manager' || user?.role === 'cashier') && 
                                file.transportMode === 'AIR' && 
-                               file.status === 'WAITING_FOR_SWISSPORT_CHARGES_PAYMENT' && file.swissportChargesUrl && (
+                               !!file.swissportChargesUrl && !file.swissportChargesPaidAt && file.status !== 'OPERATIONS_DONE' && (
                                 <Button 
                                   size="sm" 
-                                  onClick={() => { setSelectedFile(file); handleSwissportChargesPaid(); }}
+                                  onClick={() => handleSwissportChargesPaid(file)}
                                   className="bg-blue-600 hover:bg-blue-700 text-white"
                                   title="Confirm Swissport charges payment"
                                 >
