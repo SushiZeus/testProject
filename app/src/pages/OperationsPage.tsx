@@ -209,6 +209,9 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
   const isUserExecutive = isExecutive();
   const canManipulate = canManipulateOperationsModule();
   const hasPendingPermits = (file: Pick<ShipmentFile, 'requiredPermits' | 'permitsDoneAt'>) => !!file.requiredPermits?.length && !file.permitsDoneAt;
+  const canConfirmShipmentChargePayment = (file: ShipmentFile) =>
+    user?.role === 'finance_manager' || user?.role === 'cashier' || user?.role === 'operations_manager' ||
+    (user?.role === 'operation_clerk' && file.assignedOperationClerkId === user.id);
   const canMarkAirOperationsDone = (file: ShipmentFile) =>
     !!file.releaseOrderUrl && !!file.swissportChargesUrl && !!file.swissportChargesPaidAt &&
     !!file.cargoVerificationCompletedAt && !!file.cargoVerificationForm &&
@@ -1459,8 +1462,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                 </>
                               )}
 
-                              {/* PORT CHARGES PAID Button - For SEA shipments - Only Finance Manager and Cashier can confirm payment */}
-                              {(user?.role === 'finance_manager' || user?.role === 'cashier') && 
+                              {/* PORT CHARGES PAID Button - For SEA shipments - Finance Manager, Cashier, Operations Manager, or the assigned Operations Clerk can confirm payment */}
+                              {canConfirmShipmentChargePayment(file) &&
                                file.transportMode === 'SEA' && 
                                !!file.portChargesUrl && !file.portChargesPaidAt && file.status !== 'OPERATIONS_DONE' && (
                                 <Button 
@@ -1474,8 +1477,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                 </Button>
                               )}
 
-                              {/* SWISSPORT CHARGES PAID Button - For AIR shipments - Only Finance Manager and Cashier can confirm payment */}
-                              {(user?.role === 'finance_manager' || user?.role === 'cashier') && 
+                              {/* SWISSPORT CHARGES PAID Button - For AIR shipments - Finance Manager, Cashier, Operations Manager, or the assigned Operations Clerk can confirm payment */}
+                              {canConfirmShipmentChargePayment(file) &&
                                file.transportMode === 'AIR' && 
                                !!file.swissportChargesUrl && !file.swissportChargesPaidAt && file.status !== 'OPERATIONS_DONE' && (
                                 <Button 
@@ -1488,7 +1491,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                   SWISSPORT PAID
                                 </Button>
                               )}
-                              {(user?.role === 'finance_manager' || user?.role === 'cashier') && file.transportMode === 'AIR' && file.swissportChargesPaidAt && (
+                              {canConfirmShipmentChargePayment(file) &&file.transportMode === 'AIR' && file.swissportChargesPaidAt && (
                                 <Button size="sm" disabled className="bg-green-600 text-white opacity-100">
                                   <CheckCircle className="w-3 h-3 mr-1" /> SWISSPORT PAID
                                 </Button>
