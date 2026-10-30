@@ -209,6 +209,17 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
   const isUserExecutive = isExecutive();
   const canManipulate = canManipulateOperationsModule();
   const hasPendingPermits = (file: Pick<ShipmentFile, 'requiredPermits' | 'permitsDoneAt'>) => !!file.requiredPermits?.length && !file.permitsDoneAt;
+  const canMarkAirOperationsDone = (file: ShipmentFile) =>
+    !!file.releaseOrderUrl && !!file.swissportChargesUrl && !!file.swissportChargesPaidAt &&
+    !!file.cargoVerificationCompletedAt && !!file.cargoVerificationForm &&
+    (!file.requiredPermits?.length || !!file.permitsDoneAt);
+  const airOperationsBlockReason = (file: ShipmentFile) =>
+    hasPendingPermits(file) ? 'WAITING FOR PERMITS' :
+    !file.releaseOrderUrl ? 'Upload Release Order first' :
+    !file.swissportChargesUrl ? 'Upload Swissport charges first' :
+    !file.swissportChargesPaidAt ? 'Waiting for Swissport charges payment' :
+    !file.cargoVerificationCompletedAt || !file.cargoVerificationForm ? 'Complete the cargo verification form first' :
+    'Select to mark operations done';
 
   const operationFiles = files.filter((f: ShipmentFile) => 
     f.status === 'READY_FOR_OPERATIONS' ||
@@ -1490,28 +1501,27 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                file.status !== 'OPERATIONS_DONE' && (
                                 <Button
                                   size="sm"
-                                  disabled={!file.releaseOrderUrl || !file.deliveryOrderDocumentUrl || !file.portChargesUrl || !file.portChargesPaidAt || !file.cargoVerificationCompletedAt || !file.cargoVerificationForm || (!!file.requiredPermits?.length && !file.permitsDoneAt)}
+                                  disabled={!file.releaseOrderUrl || !file.deliveryOrderDocumentUrl || !file.portChargesUrl || !file.portChargesPaidAt || !file.cargoVerificationCompletedAt || !file.cargoVerificationForm || hasPendingPermits(file)}
                                   onClick={() => handleOperationsDone(file)}
-                                  className={!file.releaseOrderUrl || !file.deliveryOrderDocumentUrl || !file.portChargesUrl || !file.portChargesPaidAt || !file.cargoVerificationCompletedAt || !file.cargoVerificationForm || (!!file.requiredPermits?.length && !file.permitsDoneAt) ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}
-                                  title={file.requiredPermits?.length && !file.permitsDoneAt ? 'WAITING FOR PERMIT' : !file.deliveryOrderDocumentUrl ? 'WAITING FOR DELIVERY ORDER' : !file.releaseOrderUrl ? 'Upload Release Order first' : !file.portChargesUrl ? 'Upload Port Charges first' : !file.portChargesPaidAt ? 'Waiting for Port Charges payment' : !file.cargoVerificationCompletedAt || !file.cargoVerificationForm ? 'Complete the cargo verification form first' : 'Mark operations as done'}
+                                  className={!file.releaseOrderUrl || !file.deliveryOrderDocumentUrl || !file.portChargesUrl || !file.portChargesPaidAt || !file.cargoVerificationCompletedAt || !file.cargoVerificationForm || hasPendingPermits(file) ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}
+                                  title={hasPendingPermits(file) ? 'WAITING FOR PERMITS' : !file.deliveryOrderDocumentUrl ? 'WAITING FOR DELIVERY ORDER' : !file.releaseOrderUrl ? 'Upload Release Order first' : !file.portChargesUrl ? 'Upload Port Charges first' : !file.portChargesPaidAt ? 'Waiting for Port Charges payment' : !file.cargoVerificationCompletedAt || !file.cargoVerificationForm ? 'Complete the cargo verification form first' : 'Mark operations as done'}
                                 >
                                   <CheckCircle className="w-3 h-3 mr-1" />
                                   OPERATIONS DONE
                                 </Button>
                               )}
 
+                              {/* AIR OPERATIONS DONE stays visible while requirements are pending */}
                               {user?.role === 'operation_clerk' &&
                                file.assignedOperationClerkId === user?.id &&
                                file.transportMode === 'AIR' &&
-                               !!file.releaseOrderUrl && !!file.swissportChargesUrl && !!file.swissportChargesPaidAt &&
-                               !!file.cargoVerificationCompletedAt && !!file.cargoVerificationForm &&
-                               (!file.requiredPermits?.length || !!file.permitsDoneAt) &&
-                               file.status !== 'VERIFICATION_FORM_PENDING' && file.status !== 'OPERATIONS_DONE' && (
+                               file.status !== 'OPERATIONS_DONE' && (
                                 <Button
                                   size="sm"
+                                  disabled={!canMarkAirOperationsDone(file)}
                                   onClick={() => handleOperationsDone(file)}
-                                  className="bg-green-600 hover:bg-green-700 text-white"
-                                  title="Mark operations as complete (charges paid + verification done)"
+                                  className={canMarkAirOperationsDone(file) ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}
+                                  title={airOperationsBlockReason(file)}
                                 >
                                   <CheckCircle className="w-3 h-3 mr-1" />
                                   OPERATIONS DONE
