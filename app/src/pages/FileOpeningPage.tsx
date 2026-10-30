@@ -74,7 +74,7 @@ interface FileOpeningPageProps {
 
 export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
   const { user, hasPermission } = useAuthStore();
-  const { createFile, clients, addClient, files } = useFileStore();
+  const { createFile, clients, addClient, files, updateFileStatus } = useFileStore();
   const { addNotification } = useNotificationStore();
   const { createRequest } = usePettyCashStore();
   const { getUserAccessibleDocuments, uploadDocument } = useDocumentStore();
@@ -546,11 +546,12 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
 
       // Upload documents to document store if using upload mode
       if (documentSelectionMode === 'upload') {
+        let storedFileDocuments = file.documents;
         for (const docType of selectedDocuments) {
           const files = uploadedFiles[docType] || [];
           for (const uploadFile of files) {
             try {
-              await uploadDocument({
+              const storedDocument = await uploadDocument({
                 category: 'shipment',
                 subCategory: docType,
                 tags: [file.fileNumber, docType, shipmentType, transportMode],
@@ -559,10 +560,18 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
                 file: uploadFile,
                 visibility: 'role_specific',
               }, user.id);
+              storedFileDocuments = storedFileDocuments.map((document) =>
+                document.documentType === docType && document.documentName === uploadFile.name
+                  ? { ...document, fileUrl: storedDocument.fileUrl }
+                  : document
+              );
             } catch (error) {
               console.error(`Failed to upload document ${uploadFile.name}:`, error);
             }
           }
+        }
+        if (storedFileDocuments !== file.documents) {
+          updateFileStatus(file.id, file.status, user.id, { documents: storedFileDocuments });
         }
       }
 

@@ -39,6 +39,7 @@ import { useFileStore } from '@/store/fileStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { usePettyCashStore } from '@/store/pettyCashStore';
 import type { ShipmentFile, ShipmentPermitKind, ShipmentPermitRequirement, User } from '@/types';
+import { useDocumentStore } from '@/store/documentStore';
 import type { AppRoute } from '@/App';
 import { mockUsers, getDeclarantWorkload } from '@/data/mockData';
 import { toast } from 'sonner';
@@ -132,6 +133,7 @@ interface DeclarationPageProps {
 export function DeclarationPage({ navigate }: DeclarationPageProps) {
   const { user, hasPermission, isExecutive, canManipulateDeclarationModule } = useAuthStore();
   const { files, assignDeclarant, updateFileStatus } = useFileStore();
+  const { getDocuments } = useDocumentStore();
   const { addNotification } = useNotificationStore();
   const { createRequest } = usePettyCashStore();
 
@@ -528,7 +530,26 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
     const requiredPermits: ShipmentPermitRequirement[] = selectedPermitKinds.map((kind) => {
       const name = kind === 'OTHER' ? otherPermitName.trim() : kind;
       const existing = previousPermits.find((permit) => permit.kind === kind && permit.name === name);
-      return existing || { id: `${selectedFile.id}-${kind.toLowerCase()}-${Date.now()}`, kind, name };
+      const uploadedCoc = kind === 'COC'
+        ? selectedFile.documents.find((document) => document.documentType === 'coc')
+        : undefined;
+      const storedCoc = uploadedCoc && getDocuments().find((document) =>
+        document.relatedFileId === selectedFile.id && document.originalName === uploadedCoc.documentName
+      );
+      if (existing) return !uploadedCoc ? existing : {
+        ...existing,
+        permitAvailable: true,
+        permitUrl: existing.permitUrl || uploadedCoc.fileUrl,
+        permitDocumentId: existing.permitDocumentId || storedCoc?.id,
+      };
+      return {
+        id: `${selectedFile.id}-${kind.toLowerCase()}-${Date.now()}`,
+        kind,
+        name,
+        permitAvailable: !!uploadedCoc,
+        permitUrl: uploadedCoc?.fileUrl,
+        permitDocumentId: storedCoc?.id,
+      };
     });
     updateFileStatus(selectedFile.id, selectedFile.status, user.id, {
       requiredPermits,

@@ -171,7 +171,7 @@ export const useDocumentStore = (): DocumentState => {
         // Set allowed roles based on category
         switch (data.category) {
           case 'shipment':
-            document.allowedRoles = ['administrator', 'documentation_officer', 'declaration_manager', 'declarant', 'operations_manager', 'operation_clerk'];
+            document.allowedRoles = ['administrator', 'documentation_officer', 'declaration_manager', 'declarant', 'permits_clerk', 'operations_manager', 'operation_clerk', 'finance_manager', 'cashier', 'coo', 'commercial_manager', 'managing_director'];
             break;
           case 'petty_cash':
             document.allowedRoles = ['administrator', 'operations_manager', 'operation_clerk', 'declaration_manager', 'hr_manager', 'finance_manager', 'coo', 'cashier'];

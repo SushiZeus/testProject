@@ -39,6 +39,7 @@ import {
 import { useFileStore } from '@/store/fileStore';
 import { useAuthStore } from '@/store/authStore';
 import type { ShippingDocument } from '@/types';
+import { useDocumentStore } from '@/store/documentStore';
 import type { AppRoute } from '@/App';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -137,6 +138,7 @@ interface FileDetailPageProps {
 export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
   const { user, isExecutive } = useAuthStore();
   const { getFileById, getActivityLogs, addComment, addDocument } = useFileStore();
+  const { getDocuments } = useDocumentStore();
   
   // Check if user can view client details
   const canViewClientDetails = user && ['documentation_officer', 'commercial_manager', 'managing_director', 'administrator'].includes(user.role);
@@ -149,6 +151,54 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
 
   const file = fileId ? getFileById(fileId) : null;
   const activityLogs = fileId ? getActivityLogs(fileId) : [];
+  const shipmentDocuments: ShippingDocument[] = file ? (() => {
+    const documents = [...file.documents];
+    const knownUrls = new Set(documents.map((document) => document.fileUrl));
+    const addLinkedDocument = (document: ShippingDocument) => {
+      if (!knownUrls.has(document.fileUrl)) {
+        knownUrls.add(document.fileUrl);
+        documents.push(document);
+      }
+    };
+    getDocuments().filter((document) => document.relatedFileId === file.id).forEach((document) => {
+      addLinkedDocument({
+        id: document.id,
+        fileId: file.id,
+        documentType: 'other',
+        documentName: document.originalName,
+        fileUrl: document.fileUrl,
+        uploadedBy: document.uploadedBy,
+        uploadedAt: document.uploadedAt,
+      });
+    });
+    const linkedFields: Array<[string, string | undefined]> = [
+      ['Tax Assessment', file.taxAssessmentUrl], ['Tax Documents', file.taxDocumentUrl],
+      ['Wharfage Documents', file.wharfageDocumentUrl], ['Release Order', file.releaseOrderUrl],
+      ['Permit Invoice', file.permitInvoiceUrl], ['Permit Document', file.permitDocumentUrl],
+      ['Delivery Order Invoice', file.deliveryOrderInvoiceUrl], ['Delivery Order', file.deliveryOrderDocumentUrl],
+      ['Delivery Order Payment Invoice', file.doPaymentRequestInvoiceUrl], ['Delivery Order Charges Invoice', file.doChargesInvoiceUrl],
+      ['Port Charges Invoice', file.portChargesInvoiceUrl], ['Port Charges', file.portChargesUrl],
+      ['Swissport Charges', file.swissportChargesUrl], ['Cargo Verification Form', file.cargoVerificationDocumentUrl],
+      ['Swissport Authorization', file.swissportAuthorizationUrl], ['Shipping Line Authorization', file.shippingLineAuthorizationUrl],
+      ['Customs Authorization', file.customsAuthorizationUrl], ['TBS Authorization', file.tbsAuthorizationUrl],
+      ...((file.requiredPermits || []).flatMap((permit) => [
+        [`${permit.name} Permit`, permit.permitUrl], [`${permit.name} Invoice`, permit.invoiceUrl],
+      ] as Array<[string, string | undefined]>)),
+    ];
+    linkedFields.forEach(([documentName, fileUrl]) => {
+      if (!fileUrl) return;
+      addLinkedDocument({
+        id: `${file.id}-${documentName.replace(/\\W+/g, '-').toLowerCase()}`,
+        fileId: file.id,
+        documentType: 'other',
+        documentName: fileUrl.toLowerCase().includes('application/pdf') || documentName.toLowerCase().includes('permit') ? `${documentName}.pdf` : documentName,
+        fileUrl,
+        uploadedBy: file.createdBy,
+        uploadedAt: file.updatedAt,
+      });
+    });
+    return documents.sort((a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime());
+  })() : [];
 
   const isUserExecutive = isExecutive();
 
@@ -594,7 +644,7 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
                     <div>
                       <CardTitle>Uploaded Documents</CardTitle>
                       <CardDescription>
-                        {file.documents.length} document(s) uploaded
+                        {shipmentDocuments.length} document(s) uploaded
                       </CardDescription>
                     </div>
                     {user?.role === 'documentation_officer' && (
@@ -607,7 +657,7 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {file.documents.length === 0 ? (
+                    {shipmentDocuments.length === 0 ? (
                       <div className="text-center py-8 text-gray-500">
                         <Paperclip className="w-12 h-12 mx-auto mb-3 opacity-50" />
                         <p>No documents uploaded</p>
@@ -619,7 +669,7 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
                         )}
                       </div>
                     ) : (
-                      file.documents.map((doc: ShippingDocument) => (
+                      shipmentDocuments.map((doc: ShippingDocument) => (
                         <DocumentCard key={doc.id} document={doc} />
                       ))
                     )}

@@ -173,8 +173,11 @@ export interface ShipmentPermitRequirement {
   id: string;
   kind: ShipmentPermitKind;
   name: string;
+  permitAvailable?: boolean;
   permitUrl?: string;
   permitDocumentId?: string;
+  permitApprovedAt?: Date;
+  permitApprovedBy?: string;
   invoiceUrl?: string;
   invoiceDocumentId?: string;
   invoiceUploadedAt?: Date;

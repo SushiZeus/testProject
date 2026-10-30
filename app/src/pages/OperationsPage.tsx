@@ -136,10 +136,10 @@ interface OperationsPageProps {
 
 export function OperationsPage({ navigate }: OperationsPageProps) {
   const { user, hasPermission, isExecutive, canManipulateOperationsModule } = useAuthStore();
-  const { files, assignOperationClerk, updateFileStatus } = useFileStore();
+  const { files, assignOperationClerk, updateFileStatus, addDocument } = useFileStore();
   const { createRequest } = usePettyCashStore();
   const { addNotification } = useNotificationStore();
-  const { uploadDocument } = useDocumentStore();
+  const { uploadDocument, updateDocument, getDocuments } = useDocumentStore();
 
   const [activeTab, setActiveTab] = useState('all');
   const [selectedFile, setSelectedFile] = useState<ShipmentFile | null>(null);
@@ -742,6 +742,15 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     const requiredPermits = (file.requiredPermits || []).map((permit) => permit.id === permitId
       ? { ...permit, invoiceUrl: uploadedDocument.fileUrl, invoiceDocumentId: uploadedDocument.id, invoiceUploadedAt: new Date(), paidAt: undefined, paidBy: undefined }
       : permit);
+    addDocument(file.id, {
+      id: uploadedDocument.id,
+      fileId: file.id,
+      documentType: 'other',
+      documentName: uploadedDocument.originalName,
+      fileUrl: uploadedDocument.fileUrl,
+      uploadedBy: user.id,
+      uploadedAt: new Date(),
+    });
     updateFileStatus(file.id, 'WAITING_FOR_PERMIT_PAYMENTS', user.id, {
       requiredPermits,
       permitsDoneAt: undefined,
@@ -769,39 +778,75 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
         description: `Issued ${permit.name} permit for file ${file.fileNumber}`,
         tags: [file.fileNumber, 'permit', permit.name],
         relatedFileId: file.id,
-        visibility: 'public',
+        visibility: 'role_specific',
       }, user.id);
     } catch {
       toast.error('Could not save the permit. Please try again.');
       return;
     }
     const requiredPermits = (file.requiredPermits || []).map((item) => item.id === permitId
-      ? { ...item, permitUrl: uploadedDocument.fileUrl, permitDocumentId: uploadedDocument.id }
+      ? { ...item, permitAvailable: item.permitAvailable ?? true, permitUrl: uploadedDocument.fileUrl, permitDocumentId: uploadedDocument.id, permitApprovedAt: undefined, permitApprovedBy: undefined }
       : item);
+    addDocument(file.id, {
+      id: uploadedDocument.id,
+      fileId: file.id,
+      documentType: 'other',
+      documentName: uploadedDocument.originalName,
+      fileUrl: uploadedDocument.fileUrl,
+      uploadedBy: user.id,
+      uploadedAt: new Date(),
+    });
     updateFileStatus(file.id, file.status, user.id, { requiredPermits });
-    toast.success(`${permit.name} permit uploaded and shared in Documents`);
+    toast.success(`${permit.name} permit uploaded for review`);
   };
 
   const handleRequiredPermitPaid = (file: ShipmentFile, permitId: string) => {
-    if (!user || user.role !== 'permits_clerk') return;
+    if (!user || !['finance_manager', 'cashier'].includes(user.role)) return;
     const requiredPermits: ShipmentPermitRequirement[] = (file.requiredPermits || []).map((permit) => permit.id === permitId
       ? { ...permit, paidAt: new Date(), paidBy: user.id }
       : permit);
-    const allPaid = requiredPermits.length > 0 && requiredPermits.every((permit) => !!permit.invoiceUrl && !!permit.paidAt);
-    updateFileStatus(file.id, allPaid ? 'PERMIT_PAYMENTS_DONE' : 'WAITING_FOR_PERMIT_PAYMENTS', user.id, { requiredPermits });
+    updateFileStatus(file.id, file.status, user.id, { requiredPermits });
     toast.success(`Payment confirmed for ${requiredPermits.find((permit) => permit.id === permitId)?.name}`);
   };
 
-  const handleRequiredPermitsDone = (file: ShipmentFile) => {
+  const handleRequiredPermitAvailability = (file: ShipmentFile, permitId: string, available: boolean) => {
     if (!user || user.role !== 'permits_clerk') return;
-    const requiredPermits = file.requiredPermits || [];
-    if (!requiredPermits.length || requiredPermits.some((permit) => !permit.invoiceUrl || !permit.paidAt)) {
-      toast.error('Upload each required permit invoice and confirm each payment first');
+    const requiredPermits = (file.requiredPermits || []).map((permit) => permit.id === permitId
+      ? { ...permit, permitAvailable: available, permitApprovedAt: undefined, permitApprovedBy: undefined }
+      : permit);
+    updateFileStatus(file.id, file.status, user.id, { requiredPermits, permitsDoneAt: undefined });
+  };
+
+  const handleApproveRequiredPermit = (file: ShipmentFile, permitId: string) => {
+    if (!user || user.role !== 'permits_clerk') return;
+    const permit = file.requiredPermits?.find((item) => item.id === permitId);
+    if (!permit?.permitUrl) {
+      toast.error('Upload or open the permit document before approving it');
       return;
     }
-    updateFileStatus(file.id, 'PERMITS_DONE', user.id, { permitsDoneAt: new Date(), assignedPermitsClerkId: user.id });
-    addNotification({ userId: '5', title: 'Permits Done', message: `All required permits are complete for file ${file.fileNumber}`, type: 'success', fileId: file.id, link: '/operations' });
-    toast.success('PERMITS DONE - File is ready for Operations assignment');
+    if (permit.permitAvailable === false && (!permit.invoiceUrl || !permit.paidAt)) {
+      toast.error('Finance/Cashier must acknowledge payment before this permit can be approved');
+      return;
+    }
+    const linkedDocument = (permit.permitDocumentId && getDocuments().find((document) => document.id === permit.permitDocumentId))
+      || getDocuments().find((document) => document.relatedFileId === file.id && document.originalName === permit.name + '.pdf');
+    if (linkedDocument) {
+      updateDocument(linkedDocument.id, { visibility: 'public', allowedRoles: ['administrator', 'documentation_officer', 'declaration_manager', 'declarant', 'permits_clerk', 'operations_manager', 'operation_clerk', 'finance_manager', 'cashier', 'coo', 'commercial_manager', 'managing_director'] });
+    }
+    const requiredPermits = (file.requiredPermits || []).map((item) => item.id === permitId
+      ? { ...item, permitApprovedAt: new Date(), permitApprovedBy: user.id }
+      : item);
+    const allApproved = requiredPermits.length > 0 && requiredPermits.every((item) =>
+      !!item.permitUrl && !!item.permitApprovedAt && (item.permitAvailable !== false || (!!item.invoiceUrl && !!item.paidAt))
+    );
+    updateFileStatus(file.id, allApproved ? 'PERMITS_DONE' : file.status, user.id, {
+      requiredPermits,
+      ...(allApproved ? { permitsDoneAt: new Date(), assignedPermitsClerkId: user.id } : {}),
+    });
+    if (allApproved) {
+      addNotification({ userId: '5', title: 'Permits Done', message: `All required permits are approved for file ${file.fileNumber}`, type: 'success', fileId: file.id, link: '/operations' });
+    }
+    toast.success(allApproved ? 'All permits approved and shared with the operations team' : `${permit.name} approved and shared with users`);
   };
   const handleOperationsDone = (file: ShipmentFile) => {
     if (!user) return;
@@ -1586,17 +1631,31 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                 <div className="w-full basis-full rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-3">
                                   <div>
                                     <p className="font-semibold text-amber-900">Required permits</p>
-                                    <p className="text-sm text-amber-800">Upload each permit invoice, confirm it is paid, then select PERMITS DONE.</p>
+                                    <p className="text-sm text-amber-800">Choose whether each permit is available. If available, upload or review it and approve it. If unavailable, upload its invoice; Finance/Cashier confirms payment before permit upload is enabled.</p>
                                   </div>
                                   {file.requiredPermits.map((permit) => (
                                     <div key={permit.id} className="flex flex-wrap items-center gap-2 rounded-md border bg-white p-3">
                                       <span className="min-w-24 font-medium">{permit.name}</span>
-                                      {!permit.permitUrl && (
+                                      {permit.kind === 'COC' && file.documents.some((document) => document.documentType === 'coc') ? (
+                                        <Badge variant="secondary" className="bg-blue-100 text-blue-700">COC uploaded at file opening</Badge>
+                                      ) : (
+                                        <div className="flex items-center gap-3" role="radiogroup" aria-label={`${permit.name} availability`}>
+                                          <label className="flex items-center gap-1 text-sm">
+                                            <input type="radio" name={`permit-available-${file.id}-${permit.id}`} checked={permit.permitAvailable === true} onChange={() => handleRequiredPermitAvailability(file, permit.id, true)} />
+                                            Available
+                                          </label>
+                                          <label className="flex items-center gap-1 text-sm">
+                                            <input type="radio" name={`permit-available-${file.id}-${permit.id}`} checked={permit.permitAvailable === false} onChange={() => handleRequiredPermitAvailability(file, permit.id, false)} />
+                                            Not available
+                                          </label>
+                                        </div>
+                                      )}
+                                      {permit.permitAvailable === true && !permit.permitUrl && (
                                         <Input
                                           type="file"
                                           accept="application/pdf,.pdf"
                                           className="max-w-xs"
-                                          aria-label={`Upload issued ${permit.name} permit PDF (optional)`}
+                                          aria-label={`Upload available ${permit.name} permit PDF`}
                                           onChange={(event) => {
                                             const issuedPermit = event.currentTarget.files?.[0];
                                             if (issuedPermit) handleRequiredPermitUpload(file, permit.id, issuedPermit);
@@ -1606,10 +1665,16 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                       )}
                                       {permit.permitUrl && (
                                         <a href={permit.permitUrl} download={`${permit.name.replace(/[\\/:*?"<>|]/g, '-')}.pdf`} className="text-sm text-green-700 underline">
-                                          Download {permit.name} permit (PDF)
+                                          View/download {permit.name} permit (PDF)
                                         </a>
                                       )}
-                                      {!permit.invoiceUrl && (
+                                      {permit.permitUrl && !permit.permitApprovedAt && (
+                                        <Button size="sm" onClick={() => handleApproveRequiredPermit(file, permit.id)} className="bg-green-600 text-white hover:bg-green-700">
+                                          <CheckCircle className="w-3 h-3 mr-1" /> Approve Permit
+                                        </Button>
+                                      )}
+                                      {permit.permitApprovedAt && <Badge className="bg-green-100 text-green-700">✓ Approved</Badge>}
+                                      {permit.permitAvailable === false && !permit.invoiceUrl && (
                                         <Input
                                           type="file"
                                           accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
@@ -1627,28 +1692,39 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                           View/download invoice
                                         </a>
                                       )}
-                                      {permit.invoiceUrl && !permit.paidAt && (
-                                        <Button size="sm" onClick={() => handleRequiredPermitPaid(file, permit.id)}>
-                                          <CheckCircle className="w-3 h-3 mr-1" />
-                                          CONFIRM PAID
-                                        </Button>
+                                      {permit.invoiceUrl && !permit.paidAt && <Badge className="bg-amber-100 text-amber-700">Waiting for Finance/Cashier payment acknowledgement</Badge>}
+                                      {permit.invoiceUrl && permit.paidAt && <Badge className="bg-green-100 text-green-700">✓ Payment acknowledged</Badge>}
+                                      {permit.permitAvailable === false && permit.paidAt && !permit.permitUrl && (
+                                        <Input
+                                          type="file"
+                                          accept="application/pdf,.pdf"
+                                          className="max-w-xs"
+                                          aria-label={`Upload paid ${permit.name} permit PDF`}
+                                          onChange={(event) => {
+                                            const issuedPermit = event.currentTarget.files?.[0];
+                                            if (issuedPermit) handleRequiredPermitUpload(file, permit.id, issuedPermit);
+                                            event.currentTarget.value = '';
+                                          }}
+                                        />
                                       )}
-                                      {permit.paidAt && <Badge className="bg-green-100 text-green-700">✓ Paid</Badge>}
                                     </div>
                                   ))}
-                                  {!file.permitsDoneAt ? (
-                                    <Button
-                                      size="sm"
-                                      disabled={file.requiredPermits.some((permit) => !permit.invoiceUrl || !permit.paidAt)}
-                                      onClick={() => handleRequiredPermitsDone(file)}
-                                      className="bg-green-600 text-white hover:bg-green-700"
-                                    >
-                                      <CheckCircle className="w-4 h-4 mr-1" />
-                                      PERMITS DONE
-                                    </Button>
-                                  ) : (
-                                    <Badge className="bg-green-100 text-green-700">✓ PERMITS DONE</Badge>
-                                  )}
+                                  {file.permitsDoneAt && <Badge className="bg-green-100 text-green-700">✓ PERMITS DONE</Badge>}
+                                </div>
+                              )}
+                              {(user?.role === 'finance_manager' || user?.role === 'cashier') && !!file.requiredPermits?.some((permit) => !!permit.invoiceUrl && !permit.paidAt) && (
+                                <div className="w-full basis-full rounded-lg border border-blue-200 bg-blue-50 p-3 space-y-2">
+                                  <p className="font-semibold text-blue-900">Permit invoice payment acknowledgement</p>
+                                  {file.requiredPermits.filter((permit) => !!permit.invoiceUrl).map((permit) => (
+                                    <div key={permit.id} className="flex flex-wrap items-center gap-2">
+                                      <span className="text-sm">{permit.name}</span>
+                                      {!permit.paidAt ? (
+                                        <Button size="sm" onClick={() => handleRequiredPermitPaid(file, permit.id)}>
+                                          <CheckCircle className="w-3 h-3 mr-1" /> Confirm Paid
+                                        </Button>
+                                      ) : <Badge className="bg-green-100 text-green-700">✓ Paid</Badge>}
+                                    </div>
+                                  ))}
                                 </div>
                               )}
                               {file.cargoVerificationDocumentUrl && (
