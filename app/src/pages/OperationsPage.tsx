@@ -1491,9 +1491,14 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                   SWISSPORT PAID
                                 </Button>
                               )}
-                              {canConfirmShipmentChargePayment(file) &&file.transportMode === 'AIR' && file.swissportChargesPaidAt && (
+                              {canConfirmShipmentChargePayment(file) && file.transportMode === 'AIR' && file.swissportChargesPaidAt && (
                                 <Button size="sm" disabled className="bg-green-600 text-white opacity-100">
                                   <CheckCircle className="w-3 h-3 mr-1" /> SWISSPORT PAID
+                                </Button>
+                              )}
+                              {canConfirmShipmentChargePayment(file) && file.transportMode === 'SEA' && file.portChargesPaidAt && (
+                                <Button size="sm" disabled className="bg-green-600 text-white opacity-100">
+                                  <CheckCircle className="w-3 h-3 mr-1" /> PORT CHARGES PAID
                                 </Button>
                               )}
 
