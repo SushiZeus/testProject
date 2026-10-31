@@ -629,10 +629,11 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
         ];
       case 'permits_clerk':
         const pendingPermitsFiles = files.filter((f: ShipmentFile) => 
-          (f.status === 'WAITING_FOR_PERMIT' || f.status === 'WAITING_FOR_PERMITS' || f.status === 'WAITING_FOR_PERMIT_PAYMENTS')
+          (!!f.requiredPermits?.length && !f.permitsDoneAt) || !!f.permitInvoiceUrl ||
+          f.status === 'WAITING_FOR_PERMIT' || f.status === 'WAITING_FOR_PERMITS' || f.status === 'WAITING_FOR_PERMIT_PAYMENTS'
         );
         const permitsApproved = files.filter((f: ShipmentFile) => 
-          f.status === 'PERMITS_DONE' || f.status === 'PERMIT_PAYMENTS_DONE'
+          !!f.permitsDoneAt || f.status === 'PERMITS_DONE' || f.status === 'PERMIT_PAYMENTS_DONE'
         );
         const pendingInspection = files.filter((f: ShipmentFile) => 
           f.status === 'SHIPMENT_UNDER_VERIFICATION'
@@ -917,12 +918,16 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
   ].includes(user.role);
   const seaFiles = files.filter((file) => file.transportMode === 'SEA');
   const permitPendingFiles = files.filter((file) =>
+    (!!file.requiredPermits?.length && !file.permitsDoneAt) || !!file.permitInvoiceUrl ||
     file.status === 'WAITING_FOR_PERMIT' ||
     file.status === 'WAITING_FOR_PERMITS' ||
     file.status === 'WAITING_FOR_PERMIT_PAYMENTS'
   );
-  const permitPaymentsPendingCompletion = files.filter((file) => file.status === 'PERMIT_PAYMENTS_DONE');
-  const permitsDoneFiles = files.filter((file) => file.status === 'PERMITS_DONE');
+  const permitPaymentsPendingCompletion = files.filter((file) =>
+    file.status === 'PERMIT_PAYMENTS_DONE' ||
+    !!file.requiredPermits?.some((permit) => !!permit.paidAt && !permit.permitApprovedAt)
+  );
+  const permitsDoneFiles = files.filter((file) => !!file.permitsDoneAt || file.status === 'PERMITS_DONE');
   const pendingShippingLineFiles = seaFiles.filter((file) =>
     file.status === 'PROCESSING_DELIVERY_ORDER' ||
     file.status === 'WAITING_FOR_DO_PAYMENT' ||

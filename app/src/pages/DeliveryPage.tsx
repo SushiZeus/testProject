@@ -47,6 +47,7 @@ export function DeliveryPage({ navigate }: DeliveryPageProps) {
 
   // Delivery files - those with DRIVER_REQUESTED status that need assignment
   const deliveryFiles = files.filter((f: ShipmentFile) =>
+    f.status === 'OPERATIONS_DONE' ||
     f.status === 'DRIVER_REQUESTED' ||
     f.status === 'DRIVER_ASSIGNED' ||
     f.status === 'DRIVER_COLLECTING_CARGO' ||
@@ -61,7 +62,7 @@ export function DeliveryPage({ navigate }: DeliveryPageProps) {
       file.client?.name.toLowerCase().includes(searchQuery.toLowerCase());
 
     if (activeTab === 'all') return matchesSearch;
-    if (activeTab === 'pending') return matchesSearch && file.status === 'DRIVER_REQUESTED';
+    if (activeTab === 'pending') return matchesSearch && (file.status === 'OPERATIONS_DONE' || file.status === 'DRIVER_REQUESTED');
     if (activeTab === 'assigned') return matchesSearch && (
       file.status === 'DRIVER_ASSIGNED' ||
       file.status === 'DRIVER_COLLECTING_CARGO' ||
@@ -91,7 +92,7 @@ export function DeliveryPage({ navigate }: DeliveryPageProps) {
     // Store the driver request with truck size info on the file
     updateFileStatus(
       selectedFile.id,
-      selectedFile.status, // Keep DRIVER_REQUESTED
+      'DRIVER_REQUESTED',
       user.id,
       {
         requestedTruckSize: size,
@@ -117,7 +118,7 @@ export function DeliveryPage({ navigate }: DeliveryPageProps) {
   };
 
   const stats = {
-    pending: deliveryFiles.filter((f: ShipmentFile) => f.status === 'DRIVER_REQUESTED').length,
+    pending: deliveryFiles.filter((f: ShipmentFile) => f.status === 'OPERATIONS_DONE' || f.status === 'DRIVER_REQUESTED').length,
     assigned: deliveryFiles.filter((f: ShipmentFile) =>
       f.status === 'DRIVER_ASSIGNED' ||
       f.status === 'DRIVER_COLLECTING_CARGO' ||
@@ -298,7 +299,7 @@ export function DeliveryPage({ navigate }: DeliveryPageProps) {
                               )}
 
                               {/* REQUEST DRIVER button - only for delivery clerk and when status is DRIVER_REQUESTED */}
-                              {user?.role === 'delivery_clerk' && file.status === 'DRIVER_REQUESTED' && (
+                              {user?.role === 'delivery_clerk' && (file.status === 'OPERATIONS_DONE' || file.status === 'DRIVER_REQUESTED') && (
                                 <Button
                                   size="sm"
                                   onClick={() => handleRequestDriver(file)}

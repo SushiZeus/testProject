@@ -216,6 +216,18 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     !!file.releaseOrderUrl && !!file.swissportChargesUrl && !!file.swissportChargesPaidAt &&
     !!file.cargoVerificationCompletedAt && !!file.cargoVerificationForm &&
     (!file.requiredPermits?.length || !!file.permitsDoneAt);
+  const canMarkSeaOperationsDone = (file: ShipmentFile) =>
+    !!file.releaseOrderUrl && !!file.deliveryOrderDocumentUrl && !!file.portChargesUrl &&
+    !!file.portChargesPaidAt && !!file.cargoVerificationCompletedAt && !!file.cargoVerificationForm &&
+    (!file.requiredPermits?.length || !!file.permitsDoneAt);
+  const seaOperationsBlockReason = (file: ShipmentFile) =>
+    hasPendingPermits(file) ? 'WAITING FOR PERMITS' :
+    !file.releaseOrderUrl ? 'Upload Release Order first' :
+    !file.deliveryOrderDocumentUrl ? 'WAITING FOR DELIVERY ORDER' :
+    !file.portChargesUrl ? 'Upload Port Charges first' :
+    !file.portChargesPaidAt ? 'Waiting for Port Charges payment' :
+    !file.cargoVerificationCompletedAt || !file.cargoVerificationForm ? 'Complete the cargo verification form first' :
+    'Select to mark operations done';
   const airOperationsBlockReason = (file: ShipmentFile) =>
     hasPendingPermits(file) ? 'WAITING FOR PERMITS' :
     !file.releaseOrderUrl ? 'Upload Release Order first' :
@@ -248,15 +260,18 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     f.status === 'DRIVER_REQUESTED' ||
     f.status === 'DRIVER_ASSIGNED' ||
     f.status === 'DRIVER_COLLECTING_CARGO' ||
-    f.status === 'CARGO_COLLECTED_FROM_AIRPORT'
+    f.status === 'CARGO_COLLECTED_FROM_AIRPORT' ||
+    f.status === 'CARGO_COLLECTED_FROM_ICD' ||
+    f.status === 'DELIVERED_TO_CLIENT' ||
+    hasPendingPermits(f)
   );
 
   const filteredFiles = operationFiles.filter((file: ShipmentFile) => {
     if (activeTab === 'all') return true;
     if (activeTab === 'ready') return file.status === 'READY_FOR_OPERATIONS' || file.status === 'WAITING_FOR_PERMIT' || file.status === 'PERMITS_DONE' || hasPendingPermits(file);
-    if (activeTab === 'permits') return file.status === 'WAITING_FOR_WHARFAGE_PAYMENT';
-    if (activeTab === 'swissport') return file.status === 'WAITING_FOR_SWISSPORT_PAYMENTS';
-    if (activeTab === 'delivery') return file.status === 'SWISSPORT_CHARGES_PAID' || file.status === 'CARGO_CLEARED' || file.status === 'OPERATIONS_DONE' || file.status === 'VERIFICATION_FORM_PENDING' || file.status === 'VERIFICATION_FORM_COMPLETED';
+    if (activeTab === 'permits') return !!file.requiredPermits?.length || !!file.permitInvoiceUrl || !!file.permitDocumentUrl;
+    if (activeTab === 'swissport') return file.transportMode === 'AIR' && file.status !== 'OPERATIONS_DONE' && (!!file.assignedOperationClerkId || !!file.swissportChargesUrl);
+    if (activeTab === 'delivery') return file.status === 'OPERATIONS_DONE' || file.status === 'SWISSPORT_CHARGES_PAID' || file.status === 'CARGO_CLEARED' || file.status === 'VERIFICATION_FORM_PENDING' || file.status === 'VERIFICATION_FORM_COMPLETED';
     if (activeTab === 'myfiles') return file.assignedOperationClerkId === user?.id;
     return true;
   });
@@ -1554,10 +1569,10 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                file.status !== 'OPERATIONS_DONE' && (
                                 <Button
                                   size="sm"
-                                  disabled={!file.releaseOrderUrl || !file.deliveryOrderDocumentUrl || !file.portChargesUrl || !file.portChargesPaidAt || !file.cargoVerificationCompletedAt || !file.cargoVerificationForm || hasPendingPermits(file)}
+                                  disabled={!canMarkSeaOperationsDone(file)}
                                   onClick={() => handleOperationsDone(file)}
-                                  className={!file.releaseOrderUrl || !file.deliveryOrderDocumentUrl || !file.portChargesUrl || !file.portChargesPaidAt || !file.cargoVerificationCompletedAt || !file.cargoVerificationForm || hasPendingPermits(file) ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}
-                                  title={hasPendingPermits(file) ? 'WAITING FOR PERMITS' : !file.deliveryOrderDocumentUrl ? 'WAITING FOR DELIVERY ORDER' : !file.releaseOrderUrl ? 'Upload Release Order first' : !file.portChargesUrl ? 'Upload Port Charges first' : !file.portChargesPaidAt ? 'Waiting for Port Charges payment' : !file.cargoVerificationCompletedAt || !file.cargoVerificationForm ? 'Complete the cargo verification form first' : 'Mark operations as done'}
+                                  className={canMarkSeaOperationsDone(file) ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}
+                                  title={seaOperationsBlockReason(file)}
                                 >
                                   <CheckCircle className="w-3 h-3 mr-1" />
                                   OPERATIONS DONE
