@@ -208,7 +208,23 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
   const operationClerks = mockUsers.filter((u: User) => u.role === 'operation_clerk');
   const isUserExecutive = isExecutive();
   const canManipulate = canManipulateOperationsModule();
-  const hasPendingPermits = (file: Pick<ShipmentFile, 'requiredPermits' | 'permitsDoneAt'>) => !!file.requiredPermits?.length && !file.permitsDoneAt;
+  const fileHasDocument = (file: ShipmentFile, matches: string[]) =>
+    file.documents.some((document) => matches.some((match) => document.documentName.toLowerCase().includes(match)));
+  const hasReleaseOrder = (file: ShipmentFile) => !!file.releaseOrderUrl || fileHasDocument(file, ['release order']);
+  const hasDeliveryOrder = (file: ShipmentFile) => !!file.deliveryOrderDocumentUrl || file.documents.some((document) => {
+    const name = document.documentName.toLowerCase();
+    return name.includes('delivery order') && !name.includes('invoice');
+  });
+  const hasPortChargesDocument = (file: ShipmentFile) => !!file.portChargesUrl || file.documents.some((document) => {
+    const name = document.documentName.toLowerCase();
+    return name.includes('port charge') && !name.includes('invoice');
+  });
+  const hasPortChargesPayment = (file: ShipmentFile) => !!file.portChargesPaidAt || file.status === 'PORT_CHARGES_PAID';
+  const hasCargoVerification = (file: ShipmentFile) =>
+    !!file.cargoVerificationCompletedAt || !!file.cargoVerificationForm || !!file.cargoVerificationDocumentUrl;
+  const permitsAreComplete = (file: Pick<ShipmentFile, 'requiredPermits' | 'permitsDoneAt' | 'status'>) =>
+    !file.requiredPermits?.length || !!file.permitsDoneAt || file.status === 'PERMITS_DONE' || file.requiredPermits.every((permit) => !!permit.permitUrl && !!permit.permitApprovedAt && (permit.permitAvailable !== false || (!!permit.invoiceUrl && !!permit.paidAt)));
+  const hasPendingPermits = (file: Pick<ShipmentFile, 'requiredPermits' | 'permitsDoneAt' | 'status'>) => !!file.requiredPermits?.length && !permitsAreComplete(file);
   const canConfirmShipmentChargePayment = (file: ShipmentFile) =>
     user?.role === 'finance_manager' || user?.role === 'cashier' || user?.role === 'operations_manager' ||
     (user?.role === 'operation_clerk' && file.assignedOperationClerkId === user.id);
@@ -217,16 +233,15 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     !!file.cargoVerificationCompletedAt && !!file.cargoVerificationForm &&
     (!file.requiredPermits?.length || !!file.permitsDoneAt);
   const canMarkSeaOperationsDone = (file: ShipmentFile) =>
-    !!file.releaseOrderUrl && !!file.deliveryOrderDocumentUrl && !!file.portChargesUrl &&
-    !!file.portChargesPaidAt && !!file.cargoVerificationCompletedAt && !!file.cargoVerificationForm &&
-    (!file.requiredPermits?.length || !!file.permitsDoneAt);
+    hasReleaseOrder(file) && hasDeliveryOrder(file) && hasPortChargesDocument(file) &&
+    hasPortChargesPayment(file) && hasCargoVerification(file) && permitsAreComplete(file);
   const seaOperationsBlockReason = (file: ShipmentFile) =>
     hasPendingPermits(file) ? 'WAITING FOR PERMITS' :
-    !file.releaseOrderUrl ? 'Upload Release Order first' :
-    !file.deliveryOrderDocumentUrl ? 'WAITING FOR DELIVERY ORDER' :
-    !file.portChargesUrl ? 'Upload Port Charges first' :
-    !file.portChargesPaidAt ? 'Waiting for Port Charges payment' :
-    !file.cargoVerificationCompletedAt || !file.cargoVerificationForm ? 'Complete the cargo verification form first' :
+    !hasReleaseOrder(file) ? 'Upload Release Order first' :
+    !hasDeliveryOrder(file) ? 'WAITING FOR DELIVERY ORDER' :
+    !hasPortChargesDocument(file) ? 'Upload Port Charges first' :
+    !hasPortChargesPayment(file) ? 'Waiting for Port Charges payment' :
+    !hasCargoVerification(file) ? 'Complete the cargo verification form first' :
     'Select to mark operations done';
   const airOperationsBlockReason = (file: ShipmentFile) =>
     hasPendingPermits(file) ? 'WAITING FOR PERMITS' :
@@ -263,7 +278,9 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     f.status === 'CARGO_COLLECTED_FROM_AIRPORT' ||
     f.status === 'CARGO_COLLECTED_FROM_ICD' ||
     f.status === 'DELIVERED_TO_CLIENT' ||
-    hasPendingPermits(f)
+    hasPendingPermits(f) ||
+    !!f.requiredPermits?.length ||
+    !!f.permitDocumentUrl
   );
 
   const filteredFiles = operationFiles.filter((file: ShipmentFile) => {
@@ -866,24 +883,24 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
   const handleOperationsDone = (file: ShipmentFile) => {
     if (!user) return;
 
-    if (file.requiredPermits?.length && !file.permitsDoneAt) {
+    if (file.requiredPermits?.length && !permitsAreComplete(file)) {
       toast.error('WAITING FOR PERMIT - all selected permits must be paid and marked PERMITS DONE');
       return;
     }
 
     // 1. Validate that release order is uploaded
-    if (!file.releaseOrderUrl) {
+    if (!hasReleaseOrder(file)) {
       toast.error('Release order must be uploaded before marking operations as done');
       return;
     }
 
-    if (file.transportMode === 'SEA' && !file.deliveryOrderDocumentUrl) {
+    if (file.transportMode === 'SEA' && !hasDeliveryOrder(file)) {
       toast.error('Delivery Order must be uploaded before marking operations as done');
       return;
     }
 
     // 2. Validate that appropriate charges are UPLOADED based on transport mode
-    if (file.transportMode === 'SEA' && !file.portChargesUrl) {
+    if (file.transportMode === 'SEA' && !hasPortChargesDocument(file)) {
       toast.error('Port charges must be uploaded before marking operations as done');
       return;
     }
@@ -894,7 +911,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     }
 
     // 3. Validate that appropriate charges are PAID
-    if (file.transportMode === 'SEA' && !file.portChargesPaidAt) {
+    if (file.transportMode === 'SEA' && !hasPortChargesPayment(file)) {
       toast.error('Port charges must be PAID by Finance before marking operations as done');
       return;
     }
@@ -905,7 +922,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     }
 
     // 4. Validate that cargo verification form is completed
-    if (!file.cargoVerificationCompletedAt || !file.cargoVerificationForm) {
+    if (!hasCargoVerification(file)) {
       toast.error('Cargo verification form must be completed before marking operations as done');
       return;
     }
@@ -1578,6 +1595,11 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                   OPERATIONS DONE
                                 </Button>
                               )}
+                              {user?.role === 'operation_clerk' && file.assignedOperationClerkId === user?.id && file.transportMode === 'SEA' && file.status !== 'OPERATIONS_DONE' && !canMarkSeaOperationsDone(file) && (
+                                <span className="w-full basis-full text-xs font-medium text-amber-700" role="status">
+                                  {seaOperationsBlockReason(file)}
+                                </span>
+                              )}
 
                               {/* AIR OPERATIONS DONE stays visible while requirements are pending */}
                               {user?.role === 'operation_clerk' &&
@@ -1725,6 +1747,33 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                     </div>
                                   ))}
                                   {file.permitsDoneAt && <Badge className="bg-green-100 text-green-700">✓ PERMITS DONE</Badge>}
+                                </div>
+                              )}
+                              {user?.role === 'operation_clerk' && (!!file.requiredPermits?.length || !!file.permitDocumentUrl) && (
+                                <div className="w-full basis-full rounded-lg border border-green-200 bg-green-50 p-3 space-y-2">
+                                  <p className="font-semibold text-green-900">Approved permits for Operations</p>
+                                  {file.requiredPermits?.map((permit) => {
+                                    const isApproved = !!permit.permitApprovedAt || !!file.permitsDoneAt || file.status === 'PERMITS_DONE';
+                                    return (
+                                      <div key={permit.id} className="flex flex-wrap items-center gap-2">
+                                        <span className="text-sm font-medium">{permit.name}</span>
+                                        {permit.permitUrl && isApproved ? (
+                                          <a href={permit.permitUrl} download={`${permit.name.replace(/[\\/:*?"<>|]/g, '-')}.pdf`} className="text-sm text-blue-700 underline">
+                                            Download {permit.name} permit (PDF)
+                                          </a>
+                                        ) : permit.permitUrl ? (
+                                          <Badge className="bg-amber-100 text-amber-800">Uploaded; awaiting Permits Clerk approval</Badge>
+                                        ) : (
+                                          <Badge className="bg-amber-100 text-amber-800">Waiting for permit upload</Badge>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                  {file.permitDocumentUrl && (
+                                    <a href={file.permitDocumentUrl} download={`Permit-${file.fileNumber}.pdf`} className="text-sm text-blue-700 underline">
+                                      Download uploaded permit (PDF)
+                                    </a>
+                                  )}
                                 </div>
                               )}
                               {(user?.role === 'finance_manager' || user?.role === 'cashier') && !!file.requiredPermits?.some((permit) => !!permit.invoiceUrl && !permit.paidAt) && (
