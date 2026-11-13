@@ -9,5 +9,5 @@ This folder keeps concise project context and a durable record of future work so
 - `UPLOAD_REGISTER.md` — index of user-provided files saved under `incoming/`.
 - `incoming/` — safe holding area for project documents and other relevant user uploads.
 
-The actual application remains in `../app/`. The project root is already a local Git repository; keep code and handoff updates there so changes can be reviewed with Git. Do not put credentials in these notes.
+The actual application remains in `../app/`; this is its single source of truth. Save each completed development by updating `CHANGELOG.md` and checkpointing the relevant code plus handoff notes in the local Git history. This folder stores context and references, not a duplicate copy of the application source. Do not put credentials in these notes.
 

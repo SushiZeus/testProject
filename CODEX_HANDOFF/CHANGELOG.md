@@ -1,5 +1,10 @@
 # Project change log
 
+## 2026-11-13 · Handoff workflow
+
+- User confirmed that future code developments should be saved and tracked through this handoff folder and the existing local Git repository.
+- Keep source edits in `app/`, record each completed task here, and make focused local commits when the change scope is clear. Do not push unless asked.
+
 ## 2026-11-13
 
 - Added air arrival Gate-in Date handling alongside Manifest Comparison Date.
