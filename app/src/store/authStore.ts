@@ -37,6 +37,7 @@ const rolePermissions: Record<UserRole, string[]> = {
     'add_file_comments', 'view_all_files_readonly', 'create_petty_cash_request'
   ],
   cashier: ['process_payments', 'view_pending_payments', 'create_petty_cash_request'],
+  accounts_clerk: ['view_accounts_department', 'view_all_files_readonly', 'view_financial_reports', 'create_petty_cash_request'],
   
   // HR Department - Limited to HR + Full Access Roles  
   hr_manager: ['assign_small_truck_driver', 'manage_small_truck_drivers', 'view_driver_reports', 'approve_petty_cash_hr', 'view_hr_department', 'create_petty_cash_request', 'manage_fixed_assets', 'view_fixed_assets', 'assign_assets', 'schedule_maintenance'],
@@ -197,6 +198,9 @@ export const useAuthStore = (): AuthState => {
           console.log('hasPermission: No user found');
           return false;
         }
+
+        // All signed-in users may collaborate on shipment-file comments.
+        if (action === 'add_file_comments') return true;
         
         const userRole = state.user.role;
         console.log('hasPermission: User role:', userRole, 'checking action:', action);

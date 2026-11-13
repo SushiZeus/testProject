@@ -49,6 +49,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { statusColors } from '@/utils/statusColors';
 import { getShipmentDisplayStatus } from '@/utils/shipmentStatus';
+import { ShipmentChargePaymentPanel } from '@/components/ShipmentChargePaymentPanel';
 import { createPdfFile } from '@/utils/createPdfFile';
 
 interface WorkloadCardProps {
@@ -117,9 +118,9 @@ function WorkloadCard({ clerk, workload, onAssign }: WorkloadCardProps) {
           </div>
         </div>
 
-        <Button 
-          onClick={onAssign} 
-          variant="outline" 
+        <Button
+          onClick={onAssign}
+          variant="outline"
           className="w-full mt-4"
           disabled={!canManipulateOperationsModule()}
         >
@@ -185,6 +186,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
   const [releaseOrderFile, setReleaseOrderFile] = useState<File | null>(null);
   const [portChargesFile, setPortChargesFile] = useState<File | null>(null);
   const [swissportChargesFile, setSwissportChargesFile] = useState<File | null>(null);
+  const [portChargesAmount, setPortChargesAmount] = useState('');
+  const [swissportChargesAmount, setSwissportChargesAmount] = useState('');
 
   // Cargo Verification Form state
   const [verificationFormDialogOpen, setVerificationFormDialogOpen] = useState(false);
@@ -215,6 +218,12 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     const name = document.documentName.toLowerCase();
     return name.includes('delivery order') && !name.includes('invoice');
   });
+  const hasDeliveryOrderPayment = (file: ShipmentFile) =>
+    file.doPaymentRequestStatus === 'PAID' ||
+    !!file.deliveryOrderPaymentsDoneAt ||
+    !!file.deliveryOrderPaidAt ||
+    !!file.deliveryOrderApplicationPayment && file.deliveryOrderApplicationPayment.status === 'PAID';
+  const canUploadPortCharges = (file: ShipmentFile) => hasDeliveryOrder(file) && hasDeliveryOrderPayment(file);
   const hasPortChargesDocument = (file: ShipmentFile) => !!file.portChargesUrl || file.documents.some((document) => {
     const name = document.documentName.toLowerCase();
     return name.includes('port charge') && !name.includes('invoice');
@@ -233,12 +242,13 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     !!file.cargoVerificationCompletedAt && !!file.cargoVerificationForm &&
     (!file.requiredPermits?.length || !!file.permitsDoneAt);
   const canMarkSeaOperationsDone = (file: ShipmentFile) =>
-    hasReleaseOrder(file) && hasDeliveryOrder(file) && hasPortChargesDocument(file) &&
+    hasReleaseOrder(file) && hasDeliveryOrder(file) && hasDeliveryOrderPayment(file) && hasPortChargesDocument(file) &&
     hasPortChargesPayment(file) && hasCargoVerification(file) && permitsAreComplete(file);
   const seaOperationsBlockReason = (file: ShipmentFile) =>
     hasPendingPermits(file) ? 'WAITING FOR PERMITS' :
     !hasReleaseOrder(file) ? 'Upload Release Order first' :
     !hasDeliveryOrder(file) ? 'WAITING FOR DELIVERY ORDER' :
+    !hasDeliveryOrderPayment(file) ? 'WAITING FOR DELIVERY ORDER PAYMENT' :
     !hasPortChargesDocument(file) ? 'Upload Port Charges first' :
     !hasPortChargesPayment(file) ? 'Waiting for Port Charges payment' :
     !hasCargoVerification(file) ? 'Complete the cargo verification form first' :
@@ -251,7 +261,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     !file.cargoVerificationCompletedAt || !file.cargoVerificationForm ? 'Complete the cargo verification form first' :
     'Select to mark operations done';
 
-  const operationFiles = files.filter((f: ShipmentFile) => 
+  const operationFiles = files.filter((f: ShipmentFile) =>
     f.status === 'READY_FOR_OPERATIONS' ||
     f.status === 'WAITING_FOR_PERMIT' ||
     f.status === 'WAITING_FOR_RELEASE_ORDER' ||
@@ -378,7 +388,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
       selectedFile.id,
       'PERMITS_DONE',
       user.id,
-      { 
+      {
         permitsDoneAt: new Date(),
         assignedPermitsClerkId: user.id,
       }
@@ -608,44 +618,68 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     setSelectedFile(null);
   };
 
-  const handleUploadPortCharges = () => {
+  const handleUploadPortCharges = async () => {
     if (!selectedFile || !user) return;
+
+    if (!canUploadPortCharges(selectedFile)) {
+      toast.error('Delivery Order must be uploaded and paid before Port Charges can be requested');
+      return;
+    }
 
     if (!portChargesFile) {
       toast.error('Please select a port charges file to upload');
       return;
     }
 
+    const amount = Number(portChargesAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error('Enter the Port Charges amount');
+      return;
+    }
+
+    const invoice = await uploadDocument({ file: portChargesFile, category: 'shipment', subCategory: 'port_charges_invoice', relatedFileId: selectedFile.id, description: `Port Charges invoice for ${selectedFile.fileNumber}`, visibility: 'public' }, user.id);
+
     updateFileStatus(
       selectedFile.id,
-      'WAITING_FOR_PORT_CHARGES_PAYMENT',
+      selectedFile.status,
       user.id,
       {
-        portChargesUrl: URL.createObjectURL(portChargesFile),
+        portChargesUrl: invoice.fileUrl,
+        portChargesAmount: amount,
+        portChargesCurrency: 'TZS',
+        portChargesPayment: undefined,
+        portChargesPaidAt: undefined,
       }
     );
 
-    // Notify finance
+    // Ask the file contact to choose the payer before sending an approval request.
     addNotification({
-      userId: '11', // Finance Manager
-      title: 'Port Charges Payment Required',
-      message: `Port charges uploaded for file ${selectedFile.fileNumber}`,
+      userId: selectedFile.contactPersonId || '5',
+      title: 'Port Charges Need a Payer',
+      message: `Port Charges invoice is ready for file ${selectedFile.fileNumber}. Select client or office payment in file details.`,
       type: 'info',
       fileId: selectedFile.id,
-      link: '/operations',
+      link: `/files/${selectedFile.id}`,
     });
 
     toast.success('Port charges uploaded - Waiting for payment');
     setPortChargesDialogOpen(false);
     setPortChargesFile(null);
+    setPortChargesAmount('');
     setSelectedFile(null);
   };
 
-  const handleUploadSwissportCharges = () => {
+  const handleUploadSwissportCharges = async () => {
     if (!selectedFile || !user) return;
 
     if (!swissportChargesFile) {
       toast.error('Please select a Swissport charges file to upload');
+      return;
+    }
+
+    const amount = Number(swissportChargesAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error('Enter the Swissport Charges amount');
       return;
     }
 
@@ -655,83 +689,35 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
       return;
     }
 
+    const invoice = await uploadDocument({ file: swissportChargesFile, category: 'shipment', subCategory: 'swissport_charges_invoice', relatedFileId: selectedFile.id, description: `Swissport Charges invoice for ${selectedFile.fileNumber}`, visibility: 'public' }, user.id);
     updateFileStatus(
       selectedFile.id,
-      'WAITING_FOR_SWISSPORT_CHARGES_PAYMENT',
+      selectedFile.status,
       user.id,
       {
-        swissportChargesUrl: URL.createObjectURL(swissportChargesFile),
+        swissportChargesUrl: invoice.fileUrl,
+        swissportChargesAmount: amount,
+        swissportChargesCurrency: 'TZS',
+        swissportChargesPayment: undefined,
+        swissportChargesPaidAt: undefined,
       }
     );
 
-    // Notify finance
+    // Ask the file contact to choose the payer before sending an approval request.
     addNotification({
-      userId: '11', // Finance Manager
-      title: 'Swissport Charges Payment Required',
-      message: `Swissport charges uploaded for file ${selectedFile.fileNumber}`,
+      userId: selectedFile.contactPersonId || '5',
+      title: 'Swissport Charges Need a Payer',
+      message: `Swissport Charges invoice is ready for file ${selectedFile.fileNumber}. Select client or office payment in file details.`,
       type: 'info',
       fileId: selectedFile.id,
-      link: '/operations',
+      link: `/files/${selectedFile.id}`,
     });
 
     toast.success('Swissport charges uploaded - Waiting for payment');
     setSwissportChargesDialogOpen(false);
     setSwissportChargesFile(null);
+    setSwissportChargesAmount('');
     setSelectedFile(null);
-  };
-
-  const handlePortChargesPaid = (file: ShipmentFile) => {
-    if (!user || !file.portChargesUrl || file.portChargesPaidAt) return;
-
-    // Advance only after Finance/Cashier confirms payment.
-    updateFileStatus(
-      file.id,
-      'PORT_CHARGES_PAID',
-      user.id,
-      {
-        portChargesPaidAt: new Date(),
-      }
-    );
-
-    // Notify operations manager
-    addNotification({
-      userId: '5', // Operations Manager
-      title: 'Port Charges Paid',
-      message: `Port charges for file ${file.fileNumber} have been paid. Complete remaining permits and verification before OPERATIONS DONE.`,
-      type: 'success',
-      fileId: file.id,
-      link: '/operations',
-    });
-
-    toast.success('Port charges payment confirmed. Any required permits and verification must also be complete before OPERATIONS DONE.');
-
-  };
-
-  const handleSwissportChargesPaid = (file: ShipmentFile) => {
-    if (!user || !file.swissportChargesUrl || file.swissportChargesPaidAt) return;
-
-    // Advance only after Finance/Cashier confirms payment.
-    updateFileStatus(
-      file.id,
-      'SWISSPORT_CHARGES_PAID',
-      user.id,
-      {
-        swissportChargesPaidAt: new Date(),
-      }
-    );
-
-    // Notify operations manager
-    addNotification({
-      userId: '5', // Operations Manager
-      title: 'Swissport Charges Paid',
-      message: `Swissport charges for file ${file.fileNumber} have been paid. Complete remaining permits and verification before OPERATIONS DONE.`,
-      type: 'success',
-      fileId: file.id,
-      link: '/operations',
-    });
-
-    toast.success('Swissport payment confirmed. Any required permits and verification must also be complete before OPERATIONS DONE.');
-
   };
 
   // NEW: Handle DO Review and Approval by Operations
@@ -756,6 +742,11 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
 
   const handleRequiredPermitInvoiceUpload = async (file: ShipmentFile, permitId: string, invoice: File) => {
     if (!user || user.role !== 'permits_clerk') return;
+    const selectedPermit = file.requiredPermits?.find((permit) => permit.id === permitId);
+    if (!selectedPermit || selectedPermit.permitAvailable !== false || selectedPermit.permitUrl || selectedPermit.invoiceUrl) {
+      toast.error('Select Not available before uploading an invoice; availability is locked after an upload');
+      return;
+    }
     let uploadedDocument;
     try {
       uploadedDocument = await uploadDocument({
@@ -799,6 +790,14 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
     }
     const permit = (file.requiredPermits || []).find((item) => item.id === permitId);
     if (!permit) return;
+    if (permit.permitAvailable === false && permit.invoiceUrl && !permit.paidAt) {
+      toast.error('The permit invoice must be paid before uploading the issued permit');
+      return;
+    }
+    if (permit.permitAvailable === false && !permit.invoiceUrl) {
+      toast.error('This permit was marked Not available. Upload its invoice and record payment first.');
+      return;
+    }
     const pdfName = `${permit.name.replace(/[\\/:*?"<>|]/g, '-').trim() || 'Permit'}.pdf`;
     const namedPdf = new File([permitFile], pdfName, { type: 'application/pdf' });
     let uploadedDocument;
@@ -843,6 +842,12 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
 
   const handleRequiredPermitAvailability = (file: ShipmentFile, permitId: string, available: boolean) => {
     if (!user || user.role !== 'permits_clerk') return;
+    const permit = file.requiredPermits?.find((item) => item.id === permitId);
+    if (!permit) return;
+    if (permit.permitUrl || permit.invoiceUrl) {
+      toast.error('Permit availability is locked after a permit document or invoice is uploaded');
+      return;
+    }
     const requiredPermits = (file.requiredPermits || []).map((permit) => permit.id === permitId
       ? { ...permit, permitAvailable: available, permitApprovedAt: undefined, permitApprovedBy: undefined }
       : permit);
@@ -1173,13 +1178,13 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
 
   const stats = {
     waiting: files.filter((f: ShipmentFile) => f.status === 'READY_FOR_OPERATIONS' || f.status === 'WAITING_FOR_PERMIT' || f.status === 'PERMITS_DONE' || hasPendingPermits(f)).length,
-    inProgress: files.filter((f: ShipmentFile) => 
-      f.assignedOperationClerkId && 
+    inProgress: files.filter((f: ShipmentFile) =>
+      f.assignedOperationClerkId &&
       (f.status === 'WAITING_FOR_RELEASE_ORDER' ||
        f.status === 'RELEASE_ORDER_RECEIVED' ||
        f.status === 'WAITING_FOR_DELIVERY_ORDER' ||
        f.status === 'DELIVERY_ORDER_SUBMITTED' ||
-       f.status === 'RECEIVED_BY_CLERK' || 
+       f.status === 'RECEIVED_BY_CLERK' ||
        f.status === 'WAITING_FOR_WHARFAGE_PAYMENT' ||
        f.status === 'WAITING_FOR_PERMIT_PAYMENTS' ||
        f.status === 'PERMIT_PAYMENTS_DONE' ||
@@ -1193,7 +1198,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
        f.status === 'OPERATIONS_DONE' ||
        f.status === 'VERIFICATION_FORM_PENDING')
     ).length,
-    completed: files.filter((f: ShipmentFile) => 
+    completed: files.filter((f: ShipmentFile) =>
       f.status === 'VERIFICATION_FORM_COMPLETED' ||
       f.status === 'DRIVER_REQUESTED' ||
       f.status === 'DRIVER_ASSIGNED' ||
@@ -1294,8 +1299,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                   {isUserExecutive ? 'Executive View' : 'View-Only Access'} - Operations Department
                 </h3>
                 <p className="text-sm text-slate-600 mt-1">
-                  You have read-only access to view operations statistics and file data. 
-                  Only the Operations Manager can assign operation clerks, process operations, and perform operational tasks. 
+                  You have read-only access to view operations statistics and file data.
+                  Only the Operations Manager can assign operation clerks, process operations, and perform operational tasks.
                   You can view all files and add comments to file timelines.
                 </p>
               </div>
@@ -1338,8 +1343,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="ready">Ready</TabsTrigger>
           <TabsTrigger value="permits">Permits</TabsTrigger>
-          <TabsTrigger value="swissport">Swissport</TabsTrigger>
-          <TabsTrigger value="delivery">Delivery</TabsTrigger>
+          {user?.role !== 'permits_clerk' && <TabsTrigger value="swissport">Swissport</TabsTrigger>}
+          {user?.role !== 'permits_clerk' && <TabsTrigger value="delivery">Delivery</TabsTrigger>}
           {user?.role === 'operation_clerk' && (
             <TabsTrigger value="myfiles">My Files</TabsTrigger>
           )}
@@ -1384,9 +1389,13 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                             <p className="font-medium">{file.client?.name}</p>
                           </td>
                           <td className="py-4 px-4">
-                            <Badge variant="secondary" className={cn('text-xs', statusColors[getShipmentDisplayStatus(file) === file.status && file.status === 'RELEASE_ORDER_RECEIVED' && file.transportMode === 'SEA' && file.releaseOrderUrl && !file.deliveryOrderDocumentUrl ? 'WAITING_FOR_DELIVERY_ORDER' : getShipmentDisplayStatus(file)])}>
-                              {getShipmentDisplayStatus(file) === file.status && file.status === 'RELEASE_ORDER_RECEIVED' && file.transportMode === 'SEA' && file.releaseOrderUrl && !file.deliveryOrderDocumentUrl ? 'WAITING FOR DELIVERY ORDER' : getShipmentDisplayStatus(file).replace(/_/g, ' ')}
-                            </Badge>
+                            {user?.role === 'permits_clerk' ? (
+                              <Badge variant="secondary" className="text-xs">{hasPendingPermits(file) ? 'PERMITS REQUIRED' : 'PERMIT REVIEW'}</Badge>
+                            ) : (
+                              <Badge variant="secondary" className={cn('text-xs', statusColors[getShipmentDisplayStatus(file) === file.status && file.status === 'RELEASE_ORDER_RECEIVED' && file.transportMode === 'SEA' && file.releaseOrderUrl && !file.deliveryOrderDocumentUrl ? 'WAITING_FOR_DELIVERY_ORDER' : getShipmentDisplayStatus(file)])}>
+                                {getShipmentDisplayStatus(file) === file.status && file.status === 'RELEASE_ORDER_RECEIVED' && file.transportMode === 'SEA' && file.releaseOrderUrl && !file.deliveryOrderDocumentUrl ? 'WAITING FOR DELIVERY ORDER' : getShipmentDisplayStatus(file).replace(/_/g, ' ')}
+                              </Badge>
+                            )}
                           </td>
                           <td className="py-4 px-4">
                             {file.assignedOperationClerk ? (
@@ -1405,7 +1414,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                   Assign
                                 </Button>
                               )}
-                              {canManipulate && (user?.role === 'operations_manager' || user?.role === 'operation_clerk') && 
+                              {canManipulate && (user?.role === 'operations_manager' || user?.role === 'operation_clerk') &&
                                (file.status === 'READY_FOR_OPERATIONS' || file.status === 'PERMITS_DONE') && (
                                 <Button size="sm" onClick={() => { setSelectedFile(file); setProcessDialogOpen(true); }}>
                                   Accept
@@ -1413,18 +1422,18 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                               )}
 
                               {/* OPERATION CLERK UPLOADS - Only for assigned user */}
-                              {(user?.role === 'operation_clerk' || user?.role === 'operations_manager') && 
+                              {(user?.role === 'operation_clerk' || user?.role === 'operations_manager') &&
                                file.assignedOperationClerkId === user?.id &&
-                               (file.status === 'WAITING_FOR_RELEASE_ORDER' || 
+                               (file.status === 'WAITING_FOR_RELEASE_ORDER' ||
                                 file.status === 'RELEASE_ORDER_RECEIVED' ||
                                 file.status === 'WAITING_FOR_DELIVERY_ORDER' ||
                                 file.status === 'DELIVERY_ORDER_SUBMITTED' ||
-                                file.status === 'WAITING_FOR_PORT_CHARGES_PAYMENT' || 
+                                file.status === 'WAITING_FOR_PORT_CHARGES_PAYMENT' ||
                                 file.status === 'WAITING_FOR_SWISSPORT_CHARGES_PAYMENT') && (
                                 <>
                                   {/* Upload Verification Photos */}
-                                  <Button 
-                                    size="sm" 
+                                  <Button
+                                    size="sm"
                                     variant="outline"
                                     onClick={() => { setSelectedFile(file); setVerificationPhotosDialogOpen(true); }}
                                     className={file.verificationPhotos?.length ? 'bg-green-50 border-green-300' : ''}
@@ -1434,8 +1443,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                   </Button>
 
                                   {/* Upload Release Order */}
-                                  <Button 
-                                    size="sm" 
+                                  <Button
+                                    size="sm"
                                     variant="outline"
                                     onClick={() => { setSelectedFile(file); setReleaseOrderDialogOpen(true); }}
                                     className={file.releaseOrderUrl ? 'bg-green-50 border-green-300' : ''}
@@ -1465,8 +1474,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                           <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
                                             DO Received
                                           </Badge>
-                                          <Button 
-                                            size="sm" 
+                                          <Button
+                                            size="sm"
                                             variant="ghost"
                                             onClick={() => {
                                               if (file.deliveryOrderDocumentUrl) {
@@ -1481,7 +1490,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
 
                                           {/* NEW: REVIEW DO Button */}
                                           {!file.doReviewedByOperations && (
-                                            <Button 
+                                            <Button
                                               size="sm"
                                               onClick={() => { setSelectedFile(file); setDoReviewDialogOpen(true); }}
                                               className="bg-purple-600 hover:bg-purple-700 text-white"
@@ -1501,32 +1510,32 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                         </div>
                                       )}
 
-                                      <Button 
-                                        size="sm" 
+                                      <Button
+                                        size="sm"
                                         variant="outline"
-                                        onClick={() => { setSelectedFile(file); setPortChargesDialogOpen(true); }}
-                                        className={file.portChargesUrl ? 'bg-green-50 border-green-300' : ''}
-
-                                        title={file.portChargesUrl ? 'Replace port charges document' : 'Upload port charges'}
+                                        onClick={() => { if (!canUploadPortCharges(file)) return; setSelectedFile(file); setPortChargesDialogOpen(true); }}
+                                        disabled={!canUploadPortCharges(file)}
+                                        className={file.portChargesUrl ? 'bg-green-50 border-green-300' : !canUploadPortCharges(file) ? 'bg-gray-100 text-gray-400 border-gray-200 opacity-60 cursor-not-allowed' : ''}
+                                        title={!hasDeliveryOrder(file) ? 'Waiting for Delivery Order to be uploaded' : !hasDeliveryOrderPayment(file) ? 'Waiting for Delivery Order payment confirmation' : file.portChargesUrl ? 'Replace port charges document' : 'Upload port charges'}
                                       >
                                         <Upload className="w-3 h-3 mr-1" />
-                                        {file.portChargesUrl ? '✓ Port Charges' : 'Port Charges'}
+                                        {file.portChargesUrl ? '✓ Port Charges' : !canUploadPortCharges(file) ? 'Port Charges (waiting)' : 'Port Charges'}
                                       </Button>
                                     </>
                                   )}
 
                                   {/* Upload Swissport Charges (AIR only) - Requires release order first */}
                                   {file.transportMode === 'AIR' && (
-                                    <Button 
-                                      size="sm" 
+                                    <Button
+                                      size="sm"
                                       variant="outline"
-                                      onClick={() => { 
+                                      onClick={() => {
                                         if (!file.releaseOrderUrl) {
                                           toast.error('Please upload release order first');
                                           return;
                                         }
-                                        setSelectedFile(file); 
-                                        setSwissportChargesDialogOpen(true); 
+                                        setSelectedFile(file);
+                                        setSwissportChargesDialogOpen(true);
                                       }}
                                       className={file.swissportChargesUrl ? 'bg-green-50 border-green-300' : ''}
                                       disabled={!file.releaseOrderUrl}
@@ -1539,35 +1548,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                 </>
                               )}
 
-                              {/* PORT CHARGES PAID Button - For SEA shipments - Finance Manager, Cashier, Operations Manager, or the assigned Operations Clerk can confirm payment */}
-                              {canConfirmShipmentChargePayment(file) &&
-                               file.transportMode === 'SEA' && 
-                               !!file.portChargesUrl && !file.portChargesPaidAt && file.status !== 'OPERATIONS_DONE' && (
-                                <Button 
-                                  size="sm" 
-                                  onClick={() => handlePortChargesPaid(file)}
-                                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                                  title="Confirm port charges payment"
-                                >
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  PORT CHARGES PAID
-                                </Button>
-                              )}
-
-                              {/* SWISSPORT CHARGES PAID Button - For AIR shipments - Finance Manager, Cashier, Operations Manager, or the assigned Operations Clerk can confirm payment */}
-                              {canConfirmShipmentChargePayment(file) &&
-                               file.transportMode === 'AIR' && 
-                               !!file.swissportChargesUrl && !file.swissportChargesPaidAt && file.status !== 'OPERATIONS_DONE' && (
-                                <Button 
-                                  size="sm" 
-                                  onClick={() => handleSwissportChargesPaid(file)}
-                                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                                  title="Confirm Swissport charges payment"
-                                >
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  SWISSPORT PAID
-                                </Button>
-                              )}
+                              {file.transportMode === 'SEA' && file.portChargesUrl && <ShipmentChargePaymentPanel file={file} chargeType="PORT" invoiceUrl={file.portChargesUrl} amount={file.portChargesAmount} currency={file.portChargesCurrency} />}
+                              {file.transportMode === 'AIR' && file.swissportChargesUrl && <ShipmentChargePaymentPanel file={file} chargeType="SWISSPORT" invoiceUrl={file.swissportChargesUrl} amount={file.swissportChargesAmount} currency={file.swissportChargesCurrency} />}
                               {canConfirmShipmentChargePayment(file) && file.transportMode === 'AIR' && file.swissportChargesPaidAt && (
                                 <Button size="sm" disabled className="bg-green-600 text-white opacity-100">
                                   <CheckCircle className="w-3 h-3 mr-1" /> SWISSPORT PAID
@@ -1619,11 +1601,11 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                               )}
 
                               {/* CARGO VERIFICATION FORM - Available for all shipments that have operation clerk assigned */}
-                              {user?.role === 'operation_clerk' && 
+                              {user?.role === 'operation_clerk' &&
                                file.assignedOperationClerkId === user?.id &&
                                !file.cargoVerificationForm && (
-                                <Button 
-                                  size="sm" 
+                                <Button
+                                  size="sm"
                                   variant="outline"
                                   onClick={() => handleOpenVerificationForm(file)}
                                   className="border-purple-600 text-purple-600 hover:bg-purple-50"
@@ -1635,12 +1617,12 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                               )}
 
                               {/* CARGO VERIFICATION FORM - REQUIRED BEFORE DELIVERY (Purple for pending) */}
-                              {user?.role === 'operation_clerk' && 
+                              {user?.role === 'operation_clerk' &&
                                file.assignedOperationClerkId === user?.id &&
                                file.status === 'VERIFICATION_FORM_PENDING' &&
                                !file.cargoVerificationForm && (
-                                <Button 
-                                  size="sm" 
+                                <Button
+                                  size="sm"
                                   onClick={() => handleOpenVerificationForm(file)}
                                   className="bg-purple-600 hover:bg-purple-700 text-white animate-pulse"
                                   title="REQUIRED: Fill verification form before driver assignment"
@@ -1652,8 +1634,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
 
                               {/* VIEW/PRINT VERIFICATION FORM - After form is completed */}
                               {file.cargoVerificationForm && (
-                                <Button 
-                                  size="sm" 
+                                <Button
+                                  size="sm"
                                   variant="outline"
                                   onClick={() => handlePrintVerificationForm(file)}
                                   className="bg-green-50 border-green-300 text-green-700"
@@ -1678,11 +1660,11 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                       ) : (
                                         <div className="flex items-center gap-3" role="radiogroup" aria-label={`${permit.name} availability`}>
                                           <label className="flex items-center gap-1 text-sm">
-                                            <input type="radio" name={`permit-available-${file.id}-${permit.id}`} checked={permit.permitAvailable === true} onChange={() => handleRequiredPermitAvailability(file, permit.id, true)} />
+                                            <input type="radio" name={`permit-available-${file.id}-${permit.id}`} checked={permit.permitAvailable === true} disabled={!!permit.permitUrl || !!permit.invoiceUrl} onChange={() => handleRequiredPermitAvailability(file, permit.id, true)} />
                                             Available
                                           </label>
                                           <label className="flex items-center gap-1 text-sm">
-                                            <input type="radio" name={`permit-available-${file.id}-${permit.id}`} checked={permit.permitAvailable === false} onChange={() => handleRequiredPermitAvailability(file, permit.id, false)} />
+                                            <input type="radio" name={`permit-available-${file.id}-${permit.id}`} checked={permit.permitAvailable === false} disabled={!!permit.permitUrl || !!permit.invoiceUrl} onChange={() => handleRequiredPermitAvailability(file, permit.id, false)} />
                                             Not available
                                           </label>
                                         </div>
@@ -1801,8 +1783,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                 <>
                                   {/* Upload Permit Invoice Button */}
                                   {file.status === 'RECEIVED_BY_CLERK' && !file.permitInvoiceUrl && (
-                                    <Button 
-                                      size="sm" 
+                                    <Button
+                                      size="sm"
                                       onClick={() => { setSelectedFile(file); setPermitInvoiceDialogOpen(true); }}
                                     >
                                       <Upload className="w-4 h-4 mr-1" />
@@ -1819,8 +1801,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
 
                                   {/* Upload Permit Document (after payment) */}
                                   {file.status === 'PERMIT_PAYMENTS_DONE' && !file.permitDocumentUrl && (
-                                    <Button 
-                                      size="sm" 
+                                    <Button
+                                      size="sm"
                                       onClick={() => { setSelectedFile(file); setPermitDocumentDialogOpen(true); }}
                                       className="bg-blue-600 hover:bg-blue-700 text-white"
                                     >
@@ -1831,8 +1813,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
 
                                   {/* Permits Done Button (after document uploaded) */}
                                   {file.status === 'PERMIT_PAYMENTS_DONE' && file.permitDocumentUrl && !file.permitsDoneAt && (
-                                    <Button 
-                                      size="sm" 
+                                    <Button
+                                      size="sm"
                                       onClick={() => { setSelectedFile(file); setPermitsDoneDialogOpen(true); }}
                                       className="bg-green-600 hover:bg-green-700 text-white"
                                     >
@@ -1844,10 +1826,10 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                               )}
 
                               {/* PERMITS PAID Button - Only Finance Manager and Cashier can confirm */}
-                              {(user?.role === 'finance_manager' || user?.role === 'cashier') && 
+                              {(user?.role === 'finance_manager' || user?.role === 'cashier') &&
                                file.status === 'WAITING_FOR_PERMIT_PAYMENTS' && (
-                                <Button 
-                                  size="sm" 
+                                <Button
+                                  size="sm"
                                   onClick={() => {
                                     if (!user) return;
                                     updateFileStatus(file.id, 'PERMIT_PAYMENTS_DONE', user.id, {
@@ -1877,11 +1859,11 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                               )}
 
                               {/* ETA/ETB Button - For shipping line clerk (SEA shipments) */}
-                              {user?.role === 'shipping_line_clerk' && file.transportMode === 'SEA' && 
-                               (file.status === 'RECEIVED_BY_CLERK' || file.status === 'PERMITS_DONE' || 
+                              {user?.role === 'shipping_line_clerk' && file.transportMode === 'SEA' &&
+                               (file.status === 'RECEIVED_BY_CLERK' || file.status === 'PERMITS_DONE' ||
                                 file.status === 'WAITING_FOR_PERMIT_PAYMENTS' || file.status === 'PERMIT_PAYMENTS_DONE') && (
-                                <Button 
-                                  size="sm" 
+                                <Button
+                                  size="sm"
                                   variant="outline"
                                   onClick={() => { setSelectedFile(file); setEtaEtbDialogOpen(true); }}
                                   className={file.eta ? 'bg-blue-50 border-blue-300 text-blue-700' : ''}
@@ -1896,8 +1878,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                                 <>
                                   {/* Upload Invoice Button */}
                                   {file.status === 'PERMITS_DONE' && !file.deliveryOrderInvoiceUrl && (
-                                    <Button 
-                                      size="sm" 
+                                    <Button
+                                      size="sm"
                                       onClick={() => { setSelectedFile(file); setDeliveryOrderDialogOpen(true); }}
                                     >
                                       <Upload className="w-4 h-4 mr-1" />
@@ -1914,8 +1896,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
 
                                   {/* Submit Delivery Order Button (after payment) */}
                                   {file.status === 'DELIVERY_ORDER_PAYMENTS_DONE' && !file.deliveryOrderSubmittedAt && (
-                                    <Button 
-                                      size="sm" 
+                                    <Button
+                                      size="sm"
                                       onClick={() => { setSelectedFile(file); setDeliveryOrderDialogOpen(true); }}
                                       className="bg-green-600 hover:bg-green-700 text-white"
                                     >
@@ -1928,9 +1910,9 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
 
                               {/* Petty Cash button for operations manager and operation clerk - Navigate with file pre-selected */}
                               {(user?.role === 'operations_manager' || user?.role === 'operation_clerk') && hasPermission('create_petty_cash_request') && (
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
+                                <Button
+                                  size="sm"
+                                  variant="outline"
                                   onClick={() => navigate('petty-cash', { fileId: file.id })}
                                 >
                                   <DollarSign className="w-3 h-3 mr-1" />
@@ -1999,8 +1981,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>File (Optional)</Label>
-              <Select 
-                value={selectedFile ? selectedFile.id : ''} 
+              <Select
+                value={selectedFile ? selectedFile.id : 'none'}
                 onValueChange={(id: string) => {
                   if (id) {
                     setSelectedFile(files.find((f: ShipmentFile) => f.id === id) || null);
@@ -2013,7 +1995,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                   <SelectValue placeholder="Select a file (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No file - General request</SelectItem>
+                  <SelectItem value="none">No file - General request</SelectItem>
                   {files
                     .filter((f: ShipmentFile) => f.assignedOperationClerkId === user?.id)
                     .map((file: ShipmentFile) => (
@@ -2040,8 +2022,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
               </div>
               <div className="space-y-2">
                 <Label>Currency</Label>
-                <Select 
-                  value={pettyCashForm.currency} 
+                <Select
+                  value={pettyCashForm.currency}
                   onValueChange={(v: string) => setPettyCashForm({ ...pettyCashForm, currency: v })}
                 >
                   <SelectTrigger>
@@ -2068,7 +2050,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
 
             <div className="p-3 bg-blue-50 rounded-lg">
               <p className="text-sm text-blue-700">
-                {selectedFile 
+                {selectedFile
                   ? `Request will be linked to file: ${selectedFile.fileNumber}`
                   : 'This will be a general petty cash request (not linked to any file)'}
               </p>
@@ -2083,7 +2065,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
             }}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handlePettyCashRequest}
               disabled={!pettyCashForm.amount || !pettyCashForm.description}
             >
@@ -2107,8 +2089,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
             {!selectedFile && (
               <div className="space-y-2">
                 <Label>Select File</Label>
-                <Select 
-                  value="" 
+                <Select
+                  value=""
                   onValueChange={(fileId: string) => {
                     const file = files.find(f => f.id === fileId);
                     setSelectedFile(file || null);
@@ -2203,8 +2185,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                 <label htmlFor="permit-invoice-upload" className="cursor-pointer">
                   <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
                   <p className="text-sm text-gray-500">
-                    {permitForm.invoiceFile 
-                      ? permitForm.invoiceFile.name 
+                    {permitForm.invoiceFile
+                      ? permitForm.invoiceFile.name
                       : 'Click to upload permit invoice'}
                   </p>
                   <p className="text-xs text-gray-400 mt-1">
@@ -2222,7 +2204,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
             }}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handlePermitInvoiceUpload}
               disabled={!permitForm.invoiceFile}
             >
@@ -2270,8 +2252,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                 <label htmlFor="permit-document-upload" className="cursor-pointer">
                   <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
                   <p className="text-sm text-gray-500">
-                    {permitForm.documentFile 
-                      ? permitForm.documentFile.name 
+                    {permitForm.documentFile
+                      ? permitForm.documentFile.name
                       : 'Click to upload permit document'}
                   </p>
                   <p className="text-xs text-gray-400 mt-1">
@@ -2289,7 +2271,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
             }}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handlePermitDocumentUpload}
               disabled={!permitForm.documentFile}
               className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -2374,7 +2356,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
               <Ship className="w-6 h-6 text-blue-600 flex-shrink-0" />
               <div>
                 <p className="text-sm text-blue-700">
-                  {selectedFile?.transportMode === 'SEA' 
+                  {selectedFile?.transportMode === 'SEA'
                     ? 'For SEA shipments, both ETA and ETB are required'
                     : 'Enter the estimated time of arrival for this shipment'}
                 </p>
@@ -2446,8 +2428,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {selectedFile?.status === 'PERMITS_DONE' 
-                ? 'Upload Delivery Order Invoice' 
+              {selectedFile?.status === 'PERMITS_DONE'
+                ? 'Upload Delivery Order Invoice'
                 : 'Submit Delivery Order'}
             </DialogTitle>
             <DialogDescription>
@@ -2484,8 +2466,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                     <label htmlFor="do-invoice-upload" className="cursor-pointer">
                       <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
                       <p className="text-sm text-gray-500">
-                        {deliveryOrderForm.invoiceFile 
-                          ? deliveryOrderForm.invoiceFile.name 
+                        {deliveryOrderForm.invoiceFile
+                          ? deliveryOrderForm.invoiceFile.name
                           : 'Click to upload invoice'}
                       </p>
                       <p className="text-xs text-gray-400 mt-1">
@@ -2525,8 +2507,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
                     <label htmlFor="do-document-upload" className="cursor-pointer">
                       <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
                       <p className="text-sm text-gray-500">
-                        {deliveryOrderForm.documentFile 
-                          ? deliveryOrderForm.documentFile.name 
+                        {deliveryOrderForm.documentFile
+                          ? deliveryOrderForm.documentFile.name
                           : 'Click to upload delivery order'}
                       </p>
                       <p className="text-xs text-gray-400 mt-1">
@@ -2547,7 +2529,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
               Cancel
             </Button>
             {selectedFile?.status === 'PERMITS_DONE' && (
-              <Button 
+              <Button
                 onClick={handleDeliveryOrderInvoiceUpload}
                 disabled={!deliveryOrderForm.invoiceFile}
               >
@@ -2556,7 +2538,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
               </Button>
             )}
             {selectedFile?.status === 'DELIVERY_ORDER_PAYMENTS_DONE' && (
-              <Button 
+              <Button
                 onClick={handleDeliveryOrderSubmit}
                 disabled={!deliveryOrderForm.documentFile}
                 className="bg-green-600 hover:bg-green-700 text-white"
@@ -2697,6 +2679,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            <div className="space-y-2"><Label>Port Charges amount (TZS) *</Label><Input type="number" min="0" value={portChargesAmount} onChange={(event) => setPortChargesAmount(event.target.value)} placeholder="Enter charge amount" /></div>
             <div className="space-y-2">
               <Label>Select Port Charges Document</Label>
               <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center hover:border-blue-400 transition-colors cursor-pointer">
@@ -2729,8 +2712,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setPortChargesDialogOpen(false); setPortChargesFile(null); }}>Cancel</Button>
-            <Button onClick={handleUploadPortCharges} disabled={!portChargesFile}>
+            <Button variant="outline" onClick={() => { setPortChargesDialogOpen(false); setPortChargesFile(null); setPortChargesAmount(''); }}>Cancel</Button>
+            <Button onClick={handleUploadPortCharges} disabled={!portChargesFile || !portChargesAmount}>
               <Upload className="w-4 h-4 mr-2" />
               Upload Port Charges
             </Button>
@@ -2749,6 +2732,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            <div className="space-y-2"><Label>Swissport Charges amount (TZS) *</Label><Input type="number" min="0" value={swissportChargesAmount} onChange={(event) => setSwissportChargesAmount(event.target.value)} placeholder="Enter charge amount" /></div>
             <div className="space-y-2">
               <Label>Select Swissport Charges Document</Label>
               <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center hover:border-blue-400 transition-colors cursor-pointer">
@@ -2781,8 +2765,8 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setSwissportChargesDialogOpen(false); setSwissportChargesFile(null); }}>Cancel</Button>
-            <Button onClick={handleUploadSwissportCharges} disabled={!swissportChargesFile}>
+            <Button variant="outline" onClick={() => { setSwissportChargesDialogOpen(false); setSwissportChargesFile(null); setSwissportChargesAmount(''); }}>Cancel</Button>
+            <Button onClick={handleUploadSwissportCharges} disabled={!swissportChargesFile || !swissportChargesAmount}>
               <Upload className="w-4 h-4 mr-2" />
               Upload Swissport Charges
             </Button>
@@ -3063,7 +3047,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
               </p>
             </div>
 
-            <Button 
+            <Button
               variant="outline"
               onClick={() => {
                 if (selectedFile?.deliveryOrderDocumentUrl) {
@@ -3100,7 +3084,7 @@ export function OperationsPage({ navigate }: OperationsPageProps) {
             <Button variant="outline" onClick={() => setDoReviewDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleApproveDeliveryOrder}
               className="bg-green-600 hover:bg-green-700 text-white"
             >

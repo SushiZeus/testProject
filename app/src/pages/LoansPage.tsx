@@ -14,9 +14,10 @@ import type { AppRoute } from '@/App';
 
 interface LoansPageProps {
   navigate: (route: AppRoute, params?: Record<string, string>) => void;
+  embedded?: boolean;
 }
 
-export function LoansPage({ navigate }: LoansPageProps) {
+export function LoansPage({ navigate, embedded = false }: LoansPageProps) {
   const { user: currentUser } = useAuthStore();
   const { loans, createLoan } = useLoansStore();
   const [searchTerm, setSearchTerm] = useState('');
@@ -79,7 +80,7 @@ export function LoansPage({ navigate }: LoansPageProps) {
   const totalOutstanding = myLoans.reduce((sum, l) => sum + l.balance, 0);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className={embedded ? 'p-4 space-y-6' : 'p-6 space-y-6'}>
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Loans</h1>
         <Dialog open={showNewLoan} onOpenChange={setShowNewLoan}>

@@ -46,6 +46,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { statusColors } from '@/utils/statusColors';
 import { getShipmentDisplayStatus } from '@/utils/shipmentStatus';
+import { DeclarationPaymentPanel } from '@/components/DeclarationPaymentPanel';
 
 interface WorkloadCardProps {
   declarant: User;
@@ -157,6 +158,7 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
     eta: '',
     etb: '',
     carryInDate: '',
+    gateInDate: '',
     manifestComparisonDate: '',
     wharfageDate: '',
   });
@@ -302,14 +304,11 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
       {
         taxDocumentUrl: URL.createObjectURL(taxDocumentFiles[0]),
         taxDocumentUploadedAt: new Date(),
+        taxPaymentFlow: undefined,
       }
     );
 
-    const statusMessage = selectedFile.transportMode === 'SEA' && selectedFile.wharfageDocumentUrl
-      ? 'Tax documents uploaded - Click TAX PAID and WHARFAGE PAID to confirm payments' 
-      : 'Tax documents uploaded - Click TAX PAID to confirm payment';
-    
-    toast.success(statusMessage);
+    toast.success('Tax documents uploaded. Submit the payment request for approval.');
     setTaxUploadDialogOpen(false);
     // Don't clear selectedFile - keep it selected so user can see payment buttons
     setTaxDocumentFiles([]);
@@ -340,87 +339,14 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
         wharfageDocumentUploadedAt: new Date(),
         wharfagePaymentConfirmed: false,
         wharfagePaymentConfirmedAt: undefined,
+        wharfagePaymentFlow: undefined,
       }
     );
 
-    const message = selectedFile.taxPaymentConfirmed
-      ? 'Wharfage documents uploaded. Select WHARFAGE PAID to confirm payment.'
-      : 'Wharfage documents uploaded. Confirm tax payment, then select WHARFAGE PAID.';
-    toast.success(message);
+    toast.success('Wharfage documents uploaded. Submit the payment request for approval.');
     setWharfageUploadDialogOpen(false);
     // Don't clear selectedFile - keep it selected so user can see payment buttons
     setWharfageDocumentFiles([]);
-  };
-
-  const handleTaxPaid = () => {
-    if (!selectedFile || !user) return;
-
-    if (!selectedFile.taxDocumentUrl) {
-      toast.error('Upload the tax documents before confirming tax payment');
-      return;
-    }
-    // Determine new status based on transport mode
-    let newStatus = selectedFile.status;
-    let successMessage = '';
-    
-    if (selectedFile.transportMode === 'SEA') {
-      if (!selectedFile.wharfageDocumentUrl) {
-        newStatus = 'WAITING_FOR_WHARFAGE_CHARGES';
-        successMessage = 'Tax payment confirmed. Upload the wharfage documents, then confirm WHARFAGE PAID.';
-      } else if (!selectedFile.wharfagePaymentConfirmed) {
-        newStatus = 'WAITING_FOR_WHARFAGE_PAYMENT';
-        successMessage = 'Tax payment confirmed. Select WHARFAGE PAID after verifying the payment.';
-      } else {
-        newStatus = 'TAXES_PAID';
-        successMessage = 'Tax and wharfage payments are confirmed. Click DECLARATION DONE to proceed.';
-      }
-    } else {
-      // AIR/ROAD/RAIL: Tax is only payment, mark as paid
-      newStatus = 'TAXES_PAID';
-      successMessage = 'Tax payment confirmed ✓ - Click DECLARATION DONE to proceed';
-    }
-
-    updateFileStatus(
-      selectedFile.id,
-      newStatus, // UPDATE STATUS
-      user.id,
-      {
-        taxPaymentConfirmed: true,
-        taxPaymentConfirmedAt: new Date(),
-      }
-    );
-
-    toast.success(successMessage);
-    setSelectedFile(null);
-  };
-
-  const handleWharfagePaid = () => {
-    if (!selectedFile || !user) return;
-
-    // CRITICAL CHECK: Tax must be paid BEFORE wharfage payment is confirmed
-    if (!selectedFile.taxPaymentConfirmed) {
-      toast.error('Tax payment must be confirmed first before confirming wharfage payment');
-      return;
-    }
-
-    if (!selectedFile.wharfageDocumentUrl) {
-      toast.error('Upload the wharfage document before confirming payment');
-      return;
-    }
-
-    // Mark wharfage as paid - both tax and wharfage confirmed, mark as TAXES_PAID
-    updateFileStatus(
-      selectedFile.id,
-      'TAXES_PAID', // UPDATE STATUS - Both payments confirmed
-      user.id,
-      {
-        wharfagePaymentConfirmed: true,
-        wharfagePaymentConfirmedAt: new Date(),
-      }
-    );
-
-    toast.success('Wharfage payment confirmed ✓ - Both tax and wharfage paid. Click DECLARATION DONE to proceed');
-    setSelectedFile(null);
   };
 
   const handleDeleteTaxDocuments = () => {
@@ -435,6 +361,7 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
         taxDocumentUploadedAt: undefined,
         taxPaymentConfirmed: false,
         taxPaymentConfirmedAt: undefined,
+        taxPaymentFlow: undefined,
       }
     );
 
@@ -454,6 +381,7 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
         wharfageDocumentUploadedAt: undefined,
         wharfagePaymentConfirmed: false,
         wharfagePaymentConfirmedAt: undefined,
+        wharfagePaymentFlow: undefined,
       }
     );
 
@@ -470,6 +398,7 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
     // Update file with arrival dates (allow partial saves) - Declarant only fills carry-in, manifest, wharfage
     const updateData: any = {
       carryInDate: arrivalDates.carryInDate ? new Date(arrivalDates.carryInDate) : selectedFile.carryInDate,
+      gateInDate: arrivalDates.gateInDate ? new Date(arrivalDates.gateInDate) : selectedFile.gateInDate,
       manifestComparisonDate: arrivalDates.manifestComparisonDate ? new Date(arrivalDates.manifestComparisonDate) : selectedFile.manifestComparisonDate,
     };
 
@@ -479,8 +408,8 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
       // Set arrivalStatusFilled only if wharfage date is filled (critical for SEA)
       updateData.arrivalStatusFilled = !!arrivalDates.wharfageDate || !!selectedFile.wharfageDate;
     } else if (selectedFile.transportMode === 'AIR') {
-      // Set arrivalStatusFilled only if manifest comparison date is filled (critical for AIR)
-      updateData.arrivalStatusFilled = !!arrivalDates.manifestComparisonDate || !!selectedFile.manifestComparisonDate;
+      updateData.arrivalStatusFilled = !!(arrivalDates.gateInDate || selectedFile.gateInDate) &&
+        !!(arrivalDates.manifestComparisonDate || selectedFile.manifestComparisonDate);
     }
 
     updateFileStatus(
@@ -490,14 +419,17 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
       updateData
     );
 
-    const criticalDateFilled = selectedFile.transportMode === 'SEA' 
-      ? (arrivalDates.wharfageDate || selectedFile.wharfageDate)
-      : (arrivalDates.manifestComparisonDate || selectedFile.manifestComparisonDate);
+    const criticalDateFilled = selectedFile.transportMode === 'SEA'
+      ? !!(arrivalDates.wharfageDate || selectedFile.wharfageDate)
+      : !!(arrivalDates.gateInDate || selectedFile.gateInDate) &&
+        !!(arrivalDates.manifestComparisonDate || selectedFile.manifestComparisonDate);
 
     if (criticalDateFilled) {
       toast.success('Arrival status completed - Declaration Done is now available');
     } else {
-      const criticalField = selectedFile.transportMode === 'SEA' ? 'Wharfage Date' : 'Manifest Comparison Date';
+      const criticalField = selectedFile.transportMode === 'SEA'
+        ? 'Wharfage Date'
+        : 'Gate-in Date and Manifest Comparison Date';
       toast.info(`Arrival dates saved. Fill ${criticalField} to enable Declaration Done`);
     }
 
@@ -507,6 +439,7 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
       eta: '',
       etb: '',
       carryInDate: '',
+      gateInDate: '',
       manifestComparisonDate: '',
       wharfageDate: '',
     });
@@ -996,44 +929,11 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
                                     </Button>
                                   )}
                                   
-                                  {/* TAX PAID Button - Available when tax documents uploaded */}
-                                  {file.taxDocumentUrl && !file.taxPaymentConfirmed && (
-                                    <Button 
-                                      size="sm" 
-                                      onClick={() => { setSelectedFile(file); handleTaxPaid(); }}
-                                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                                    >
-                                      <DollarSign className="w-3 h-3 mr-1" />
-                                      TAX PAID
-                                    </Button>
-                                  )}
-                                  {file.taxPaymentConfirmed && (
-                                    <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
-                                      ✓ Tax Paid
-                                    </Badge>
-                                  )}
-                                  
-                                  {/* WHARFAGE PAID Button (SEA only) - Available when wharfage documents uploaded AND tax payment confirmed */}
-                                  {file.transportMode === 'SEA' && 
-                                   file.wharfageDocumentUrl && 
-                                   !file.wharfagePaymentConfirmed && 
-                                   file.taxPaymentConfirmed && ( // MUST have tax paid first
-                                    <Button 
-                                      size="sm" 
-                                      onClick={() => { setSelectedFile(file); handleWharfagePaid(); }}
-                                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                                      title="Confirm wharfage payment (tax must be paid first)"
-                                    >
-                                      <DollarSign className="w-3 h-3 mr-1" />
-                                      WHARFAGE PAID
-                                    </Button>
-                                  )}
-                                  {file.transportMode === 'SEA' && file.wharfagePaymentConfirmed && (
-                                    <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
-                                      ✓ Wharfage Paid
-                                    </Badge>
-                                  )}
                                 </>
+                              )}
+                              {file.taxDocumentUrl && <DeclarationPaymentPanel file={file} kind="TAX" />}
+                              {file.transportMode === 'SEA' && file.wharfageDocumentUrl && (
+                                <DeclarationPaymentPanel file={file} kind="WHARFAGE" />
                               )}
                               
                               {(user?.role === 'declarant' || user?.role === 'declaration_manager') && (file.status === 'ASSIGNED_TO_DECLARANT' || file.status === 'DECLARANT_ACKNOWLEDGED' || file.status === 'WAITING_FOR_FINAL_ASSESSMENT' || file.status === 'WAITING_FOR_TAX_PAYMENT' || file.status === 'WAITING_FOR_WHARFAGE_CHARGES' || file.status === 'WAITING_FOR_WHARFAGE_PAYMENT' || file.status === 'TAXES_PAID') && (
@@ -1575,7 +1475,7 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
             <div className="space-y-2">
               <Label>File (Optional)</Label>
               <Select
-                value={selectedFile ? selectedFile.id : ''}
+                value={selectedFile ? selectedFile.id : 'none'}
                 onValueChange={(value) => {
                   const file = files.find(f => f.id === value);
                   setSelectedFile(file || null);
@@ -1585,7 +1485,7 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
                   <SelectValue placeholder="Select a file (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No file - General request</SelectItem>
+                  <SelectItem value="none">No file - General request</SelectItem>
                   {files.map((file) => (
                     <SelectItem key={file.id} value={file.id}>
                       {file.fileNumber} - {file.client?.name}
@@ -1678,33 +1578,45 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
                   <p className="text-sm font-medium text-blue-900">
                     {selectedFile.transportMode === 'SEA' 
                       ? '🚢 SEA Shipment - Wharfage Date is CRITICAL' 
-                      : '✈️ AIR Shipment - Manifest Comparison Date is CRITICAL'}
+                      : '✈️ AIR Shipment - Gate-in and Manifest Comparison Dates are required'}
                   </p>
                   <p className="text-xs text-blue-700 mt-1">
                     {selectedFile.transportMode === 'SEA'
                       ? 'You can save other dates, but Declaration Done requires Wharfage Date. ETA/ETB are filled by Shipping Line Clerk.'
-                      : 'You can save other dates, but Declaration Done requires Manifest Comparison Date. ETA is filled by Shipping Line Clerk.'}
+                      : 'Declaration Done requires both Gate-in Date and Manifest Comparison Date. ETA is filled by the airline or operations team.'}
                   </p>
                 </div>
 
                 {/* Declarant-specific fields only */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Carry In Date</Label>
-                    <Input
-                      type="date"
-                      value={arrivalDates.carryInDate}
-                      onChange={(e) => setArrivalDates({ ...arrivalDates, carryInDate: e.target.value })}
-                    />
-                  </div>
+                  {selectedFile.transportMode === 'AIR' ? (
+                    <div className="space-y-2">
+                      <Label className="text-red-600 font-semibold">Gate-in Date *</Label>
+                      <Input
+                        type="date"
+                        value={arrivalDates.gateInDate || (selectedFile.gateInDate ? new Date(selectedFile.gateInDate).toISOString().slice(0, 10) : '')}
+                        onChange={(e) => setArrivalDates({ ...arrivalDates, gateInDate: e.target.value })}
+                        className="border-red-300 focus:border-red-500"
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label>Carry In Date</Label>
+                      <Input
+                        type="date"
+                        value={arrivalDates.carryInDate || (selectedFile.carryInDate ? new Date(selectedFile.carryInDate).toISOString().slice(0, 10) : '')}
+                        onChange={(e) => setArrivalDates({ ...arrivalDates, carryInDate: e.target.value })}
+                      />
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label className={selectedFile.transportMode === 'AIR' ? 'text-red-600 font-semibold' : ''}>
-                      Manifest Comparison Date {selectedFile.transportMode === 'AIR' && '⚠️ CRITICAL'}
+                      Manifest Comparison Date {selectedFile.transportMode === 'AIR' && '*'}
                     </Label>
                     <Input
                       type="date"
-                      value={arrivalDates.manifestComparisonDate}
+                      value={arrivalDates.manifestComparisonDate || (selectedFile.manifestComparisonDate ? new Date(selectedFile.manifestComparisonDate).toISOString().slice(0, 10) : '')}
                       onChange={(e) => setArrivalDates({ ...arrivalDates, manifestComparisonDate: e.target.value })}
                       className={selectedFile.transportMode === 'AIR' ? 'border-red-300 focus:border-red-500' : ''}
                     />
@@ -1764,6 +1676,7 @@ export function DeclarationPage({ navigate }: DeclarationPageProps) {
                 eta: '',
                 etb: '',
                 carryInDate: '',
+                gateInDate: '',
                 manifestComparisonDate: '',
                 wharfageDate: '',
               });

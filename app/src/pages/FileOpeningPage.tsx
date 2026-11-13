@@ -1834,14 +1834,14 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
             <div className="space-y-2">
               <Label>File (Optional)</Label>
               <Select
-                value={selectedFileForCash}
-                onValueChange={setSelectedFileForCash}
+                value={selectedFileForCash || 'none'}
+                onValueChange={(value) => setSelectedFileForCash(value === 'none' ? '' : value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a file (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No file - General request</SelectItem>
+                  <SelectItem value="none">No file - General request</SelectItem>
                   {files.map((file) => (
                     <SelectItem key={file.id} value={file.id}>
                       {file.fileNumber} - {file.client?.name}

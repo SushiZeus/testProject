@@ -1,5 +1,14 @@
 # Project change log
 
+## 2026-11-13 · File comments
+
+- Added a File Comments page available from the shared navigation for every signed-in role, with file selection, comment history, and posting.
+- Kept comments visible from each file detail view and added a comment count to its tab.
+- Replaced blanket SEA Shipping Line comment alerts with notifications for assigned clerks, Declaration/Operations Managers, and the COO; exclude the commenter.
+- Added cross-tab refresh for notification storage. File comments already refresh across same-origin tabs through the file store.
+- TypeScript check and Vite production build passed. No test suite was run.
+- Cross-device limitation: file/comment data remains browser-local because this app currently has no central backend/API.
+
 ## 2026-11-13 · Handoff workflow
 
 - User confirmed that future code developments should be saved and tracked through this handoff folder and the existing local Git repository.

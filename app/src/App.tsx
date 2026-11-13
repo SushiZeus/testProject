@@ -9,10 +9,12 @@ import { OperationsPage } from '@/pages/OperationsPage';
 import { DeliveryPage } from '@/pages/DeliveryPage';
 import { ShippingLinePage } from '@/pages/ShippingLinePage';
 import { PettyCashPage } from '@/pages/PettyCashPage';
+import { AccountsPage } from '@/pages/AccountsPage';
 import { DriverManagementPage } from '@/pages/DriverManagementPage';
 import { DriversPage } from '@/pages/DriversPage';
 import { ReportsPage } from '@/pages/ReportsPage';
 import { FileDetailPage } from '@/pages/FileDetailPage';
+import { CommentsPage } from '@/pages/CommentsPage';
 import { PettyCashHistoryPage } from '@/pages/PettyCashHistoryPage';
 import { LeaveHistoryPage } from '@/pages/LeaveHistoryPage';
 import { LeaveManagementPage } from '@/pages/LeaveManagementPage';
@@ -47,12 +49,14 @@ export type AppRoute =
   | 'dashboard'
   | 'files/open'
   | 'files/:id'
+  | 'comments'
   | 'declaration'
   | 'operations'
   | 'delivery'
   | 'shipping-line'
   | 'petty-cash'
   | 'petty-cash/history'
+  | 'accounts'
   | 'claims'
   | 'claims/:id'
   | 'leave-management'
@@ -132,6 +136,8 @@ function App() {
         return <FileOpeningPage navigate={navigate} />;
       case 'files/:id':
         return <FileDetailPage fileId={routeParams.id} navigate={navigate} />;
+      case 'comments':
+        return <CommentsPage navigate={navigate} />;
       case 'declaration':
         return <DeclarationPage navigate={navigate} />;
       case 'operations':
@@ -144,6 +150,8 @@ function App() {
         return <PettyCashPage navigate={navigate} fileId={routeParams.fileId} />;
       case 'petty-cash/history':
         return <PettyCashHistoryPage navigate={navigate} />;
+      case 'accounts':
+        return <AccountsPage navigate={navigate} />;
       case 'leave-management':
         return <LeaveManagementPage navigate={navigate} />;
       case 'leave-management/history':

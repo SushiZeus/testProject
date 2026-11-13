@@ -331,9 +331,16 @@ export const initializeSampleData = () => {
     claims: sampleClaims.map((c, i) => ({ ...c, id: `claim-${i + 1}` })),
   };
 
-  localStorage.setItem('fixedAssetsStore', JSON.stringify(fixedAssetsData));
-  localStorage.setItem('inventoryStore', JSON.stringify(inventoryData));
-  localStorage.setItem('claimsStore', JSON.stringify(claimsData));
+  // A missing initialization flag must never replace existing business records.
+  for (const [key, data] of Object.entries({
+    fixedAssetsStore: fixedAssetsData,
+    inventoryStore: inventoryData,
+    claimsStore: claimsData,
+  })) {
+    if (localStorage.getItem(key) === null) {
+      localStorage.setItem(key, JSON.stringify(data));
+    }
+  }
   localStorage.setItem('sampleDataInitialized', 'true');
 
   console.log('Sample data initialized successfully!');

@@ -36,6 +36,11 @@ let state: {
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach(fn => fn());
 
+const enrichPermit = (permit: Permit): Permit => ({
+  ...permit,
+  requester: getUserById(permit.requestedBy),
+});
+
 export const usePermitStore = (): PermitState => {
   const [, setTick] = useState(0);
   
@@ -94,7 +99,7 @@ export const usePermitStore = (): PermitState => {
       return state.permits
         .filter(p => p.fileId === fileId)
         .map(p => {
-          const enriched = usePermitStore().getPermitById(p.id);
+          const enriched = enrichPermit(p);
           return enriched!;
         });
     },
@@ -103,7 +108,7 @@ export const usePermitStore = (): PermitState => {
       return state.permits
         .filter(p => !p.permitUrl)
         .map(p => {
-          const enriched = usePermitStore().getPermitById(p.id);
+          const enriched = enrichPermit(p);
           return enriched!;
         });
     },
@@ -112,7 +117,7 @@ export const usePermitStore = (): PermitState => {
       return state.permits
         .filter(p => p.invoiceUrl && !p.isPaid)
         .map(p => {
-          const enriched = usePermitStore().getPermitById(p.id);
+          const enriched = enrichPermit(p);
           return enriched!;
         });
     },

@@ -33,13 +33,14 @@ const loadState = () => {
     const savedState = localStorage.getItem('userManagementStore');
     if (savedState) {
       const parsed = JSON.parse(savedState);
-      return {
-        users: parsed.users.map((u: any) => ({
+      const users = parsed.users.map((u: any) => ({
           ...u,
           createdAt: new Date(u.createdAt),
           updatedAt: new Date(u.updatedAt),
-        })),
-      };
+        }));
+      const seededAccountsClerk = mockUsers.find((user) => user.role === 'accounts_clerk');
+      if (seededAccountsClerk && !users.some((user: User) => user.email === seededAccountsClerk.email)) users.push(seededAccountsClerk);
+      return { users };
     }
   } catch (error) {
     console.error('Error loading user management state:', error);

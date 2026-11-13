@@ -47,6 +47,13 @@ let state: {
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach(fn => fn());
 
+const enrichAssignment = (assignment: DriverAssignment): DriverAssignment => ({
+  ...assignment,
+  driver: getUserById(assignment.driverId),
+  requester: getUserById(assignment.requestedBy),
+  assignedByUser: assignment.assignedBy ? getUserById(assignment.assignedBy) : undefined,
+});
+
 export const useDriverStore = (): DriverState => {
   const [, setTick] = useState(0);
   
@@ -126,7 +133,7 @@ export const useDriverStore = (): DriverState => {
       return state.assignments
         .filter(a => a.fileId === fileId)
         .map(a => {
-          const enriched = useDriverStore().getAssignmentById(a.id);
+          const enriched = enrichAssignment(a);
           return enriched!;
         });
     },
@@ -135,7 +142,7 @@ export const useDriverStore = (): DriverState => {
       return state.assignments
         .filter(a => a.driverId === driverId)
         .map(a => {
-          const enriched = useDriverStore().getAssignmentById(a.id);
+          const enriched = enrichAssignment(a);
           return enriched!;
         });
     },
@@ -144,7 +151,7 @@ export const useDriverStore = (): DriverState => {
       return state.assignments
         .filter(a => a.status === 'PENDING')
         .map(a => {
-          const enriched = useDriverStore().getAssignmentById(a.id);
+          const enriched = enrichAssignment(a);
           return enriched!;
         });
     },

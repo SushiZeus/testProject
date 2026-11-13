@@ -1,3 +1,4 @@
+import { BrandLogo } from '@/components/BrandLogo';
 import { useState } from 'react';
 import { 
   Mail, Lock, UserCircle, Eye, EyeOff 
@@ -28,6 +29,7 @@ const roles: { value: UserRole; label: string }[] = [
   { value: 'transport_manager', label: 'Transport Manager' },
   { value: 'finance_manager', label: 'Finance Manager' },
   { value: 'cashier', label: 'Cashier' },
+  { value: 'accounts_clerk', label: 'Accounts Clerk' },
   { value: 'commercial_manager', label: 'Commercial Manager' },
   { value: 'coo', label: 'Chief Operations Officer' },
   { value: 'managing_director', label: 'Managing Director' },
@@ -90,14 +92,12 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         }`}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-slate-800 to-orange-300 p-8 text-center">
-          <div className="inline-flex items-center justify-center w-20 h-20 mb-4">
-            <img src="/dow-elef-logo.svg" alt="DOW ELEF Logo" className="w-full h-full" />
-          </div>
-          <h1 className="text-2xl font-bold text-white mb-1">
+        <div className="bg-gradient-to-br from-slate-50 via-orange-50 to-orange-100 p-8 text-center border-b border-orange-200/60">
+          <BrandLogo className="max-w-sm mx-auto mb-5 drop-shadow-sm" />
+          <h1 className="text-xl font-bold tracking-wide text-slate-800 mb-1">
             DOW ELEF INTERNATIONAL
           </h1>
-          <p className="text-orange-100 text-sm">
+          <p className="text-slate-600 text-sm">
             Freight Logistics Management System
           </p>
         </div>

@@ -7,10 +7,12 @@ interface NotificationState {
   notifications: Notification[];
   addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'isRead'>) => void;
   markAsRead: (id: string) => void;
+  markFileNotificationsAsRead: (fileId: string, userId: string) => void;
   markAllAsRead: (userId: string) => void;
   clearNotification: (id: string) => void;
   getNotificationsForUser: (userId: string) => Notification[];
   getUnreadCount: (userId: string) => number;
+  notifyFileComment: (file: ShipmentFile, commenterId: string) => void;
   notifyFileCreated: (file: ShipmentFile) => void;
   notifyFileStatusChange: (file: ShipmentFile, oldStatus: FileStatus, newStatus: FileStatus) => void;
 }
@@ -28,7 +30,12 @@ const showToastNotification = (notification: Omit<Notification, 'id' | 'createdA
       label: 'View',
       onClick: () => {
         if (notification.link) {
-          window.location.href = notification.link;
+            const pathname = new URL(notification.link, window.location.origin).pathname.replace(/^\/+|\/+$/g, '');
+            const fileId = pathname.match(/^files\/([^/]+)$/)?.[1];
+            const route = (fileId ? 'files/:id' : pathname) as import('@/App').AppRoute;
+            window.dispatchEvent(new CustomEvent('shipment-workflow:navigate', {
+              detail: { route, params: fileId ? { id: decodeURIComponent(fileId) } : undefined },
+            }));
         }
       },
     } : undefined,
@@ -106,21 +113,7 @@ const notify = () => {
   listeners.forEach(fn => fn());
 };
 
-export const useNotificationStore = (): NotificationState => {
-  const [, setTick] = useState(0);
-  
-  useEffect(() => {
-    const listener = () => setTick(t => t + 1);
-    listeners.add(listener);
-    return () => {
-      listeners.delete(listener);
-    };
-  }, []);
-
-  return {
-    get notifications() { return state.notifications; },
-
-    addNotification: (notification) => {
+const addNotification: NotificationState['addNotification'] = (notification) => {
       // Documentation officers do not receive file notifications
       const targetUser = mockUsers.find(u => u.id === notification.userId);
       if (targetUser?.role === 'documentation_officer') return;
@@ -137,16 +130,77 @@ export const useNotificationStore = (): NotificationState => {
         notifications: [newNotification, ...state.notifications],
       };
       notify();
-      
+
       // Show toast popup for the notification
       showToastNotification(notification);
-    },
+    };
+
+const notifyFileComment: NotificationState['notifyFileComment'] = (file, commenterId) => {
+  const recipients = new Set<string>([
+    file.assignedDeclarantId,
+    file.assignedOperationClerkId,
+    file.assignedPermitsClerkId,
+    file.assignedShippingLineClerkId,
+    file.assignedDeliveryClerkId,
+  ].filter((id): id is string => !!id));
+
+  ['declaration_manager', 'operations_manager', 'coo'].forEach((role) => {
+    getUsersByRole(role).forEach((manager) => recipients.add(manager.id));
+  });
+
+  recipients.forEach((userId) => {
+    if (userId === commenterId) return;
+    addNotification({
+      userId,
+      title: '💬 New comment on shipment file',
+      message: `A comment was added to file ${file.fileNumber}.`,
+      type: 'info',
+      fileId: file.id,
+      link: `/files/${file.id}`,
+    });
+  });
+};
+
+export const useNotificationStore = (): NotificationState => {
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const listener = () => setTick(t => t + 1);
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== 'notificationStore') return;
+      state = loadState();
+      listeners.forEach((notifyListener) => notifyListener());
+    };
+    listeners.add(listener);
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      listeners.delete(listener);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, []);
+
+  return {
+    get notifications() { return state.notifications; },
+
+    addNotification,
 
     markAsRead: (id) => {
       state = {
         ...state,
         notifications: state.notifications.map(n =>
           n.id === id ? { ...n, isRead: true } : n
+        ),
+      };
+      notify();
+    },
+
+    markFileNotificationsAsRead: (fileId, userId) => {
+      const hasUnread = state.notifications.some(n => n.fileId === fileId && n.userId === userId && !n.isRead);
+      if (!hasUnread) return;
+      state = {
+        ...state,
+        notifications: state.notifications.map(n =>
+          n.fileId === fileId && n.userId === userId ? { ...n, isRead: true } : n
         ),
       };
       notify();
@@ -179,6 +233,8 @@ export const useNotificationStore = (): NotificationState => {
     getUnreadCount: (userId) => {
       return state.notifications.filter(n => n.userId === userId && !n.isRead).length;
     },
+
+    notifyFileComment,
 
     notifyFileCreated: (file) => {
       const notifications: Notification[] = [];
@@ -285,6 +341,27 @@ export const useNotificationStore = (): NotificationState => {
 
       // Role-specific notifications based on status - only notify users involved at this stage
       switch (newStatus) {
+        case 'WAITING_FOR_PERMIT':
+          getUsersByRole('permits_clerk').forEach(clerk => {
+            addNotificationWithToast({
+              userId: clerk.id,
+              title: '📋 Permit Action Required',
+              message: `File ${file.fileNumber} requires permit review: ${(file.requiredPermits || []).map(permit => permit.name).join(', ') || 'required permits'}.`,
+              type: 'warning',
+              fileId: file.id,
+              link: '/operations',
+            });
+          });
+          break;
+
+        case 'WAITING_FOR_DELIVERY_ORDER':
+          notifyShippingLineClerks(
+            '🚢 Delivery Order Required',
+            `SEA file ${file.fileNumber} requires a Delivery Order from the shipping line.`,
+            'warning'
+          );
+          break;
+
         case 'ASSIGNED_TO_DECLARANT':
           // Notify the assigned declarant
           if (file.assignedDeclarantId) {
@@ -630,12 +707,12 @@ export const useNotificationStore = (): NotificationState => {
         case 'COMPLETED':
           // Notify only users who were directly involved
           const involvedUsers = new Set<string>();
-          
+
           if (file.createdBy) involvedUsers.add(file.createdBy);
           if (file.assignedDeclarantId) involvedUsers.add(file.assignedDeclarantId);
           if (file.assignedOperationClerkId) involvedUsers.add(file.assignedOperationClerkId);
           if (file.assignedDriverId) involvedUsers.add(file.assignedDriverId);
-          
+
           involvedUsers.forEach(userId => {
             addNotificationWithToast({
               userId,
@@ -646,7 +723,7 @@ export const useNotificationStore = (): NotificationState => {
               link: `/files/${file.id}`,
             });
           });
-          
+
           // Notify managers
           [...getUsersByRole('operations_manager'), ...getUsersByRole('declaration_manager')].forEach(manager => {
             addNotificationWithToast({
@@ -658,7 +735,7 @@ export const useNotificationStore = (): NotificationState => {
               link: `/files/${file.id}`,
             });
           });
-          
+
           // Notify shipping line clerks for SEA shipments
           notifyShippingLineClerks(
             '🎉 File Completed',
@@ -670,12 +747,12 @@ export const useNotificationStore = (): NotificationState => {
         case 'CANCELLED':
           // Notify only involved users
           const cancelledUsers = new Set<string>();
-          
+
           if (file.createdBy) cancelledUsers.add(file.createdBy);
           if (file.assignedDeclarantId) cancelledUsers.add(file.assignedDeclarantId);
           if (file.assignedOperationClerkId) cancelledUsers.add(file.assignedOperationClerkId);
           if (file.assignedDriverId) cancelledUsers.add(file.assignedDriverId);
-          
+
           cancelledUsers.forEach(userId => {
             addNotificationWithToast({
               userId,
@@ -701,6 +778,8 @@ export const useNotificationStore = (): NotificationState => {
 // Export a way to get the store state without hooks (for use in other stores)
 useNotificationStore.getState = () => {
   return {
+    addNotification,
+    notifyFileComment,
     notifyFileCreated: (file: ShipmentFile) => {
       const notifications: Notification[] = [];
 
@@ -748,7 +827,7 @@ useNotificationStore.getState = () => {
     notifyFileStatusChange: (_file: ShipmentFile, _oldStatus: FileStatus, _newStatus: FileStatus) => {
       // Use the same logic as the hook version
       const notifications: Notification[] = [];
-      
+
       // Add notifications based on status (simplified version for getState)
       state = {
         ...state,

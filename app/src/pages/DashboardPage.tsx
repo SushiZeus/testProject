@@ -518,6 +518,18 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
             onClick: () => navigate('petty-cash'),
           },
         ];
+      case 'accounts_clerk':
+        return [
+          ...commonStats,
+          {
+            title: 'Files to Invoice',
+            value: files.filter((file: ShipmentFile) => !file.clientInvoiceUrl).length,
+            icon: FileText,
+            color: 'blue' as const,
+            clickable: true,
+            onClick: () => navigate('accounts'),
+          },
+        ];
       case 'cashier':
         return [
           ...commonStats,
@@ -528,6 +540,14 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
             color: 'red' as const,
             clickable: true,
             onClick: () => navigate('petty-cash'),
+          },
+          {
+            title: 'Daily Cash Balance',
+            value: 'Open / Close',
+            icon: DollarSign,
+            color: 'blue' as const,
+            clickable: true,
+            onClick: () => navigate('accounts'),
           },
         ];
       case 'driver':
@@ -929,11 +949,25 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
   );
   const permitsDoneFiles = files.filter((file) => !!file.permitsDoneAt || file.status === 'PERMITS_DONE');
   const pendingShippingLineFiles = seaFiles.filter((file) =>
-    file.status === 'PROCESSING_DELIVERY_ORDER' ||
-    file.status === 'WAITING_FOR_DO_PAYMENT' ||
-    file.status === 'WAITING_FOR_DELIVERY_ORDER'
+    !file.deliveryOrderDocumentUrl
   );
-  const shippingLineReadyFiles = seaFiles.filter((file) => file.status === 'DELIVERY_ORDER_READY');
+  const shippingLineReadyFiles = seaFiles.filter((file) => !!file.deliveryOrderDocumentUrl);
+  const doPaymentPendingFiles = seaFiles.filter((file) => !!file.doPaymentRequestInvoiceUrl && file.doPaymentRequestStatus === 'PENDING');
+  const doAwaitingUploadFiles = seaFiles.filter((file) => file.doPaymentRequestStatus === 'PAID' && !file.deliveryOrderDocumentUrl);
+  const paymentFlowFor = (file: ShipmentFile) => [
+    ...(file.portChargesUrl ? [file.portChargesPayment] : []),
+    ...(file.swissportChargesUrl ? [file.swissportChargesPayment] : []),
+    ...(file.doChargesInvoiceUrl ? [file.deliveryOrderChargesPayment] : []),
+    ...(file.doPaymentRequestInvoiceUrl ? [file.deliveryOrderApplicationPayment] : []),
+  ];
+  const payerSelectionFiles = files.filter((file) => {
+    const hasChargeInvoice = !!(file.portChargesUrl || file.swissportChargesUrl || file.doChargesInvoiceUrl || file.doPaymentRequestInvoiceUrl);
+    return hasChargeInvoice && paymentFlowFor(file).some((flow) => !flow?.payer);
+  });
+  const officeChargeFilesAt = (status: string) => files.filter((file) => paymentFlowFor(file).some((flow) => flow?.payer === 'OFFICE' && flow.status === status));
+  const officeChargeOpsPending = officeChargeFilesAt('OFFICE_PENDING_OPERATIONS');
+  const officeChargeCooPending = officeChargeFilesAt('OFFICE_PENDING_COO');
+  const officeChargeFinancePending = officeChargeFilesAt('OFFICE_PENDING_FINANCE');
   const clerkWorkflowOverview = [
     {
       title: 'Permits Pending', value: permitPendingFiles.length, icon: Clock, color: 'amber' as const,
@@ -954,6 +988,30 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
     {
       title: 'Delivery Orders Pending', value: pendingShippingLineFiles.length, icon: FileText, color: 'amber' as const,
       onClick: () => showFilteredFiles('Delivery Orders Pending', pendingShippingLineFiles),
+    },
+    {
+      title: 'Charge Payer Selection', value: payerSelectionFiles.length, icon: DollarSign, color: 'amber' as const,
+      onClick: () => showFilteredFiles('Charge Payer Selection', payerSelectionFiles),
+    },
+    {
+      title: 'Office Charges: Operations Review', value: officeChargeOpsPending.length, icon: Clock, color: 'purple' as const,
+      onClick: () => showFilteredFiles('Office Charges: Operations Review', officeChargeOpsPending),
+    },
+    {
+      title: 'Office Charges: COO Review', value: officeChargeCooPending.length, icon: Clock, color: 'purple' as const,
+      onClick: () => showFilteredFiles('Office Charges: COO Review', officeChargeCooPending),
+    },
+    {
+      title: 'Office Charges: Finance', value: officeChargeFinancePending.length, icon: DollarSign, color: 'blue' as const,
+      onClick: () => showFilteredFiles('Office Charges: Finance', officeChargeFinancePending),
+    },
+    {
+      title: 'DO Payment Pending', value: doPaymentPendingFiles.length, icon: Clock, color: 'purple' as const,
+      onClick: () => showFilteredFiles('DO Payment Pending', doPaymentPendingFiles),
+    },
+    {
+      title: 'Paid, Awaiting DO Upload', value: doAwaitingUploadFiles.length, icon: FileText, color: 'blue' as const,
+      onClick: () => showFilteredFiles('Paid, Awaiting DO Upload', doAwaitingUploadFiles),
     },
     {
       title: 'Ready for Collection', value: shippingLineReadyFiles.length, icon: CheckCircle, color: 'green' as const,

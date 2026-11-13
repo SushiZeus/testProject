@@ -78,6 +78,7 @@ export function UserManagementPage() {
     { value: 'driver', label: 'Driver', department: 'Transport' },
     { value: 'finance_manager', label: 'Finance Manager', department: 'Finance' },
     { value: 'cashier', label: 'Cashier', department: 'Finance' },
+    { value: 'accounts_clerk', label: 'Accounts Clerk', department: 'Finance' },
     { value: 'hr_manager', label: 'HR Manager', department: 'HR' },
     { value: 'commercial_manager', label: 'Commercial Manager', department: 'Management' },
     { value: 'coo', label: 'COO', department: 'Management' },

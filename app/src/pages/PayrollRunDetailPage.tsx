@@ -29,6 +29,10 @@ export function PayrollRunDetailPage({ navigate, runId }: PayrollRunDetailPagePr
     allowances: 0,
   });
 
+  if (!currentUser || !['hr_manager', 'finance_manager', 'managing_director', 'coo', 'administrator'].includes(currentUser.role)) {
+    return <div className="p-8 text-center">You do not have access to Payroll.</div>;
+  }
+
   if (!payroll) {
     return (
       <div className="p-6">

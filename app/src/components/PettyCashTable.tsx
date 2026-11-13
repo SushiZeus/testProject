@@ -163,7 +163,7 @@ export function PettyCashTable({
                         onClick={() => onWaiting(request)}
                       >
                         <Clock className="w-4 h-4 mr-1" />
-                        Waiting
+                        On queue
                       </Button>
                       <Button 
                         size="sm" 
@@ -171,7 +171,7 @@ export function PettyCashTable({
                         onClick={() => onApproved(request)}
                       >
                         <CheckCircle className="w-4 h-4 mr-1" />
-                        Approved
+                        Pay
                       </Button>
                     </>
                   )}

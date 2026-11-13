@@ -173,6 +173,17 @@ export const mockUsers: User[] = [
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
   },
+  {
+    id: '28',
+    email: 'accounts.clerk@company.com',
+    name: 'Accounts Clerk',
+    role: 'accounts_clerk',
+    department: 'Finance',
+    phone: '',
+    isActive: true,
+    createdAt: new Date('2026-11-06'),
+    updatedAt: new Date('2026-11-06'),
+  },
   
   // HR Department - Limited to HR + Full Access Roles
   {
@@ -337,6 +348,7 @@ export const userCredentials: Record<string, { email: string; password: string; 
   // Finance Department - Limited to Finance + Full Access Roles
   finance_manager: { email: 'finance_manager@company.com', password: 'finance_manager123', role: 'finance_manager', name: 'Christopher Lee' },
   cashier: { email: 'cashier@company.com', password: 'cashier123', role: 'cashier', name: 'Amanda Hall' },
+  accounts_clerk: { email: 'accounts.clerk@company.com', password: 'accounts_clerk123', role: 'accounts_clerk', name: 'Accounts Clerk' },
   
   // HR Department - Limited to HR + Full Access Roles  
   hr_manager: { email: 'hr_manager@company.com', password: 'hr_manager123', role: 'hr_manager', name: 'Daniel Clark' },

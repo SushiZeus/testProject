@@ -43,6 +43,7 @@ import type { AppRoute } from '@/App';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { resetPettyCashData } from '@/utils/resetPettyCash';
+import { LoansPage } from '@/pages/LoansPage';
 
 interface PettyCashPageProps {
   navigate: (route: AppRoute, params?: Record<string, string>) => void;
@@ -251,7 +252,7 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
   // Finance Manager: COO approved requests (for WAITING/APPROVED decision)
   const cooApprovedRequests = user?.role === 'finance_manager' 
     ? visibleRequests.filter((r: PettyCashRequest) => 
-        r.status === 'APPROVED_BY_COO' || r.status === 'COO_DIRECT_TO_FINANCE'
+        r.status === 'APPROVED_BY_COO' || r.status === 'COO_DIRECT_TO_FINANCE' || r.status === 'ON_QUEUE'
       )
     : [];
 
@@ -262,7 +263,9 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
 
   const filteredRequests = visibleRequests.filter((request: PettyCashRequest) => {
     // Tab filtering
-    if (activeTab === 'all') {
+    if (activeTab === 'queue') {
+      if (request.status !== 'ON_QUEUE') return false;
+    } else if (activeTab === 'all') {
       // Continue to apply other filters
     } else if (activeTab === 'pending') {
       // For managers on "pending" tab, show only requests pending THEIR approval
@@ -283,7 +286,8 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
     } else if (activeTab === 'approved') {
       const isApproved = request.status === 'APPROVED_BY_COO' || 
         request.status === 'PENDING_FINANCE' ||
-        request.status === 'PENDING_PAYMENT';
+        request.status === 'PENDING_PAYMENT' ||
+        request.status === 'ON_QUEUE';
       if (!isApproved) return false;
     } else if (activeTab === 'paid') {
       if (request.status !== 'PAID') return false;
@@ -573,17 +577,17 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
   const handleFinanceWaiting = (request: PettyCashRequest) => {
     if (!user || user.role !== 'finance_manager') return;
     
-    updateStatus(request.id, 'PENDING_FINANCE', {
+    updateStatus(request.id, 'ON_QUEUE', {
       financeManagerId: user.id,
       financeComment: 'Waiting for funds availability',
     });
     
-    toast.info('Request marked as waiting for funds');
+    toast.info('Request added to the payment queue');
     
     addNotification({
       userId: request.requestedBy,
-      title: '⏳ Waiting for Funds',
-      message: `Your request ${request.requestNumber} is waiting for funds`,
+      title: '⏳ Payment Added to Queue',
+      message: `Your request ${request.requestNumber} is on the Finance Manager payment queue`,
       type: 'info',
     });
   };
@@ -731,6 +735,7 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
     REJECTED_BY_DECLARATION_MANAGER: 'bg-red-100 text-red-700',
     REJECTED_BY_COO: 'bg-red-100 text-red-700',
     PENDING_FINANCE: 'bg-purple-100 text-purple-700',
+    ON_QUEUE: 'bg-violet-100 text-violet-700',
     PENDING_PAYMENT: 'bg-amber-100 text-amber-700',
     PAID: 'bg-green-100 text-green-700',
     REJECTED_BACK_TO_CLERK: 'bg-red-100 text-red-700',
@@ -783,6 +788,12 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
           )}
         </div>
       </div>
+
+      <details className="rounded-lg border bg-white p-4 shadow-sm">
+        <summary className="cursor-pointer select-none font-semibold text-gray-900">Employee Loans</summary>
+        <p className="mt-1 text-sm text-gray-500">Apply for an employee loan and review its approval or repayment status.</p>
+        <div className="mt-4 -mx-4 -mb-4"><LoansPage navigate={navigate} embedded /></div>
+      </details>
 
       {/* Debug Panel for Administrators */}
       {user?.role === 'administrator' && (
@@ -955,6 +966,7 @@ export function PettyCashPage({ navigate, fileId }: PettyCashPageProps) {
             <TabsTrigger value="all">All Requests</TabsTrigger>
             <TabsTrigger value="pending">Pending</TabsTrigger>
             <TabsTrigger value="approved">Approved</TabsTrigger>
+            {user && ['coo', 'managing_director', 'commercial_manager'].includes(user.role) && <TabsTrigger value="queue">Payment Queue</TabsTrigger>}
             <TabsTrigger value="paid">Paid</TabsTrigger>
             <TabsTrigger value="rejected">Rejected</TabsTrigger>
             <TabsTrigger value="myrequests">My Requests</TabsTrigger>

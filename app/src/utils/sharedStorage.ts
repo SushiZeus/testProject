@@ -14,7 +14,13 @@ export const getSharedData = (): SharedStorageData | null => {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
     if (!data) return null;
-    return JSON.parse(data);
+    const parsed: unknown = JSON.parse(data);
+    if (!parsed || typeof parsed !== 'object') return null;
+    const candidate = parsed as Partial<SharedStorageData>;
+    if (!Array.isArray(candidate.requests) ||
+        typeof candidate.lastUpdate !== 'number' ||
+        !Number.isFinite(candidate.lastUpdate) || candidate.lastUpdate < 0) return null;
+    return candidate as SharedStorageData;
   } catch (error) {
     console.error('Error reading shared storage:', error);
     return null;
@@ -29,7 +35,7 @@ export const setSharedData = (data: any[]) => {
       lastUpdate: Date.now(),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(sharedData));
-    localStorage.setItem(LAST_UPDATE_KEY, String(Date.now()));
+    localStorage.setItem(LAST_UPDATE_KEY, String(sharedData.lastUpdate));
   } catch (error) {
     console.error('Error writing shared storage:', error);
   }
@@ -39,8 +45,9 @@ export const setSharedData = (data: any[]) => {
 export const getLastUpdate = (): number => {
   try {
     const timestamp = localStorage.getItem(LAST_UPDATE_KEY);
-    return timestamp ? parseInt(timestamp, 10) : 0;
-  } catch (error) {
+    const value = timestamp ? Number(timestamp) : 0;
+    return Number.isFinite(value) && value >= 0 ? value : 0;
+  } catch {
     return 0;
   }
 };
@@ -54,7 +61,8 @@ export const hasExternalUpdate = (localTimestamp: number): boolean => {
 // Listen for storage changes from other tabs/windows
 export const onStorageChange = (callback: () => void) => {
   const handler = (e: StorageEvent) => {
-    if (e.key === STORAGE_KEY || e.key === LAST_UPDATE_KEY) {
+    if (e.storageArea === window.localStorage &&
+        (e.key === null || e.key === STORAGE_KEY || e.key === LAST_UPDATE_KEY)) {
       callback();
     }
   };

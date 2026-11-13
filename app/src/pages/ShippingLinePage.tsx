@@ -26,12 +26,14 @@ import { useAuthStore } from '@/store/authStore';
 import { useFileStore } from '@/store/fileStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { usePettyCashStore } from '@/store/pettyCashStore';
+import { useDocumentStore } from '@/store/documentStore';
 import type { ShipmentFile } from '@/types';
 import type { AppRoute } from '@/App';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { statusColors } from '@/utils/statusColors';
 import { getShipmentDisplayStatus } from '@/utils/shipmentStatus';
+import { ShipmentChargePaymentPanel } from '@/components/ShipmentChargePaymentPanel';
 
 interface ShippingLinePageProps {
   navigate: (route: AppRoute, params?: Record<string, string>) => void;
@@ -42,6 +44,7 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
   const { files, updateFileStatus } = useFileStore();
   const { addNotification } = useNotificationStore();
   const { createRequest } = usePettyCashStore();
+  const { uploadDocument } = useDocumentStore();
 
   const [activeTab, setActiveTab] = useState('all');
   const [selectedFile, setSelectedFile] = useState<ShipmentFile | null>(null);
@@ -61,7 +64,6 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
   const [doPaymentForm, setDoPaymentForm] = useState({
     amount: '',
     currency: 'TZS',
-    description: '',
     invoiceFile: null as File | null,
   });
 
@@ -79,9 +81,6 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
     documentFile: null as File | null,
   });
   const [shippingDetailsForm, setShippingDetailsForm] = useState({
-    hblNumber: '',
-    mblNumber: '',
-    doNumber: '',
     containerNumbers: '',
   });
 
@@ -95,8 +94,8 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
     if (activeTab === 'all') return true;
     if (activeTab === 'import') return file.shipmentType === 'IMPORT';
     if (activeTab === 'export') return file.shipmentType === 'EXPORT';
-    if (activeTab === 'waiting_do') return (file.status === 'PERMITS_DONE' || file.status === 'WAITING_FOR_DELIVERY_ORDER') && !file.deliveryOrderDocumentUrl;
-    if (activeTab === 'processing_do') return file.status === 'WAITING_FOR_DO_PAYMENT' || file.status === 'DELIVERY_ORDER_PAYMENTS_DONE';
+    if (activeTab === 'waiting_do') return !file.deliveryOrderDocumentUrl;
+    if (activeTab === 'processing_do') return !!file.doPaymentRequestInvoiceUrl && file.doPaymentRequestStatus !== 'PAID';
     return true;
   });
 
@@ -104,8 +103,8 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
     totalSea: seaShipments.length,
     imports: seaShipments.filter(f => f.shipmentType === 'IMPORT').length,
     exports: seaShipments.filter(f => f.shipmentType === 'EXPORT').length,
-    waitingDO: seaShipments.filter(f => (f.status === 'PERMITS_DONE' || f.status === 'WAITING_FOR_DELIVERY_ORDER') && !f.deliveryOrderDocumentUrl).length,
-    processingDO: seaShipments.filter(f => f.status === 'WAITING_FOR_DO_PAYMENT' || f.status === 'DELIVERY_ORDER_PAYMENTS_DONE').length,
+    waitingDO: seaShipments.filter(f => !f.deliveryOrderDocumentUrl).length,
+    processingDO: seaShipments.filter(f => !!f.doPaymentRequestInvoiceUrl && f.doPaymentRequestStatus !== 'PAID').length,
   };
 
   const handleEtaEtbSubmit = () => {
@@ -138,7 +137,7 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
     setSelectedFile(null);
   };
 
-  const handleDeliveryOrderSubmit = () => {
+  const handleDeliveryOrderSubmit = async () => {
     if (!selectedFile || !user) return;
 
     if (!deliveryOrderForm.documentFile) {
@@ -146,12 +145,13 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
       return;
     }
 
+    const uploadedDocument = await uploadDocument({ file: deliveryOrderForm.documentFile, category: 'shipment', subCategory: 'delivery_order', relatedFileId: selectedFile.id, description: `Delivery Order for ${selectedFile.fileNumber}`, visibility: 'public' }, user.id);
     updateFileStatus(
       selectedFile.id,
-      'DELIVERY_ORDER_SUBMITTED',
+      selectedFile.status,
       user.id,
       {
-        deliveryOrderDocumentUrl: URL.createObjectURL(deliveryOrderForm.documentFile),
+        deliveryOrderDocumentUrl: uploadedDocument.fileUrl,
         deliveryOrderSubmittedAt: new Date(),
       }
     );
@@ -186,10 +186,12 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
 
   const handleShippingDetailsSubmit = () => {
     if (!selectedFile || !user) return;
-
-    if (!shippingDetailsForm.hblNumber && !shippingDetailsForm.mblNumber && 
-        !shippingDetailsForm.doNumber && !shippingDetailsForm.containerNumbers) {
-      toast.error('Please fill at least one shipping detail field');
+    if (selectedFile.seaFreightType !== 'FCL') {
+      toast.error('Container numbers can only be entered for FCL shipments');
+      return;
+    }
+    if (!shippingDetailsForm.containerNumbers.trim()) {
+      toast.error('Please enter the FCL container number(s)');
       return;
     }
 
@@ -198,16 +200,13 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
       selectedFile.status,
       user.id,
       {
-        hblNumber: shippingDetailsForm.hblNumber || selectedFile.hblNumber,
-        mblNumber: shippingDetailsForm.mblNumber || selectedFile.mblNumber,
-        doNumber: shippingDetailsForm.doNumber || selectedFile.doNumber,
-        containerNumbers: shippingDetailsForm.containerNumbers || selectedFile.containerNumbers,
+        containerNumbers: shippingDetailsForm.containerNumbers.trim(),
       }
     );
 
     toast.success('Shipping details saved successfully');
     setShippingDetailsDialogOpen(false);
-    setShippingDetailsForm({ hblNumber: '', mblNumber: '', doNumber: '', containerNumbers: '' });
+    setShippingDetailsForm({ containerNumbers: '' });
     setSelectedFile(null);
   };
 
@@ -249,7 +248,7 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
   };
 
   // NEW: Handle DO Payment Request
-  const handleDoPaymentRequest = () => {
+  const handleDoPaymentRequest = async () => {
     if (!selectedFileForDoPayment || !user) return;
 
     const amount = parseFloat(doPaymentForm.amount);
@@ -258,16 +257,12 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
       return;
     }
 
-    if (!doPaymentForm.description.trim()) {
-      toast.error('Please provide a description');
-      return;
-    }
-
     if (!doPaymentForm.invoiceFile) {
       toast.error('Please upload an invoice for the DO payment request');
       return;
     }
 
+    const invoiceDocument = await uploadDocument({ file: doPaymentForm.invoiceFile, category: 'shipment', subCategory: 'delivery_order_invoice', relatedFileId: selectedFileForDoPayment.id, description: `Delivery Order payment invoice for ${selectedFileForDoPayment.fileNumber}`, visibility: 'public' }, user.id);
     // Create DO payment request on the file
     updateFileStatus(
       selectedFileForDoPayment.id,
@@ -276,43 +271,37 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
       {
         doPaymentRequestAmount: amount,
         doPaymentRequestCurrency: doPaymentForm.currency,
-        doPaymentRequestDescription: doPaymentForm.description,
-        doPaymentRequestInvoiceUrl: URL.createObjectURL(doPaymentForm.invoiceFile),
+        doPaymentRequestInvoiceUrl: invoiceDocument.fileUrl,
         doPaymentRequestStatus: 'PENDING',
         doPaymentRequestRequestedAt: new Date(),
         doPaymentRequestPaidAt: undefined,
       }
     );
 
-    // Notify Operations Manager (ID: 5)
+    // Ask the file contact to choose the payer for the invoice.
     addNotification({
-      userId: '5',
-      title: 'DO Payment Request',
-      message: `Delivery Order payment request for ${doPaymentForm.currency} ${amount.toLocaleString()} on file ${selectedFileForDoPayment.fileNumber}`,
+      userId: selectedFileForDoPayment.contactPersonId || '5',
+      title: 'Delivery Order Payment Needs a Payer',
+      message: `Delivery Order invoice for ${doPaymentForm.currency} ${amount.toLocaleString()} is ready on file ${selectedFileForDoPayment.fileNumber}. Select client or office payment in file details.`,
       type: 'info',
       fileId: selectedFileForDoPayment.id,
-      link: '/shipping-line',
+      link: `/files/${selectedFileForDoPayment.id}`,
     });
 
-    // Also notify Finance Manager (ID: 11)
-    addNotification({
-      userId: '11',
-      title: 'DO Payment Request - Review Required',
-      message: `Delivery Order payment request for ${doPaymentForm.currency} ${amount.toLocaleString()} on file ${selectedFileForDoPayment.fileNumber}. Click to review and mark as paid.`,
-      type: 'info',
-      fileId: selectedFileForDoPayment.id,
-      link: '/shipping-line',
-    });
-
-    toast.success('DO payment request submitted - Waiting for Finance confirmation');
+    toast.success('Delivery Order invoice uploaded - Waiting for payer selection');
     setDoPaymentRequestDialogOpen(false);
-    setDoPaymentForm({ amount: '', currency: 'TZS', description: '', invoiceFile: null });
+    setDoPaymentForm({ amount: '', currency: 'TZS', invoiceFile: null });
     setSelectedFileForDoPayment(null);
   };
 
   // NEW: Handle DO Charges Upload
-  const handleDoChargesUpload = () => {
+  const handleDoChargesUpload = async () => {
     if (!selectedFile || !user) return;
+    if (selectedFile.deliveryOrderSubmittedAt || selectedFile.status === 'DELIVERY_ORDER_SUBMITTED') {
+      toast.error('DO Charges can no longer be uploaded after the Delivery Order is submitted');
+      setDoChargesDialogOpen(false);
+      return;
+    }
 
     const amount = parseFloat(doChargesForm.amount);
     if (isNaN(amount) || amount <= 0) {
@@ -325,36 +314,29 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
       return;
     }
 
+    const invoice = await uploadDocument({ file: doChargesForm.invoiceFile, category: 'shipment', subCategory: 'delivery_order_charges_invoice', relatedFileId: selectedFile.id, description: `Delivery Order Charges invoice for ${selectedFile.fileNumber}`, visibility: 'public' }, user.id);
     updateFileStatus(
       selectedFile.id,
       selectedFile.status,
       user.id,
       {
-        doChargesInvoiceUrl: URL.createObjectURL(doChargesForm.invoiceFile),
+        doChargesInvoiceUrl: invoice.fileUrl,
         doChargesAmount: amount,
         doChargesCurrency: doChargesForm.currency,
         doChargesPaid: false,
+        deliveryOrderChargesPayment: undefined,
+        doChargesPaidAt: undefined,
       }
     );
 
-    // Notify Finance Manager (ID: 11)
+    // Ask the selected file contact to choose the payer.
     addNotification({
-      userId: '11',
-      title: 'DO Charges Invoice Uploaded',
-      message: `DO charges invoice for ${doChargesForm.currency} ${amount.toLocaleString()} uploaded on file ${selectedFile.fileNumber}. Please confirm payment.`,
+      userId: selectedFile.contactPersonId || '5',
+      title: 'Delivery Order Charges Need a Payer',
+      message: `Delivery Order charges invoice for ${doChargesForm.currency} ${amount.toLocaleString()} is ready on file ${selectedFile.fileNumber}. Select client or office payment in file details.`,
       type: 'info',
       fileId: selectedFile.id,
-      link: '/shipping-line',
-    });
-
-    // Also notify Cashier (ID: 12)
-    addNotification({
-      userId: '12',
-      title: 'DO Charges Invoice Uploaded',
-      message: `DO charges invoice for ${doChargesForm.currency} ${amount.toLocaleString()} uploaded on file ${selectedFile.fileNumber}. Please confirm payment.`,
-      type: 'info',
-      fileId: selectedFile.id,
-      link: '/shipping-line',
+      link: `/files/${selectedFile.id}`,
     });
 
     toast.success('DO charges invoice uploaded - Waiting for payment confirmation');
@@ -364,33 +346,6 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
   };
 
   // NEW: Handle DO Charges Payment Confirmation
-  const handleDoChargesPaid = (file: ShipmentFile) => {
-    if (!user) return;
-
-    updateFileStatus(
-      file.id,
-      file.status,
-      user.id,
-      {
-        doChargesPaid: true,
-        doChargesPaidAt: new Date(),
-        doChargesPaidBy: user.id,
-      }
-    );
-
-    // Notify Shipping Line Clerk
-    addNotification({
-      userId: file.assignedShippingLineClerkId || '0',
-      title: 'DO Charges Payment Confirmed',
-      message: `DO charges for file ${file.fileNumber} have been paid`,
-      type: 'success',
-      fileId: file.id,
-      link: '/shipping-line',
-    });
-
-    toast.success('DO charges payment confirmed ✓');
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -587,23 +542,20 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
                               </Button>
 
                               {/* Shipping Details Button */}
-                              <Button 
+                              {file.seaFreightType === 'FCL' && <Button
                                 size="sm" 
                                 variant="outline"
                                 onClick={() => { 
                                   setSelectedFile(file); 
                                   setShippingDetailsForm({
-                                    hblNumber: file.hblNumber || '',
-                                    mblNumber: file.mblNumber || '',
-                                    doNumber: file.doNumber || '',
                                     containerNumbers: file.containerNumbers || '',
                                   });
                                   setShippingDetailsDialogOpen(true); 
                                 }}
                               >
                                 <FileText className="w-3 h-3 mr-1" />
-                                {file.hblNumber || file.mblNumber ? 'Edit Details' : 'Add Details'}
-                              </Button>
+                                {file.containerNumbers ? 'Edit Container Numbers' : 'Add Container Numbers'}
+                              </Button>}
 
                               {/* ETA/ETB Button */}
                               <Button 
@@ -617,7 +569,7 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
                               </Button>
 
                               {/* REQUEST DO PAYMENT Button - NEW */}
-                              {file.status === 'PERMITS_DONE' && !file.doPaymentRequestStatus && (
+                              {!file.deliveryOrderDocumentUrl && !file.doPaymentRequestStatus && (
                                 <Button 
                                   size="sm" 
                                   onClick={() => { 
@@ -638,121 +590,7 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
                                 </Badge>
                               )}
 
-                              {/* DO PAID Button - Finance Manager Only */}
-                              {(user?.role === 'finance_manager' || user?.role === 'cashier') &&
-                               file.doPaymentRequestStatus === 'PENDING' && (
-                                <Button 
-                                  size="sm" 
-                                  onClick={() => { 
-                                    setSelectedFile(file);
-                                    if (!file || !user) return;
-
-                                    updateFileStatus(
-                                      file.id,
-                                      file.status,
-                                      user.id,
-                                      {
-                                        doPaymentRequestStatus: 'PAID',
-                                        doPaymentRequestPaidAt: new Date(),
-                                        deliveryOrderPaymentsDoneAt: new Date(),
-                                      }
-                                    );
-
-                                    addNotification({
-                                      userId: file.assignedShippingLineClerkId || '0',
-                                      title: 'DO Payment Confirmed',
-                                      message: `Delivery Order payment for ${file.doPaymentRequestCurrency} ${file.doPaymentRequestAmount?.toLocaleString()} on file ${file.fileNumber} confirmed. You can now submit the DO document.`,
-                                      type: 'success',
-                                      fileId: file.id,
-                                      link: '/shipping-line',
-                                    });
-
-                                    toast.success('DO payment confirmed - Shipping clerk can now submit DO');
-                                    setSelectedFile(null);
-                                  }}
-                                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                                  title="Confirm DO payment"
-                                >
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  MARK DO PAID
-                                </Button>
-                              )}
-
-                              {/* SUBMIT DO Button - After payment confirmed */}
-                              {file.doPaymentRequestStatus === 'PAID' && 
-                               file.deliveryOrderPaymentsDoneAt && 
-                               !file.deliveryOrderSubmittedAt && (
-                                <Button 
-                                  size="sm" 
-                                  onClick={() => { setSelectedFile(file); setDeliveryOrderDialogOpen(true); }}
-                                  className="bg-green-600 hover:bg-green-700 text-white"
-                                >
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  SUBMIT DO
-                                </Button>
-                              )}
-
-                              {/* REQUEST DO PAYMENT Button - NEW */}
-                              {file.status === 'PERMITS_DONE' && !file.doPaymentRequestStatus && (
-                                <Button 
-                                  size="sm" 
-                                  onClick={() => { 
-                                    setSelectedFileForDoPayment(file);
-                                    setDoPaymentRequestDialogOpen(true);
-                                  }}
-                                  className="bg-purple-600 hover:bg-purple-700 text-white"
-                                >
-                                  <Upload className="w-3 h-3 mr-1" />
-                                  REQUEST DO PAYMENT
-                                </Button>
-                              )}
-
-                              {/* DO Payment Status Badge */}
-                              {file.doPaymentRequestStatus === 'PENDING' && (
-                                <Badge variant="secondary" className="bg-amber-100 text-amber-700 text-xs">
-                                  DO Payment Pending
-                                </Badge>
-                              )}
-
-                              {/* DO PAID Button - Finance Manager Only */}
-                              {(user?.role === 'finance_manager' || user?.role === 'cashier') &&
-                               file.doPaymentRequestStatus === 'PENDING' && (
-                                <Button 
-                                  size="sm" 
-                                  onClick={() => { 
-                                    setSelectedFile(file);
-                                    if (!file || !user) return;
-
-                                    updateFileStatus(
-                                      file.id,
-                                      file.status,
-                                      user.id,
-                                      {
-                                        doPaymentRequestStatus: 'PAID',
-                                        doPaymentRequestPaidAt: new Date(),
-                                        deliveryOrderPaymentsDoneAt: new Date(),
-                                      }
-                                    );
-
-                                    addNotification({
-                                      userId: file.assignedShippingLineClerkId || '0',
-                                      title: 'DO Payment Confirmed',
-                                      message: `Delivery Order payment for ${file.doPaymentRequestCurrency} ${file.doPaymentRequestAmount?.toLocaleString()} on file ${file.fileNumber} confirmed. You can now submit the DO document.`,
-                                      type: 'success',
-                                      fileId: file.id,
-                                      link: '/shipping-line',
-                                    });
-
-                                    toast.success('DO payment confirmed - Shipping clerk can now submit DO');
-                                    setSelectedFile(null);
-                                  }}
-                                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                                  title="Confirm DO payment"
-                                >
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  MARK DO PAID
-                                </Button>
-                              )}
+                              {file.doPaymentRequestInvoiceUrl && <ShipmentChargePaymentPanel file={file} chargeType="DELIVERY_ORDER_APPLICATION" invoiceUrl={file.doPaymentRequestInvoiceUrl} amount={file.doPaymentRequestAmount} currency={file.doPaymentRequestCurrency} />}
 
                               {/* SUBMIT DO Button - After payment confirmed */}
                               {file.doPaymentRequestStatus === 'PAID' && 
@@ -775,8 +613,8 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
                                 </Badge>
                               )}
 
-                              {/* Upload DO Charges Button - After DO submitted */}
-                              {file.deliveryOrderSubmittedAt && !file.doChargesInvoiceUrl && (
+                              {/* Upload DO Charges before the Delivery Order is submitted */}
+                              {!file.deliveryOrderSubmittedAt && file.doPaymentRequestStatus === 'PAID' && !file.doChargesInvoiceUrl && (
                                 <Button 
                                   size="sm"
                                   variant="outline"
@@ -795,19 +633,7 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
                                 </Badge>
                               )}
 
-                              {/* DO CHARGES PAID Button - Finance Manager/Cashier Only */}
-                              {(user?.role === 'finance_manager' || user?.role === 'cashier') &&
-                               file.doChargesInvoiceUrl && !file.doChargesPaid && (
-                                <Button 
-                                  size="sm"
-                                  onClick={() => handleDoChargesPaid(file)}
-                                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                                  title="Confirm DO charges payment"
-                                >
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  DO CHARGES PAID
-                                </Button>
-                              )}
+                              {file.doChargesInvoiceUrl && <ShipmentChargePaymentPanel file={file} chargeType="DELIVERY_ORDER" invoiceUrl={file.doChargesInvoiceUrl} amount={file.doChargesAmount} currency={file.doChargesCurrency} />}
 
                               {/* DO Charges Paid Badge */}
                               {file.doChargesPaid && (
@@ -857,7 +683,7 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
               <Ship className="w-6 h-6 text-blue-600 flex-shrink-0" />
               <div>
                 <p className="text-sm text-blue-700">
-                  Enter HBL/MBL, D.O numbers and container details. These details are automatically retrieved from documentation officer's input.
+                  Bill of lading number and type are supplied by the Documentation Officer. Enter container numbers here for FCL shipments.
                 </p>
               </div>
             </div>
@@ -920,36 +746,9 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
-                <Label>HBL Number (House Bill of Lading)</Label>
-                <Input
-                  placeholder="Enter HBL number"
-                  value={shippingDetailsForm.hblNumber}
-                  onChange={(e) => setShippingDetailsForm({ ...shippingDetailsForm, hblNumber: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>MBL Number (Master Bill of Lading)</Label>
-                <Input
-                  placeholder="Enter MBL number"
-                  value={shippingDetailsForm.mblNumber}
-                  onChange={(e) => setShippingDetailsForm({ ...shippingDetailsForm, mblNumber: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>D.O Number (Delivery Order)</Label>
-                <Input
-                  placeholder="Enter D.O number"
-                  value={shippingDetailsForm.doNumber}
-                  onChange={(e) => setShippingDetailsForm({ ...shippingDetailsForm, doNumber: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Container Numbers</Label>
+                <Label>FCL Container Numbers *</Label>
                 <Input
                   placeholder="e.g., CONT123, CONT456"
                   value={shippingDetailsForm.containerNumbers}
@@ -962,7 +761,7 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
           <DialogFooter>
             <Button variant="outline" onClick={() => {
               setShippingDetailsDialogOpen(false);
-              setShippingDetailsForm({ hblNumber: '', mblNumber: '', doNumber: '', containerNumbers: '' });
+              setShippingDetailsForm({ containerNumbers: '' });
             }}>
               Cancel
             </Button>
@@ -1233,7 +1032,7 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
               <DollarSign className="w-6 h-6 text-purple-600 flex-shrink-0" />
               <div>
                 <p className="text-sm text-purple-700">
-                  Request funds for Delivery Order from shipping line. Once approved and paid by Finance, you can submit the DO document.
+                  Upload the Delivery Order invoice and amount. The file contact person selects client or office payment; office requests go through Operations Manager and COO before Finance pays.
                 </p>
               </div>
             </div>
@@ -1292,16 +1091,6 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Description *</Label>
-              <Textarea
-                placeholder="Enter description for the DO payment request..."
-                value={doPaymentForm.description}
-                onChange={(e) => setDoPaymentForm({ ...doPaymentForm, description: e.target.value })}
-                rows={4}
-              />
-            </div>
-
             <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
               <p className="text-sm text-amber-700">
                 This request will be sent to Operations Manager and Finance Manager for approval and payment processing.
@@ -1312,14 +1101,14 @@ export function ShippingLinePage({ navigate }: ShippingLinePageProps) {
           <DialogFooter>
             <Button variant="outline" onClick={() => {
               setDoPaymentRequestDialogOpen(false);
-              setDoPaymentForm({ amount: '', currency: 'TZS', description: '', invoiceFile: null });
+              setDoPaymentForm({ amount: '', currency: 'TZS', invoiceFile: null });
               setSelectedFileForDoPayment(null);
             }}>
               Cancel
             </Button>
             <Button 
               onClick={handleDoPaymentRequest}
-              disabled={!doPaymentForm.amount || !doPaymentForm.description || !doPaymentForm.invoiceFile}
+              disabled={!doPaymentForm.amount || !doPaymentForm.invoiceFile}
               className="bg-purple-600 hover:bg-purple-700 text-white"
             >
               <Upload className="w-4 h-4 mr-2" />

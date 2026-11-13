@@ -43,6 +43,9 @@ export function PayrollPage({ navigate }: PayrollPageProps) {
   });
 
   if (!user) return null;
+  if (!['hr_manager', 'finance_manager', 'managing_director', 'coo', 'administrator'].includes(user.role)) {
+    return <Card><CardContent className="p-8 text-center">You do not have access to Payroll.</CardContent></Card>;
+  }
 
   const canCreate = user.role === 'hr_manager' || user.role === 'administrator';
 

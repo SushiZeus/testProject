@@ -53,18 +53,6 @@ export function ReportsPage({ }: ReportsPageProps) {
     user.role === 'administrator'
   );
 
-  if (!canViewReports) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <FileText className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Restricted</h2>
-          <p className="text-gray-500">You don't have permission to view reports.</p>
-        </div>
-      </div>
-    );
-  }
-
   // Calculate date filter
   const filterDate = new Date();
   filterDate.setDate(filterDate.getDate() - parseInt(dateRange));
@@ -200,6 +188,18 @@ export function ReportsPage({ }: ReportsPageProps) {
       avgAmount: approvedRequests > 0 ? Math.round(totalAmount / approvedRequests) : 0
     };
   }, [requests]);
+
+  if (!canViewReports) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <FileText className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Restricted</h2>
+          <p className="text-gray-500">You don't have permission to view reports.</p>
+        </div>
+      </div>
+    );
+  }
 
   const exportReport = () => {
     // Create a new workbook

@@ -39,6 +39,8 @@ The local preview used during the latest session was `http://127.0.0.1:5179/`. I
 - Permits Clerks should not see Swissport or Delivery status tabs/status labels.
 - A permit's Available/Not available choice locks after its permit document or invoice is uploaded. A not-available permit may receive its issued document after invoice payment.
 - Petty cash requests from Permits Clerks and Shipping Line Clerks go to the Operations Manager first, then the normal approvals.
+- All signed-in roles can access the File Comments page and comment on a shipment file. Comment alerts are limited to assigned clerks, Declaration/Operations Managers, and the COO; do not notify all Shipping Line Clerks by default.
+- Comment and file state currently use browser `localStorage`. Tabs on the same browser profile can synchronize updates, but different devices do not share a central comment store without a backend/API.
 
 ## Latest verified deployment
 

@@ -10,6 +10,7 @@ export type UserRole =
   | 'delivery_clerk'
   | 'transport_manager'
   | 'finance_manager'
+  | 'accounts_clerk'
   | 'cashier'
   | 'commercial_manager'
   | 'coo'
@@ -21,6 +22,89 @@ export type UserRole =
 
 // Shipment Types
 export type ShipmentType = 'IMPORT' | 'EXPORT' | 'TRANSSHIPMENT' | 'TRANSIT';
+export type ShipmentChargeType = 'PORT' | 'SWISSPORT' | 'DELIVERY_ORDER' | 'DELIVERY_ORDER_APPLICATION';
+export type ShipmentChargePayer = 'CLIENT' | 'OFFICE';
+export type ShipmentChargePaymentStatus =
+  | 'CLIENT_PAYMENT_PENDING'
+  | 'OFFICE_PENDING_OPERATIONS'
+  | 'OFFICE_PENDING_COO'
+  | 'OFFICE_PENDING_FINANCE'
+  | 'OFFICE_ON_QUEUE'
+  | 'OFFICE_READY_FOR_CASHIER'
+  | 'PAID'
+  | 'REJECTED';
+
+export interface ShipmentChargePaymentFlow {
+  payer?: ShipmentChargePayer;
+  status?: ShipmentChargePaymentStatus;
+  clientPaymentProofUrl?: string;
+  clientPaidAt?: Date;
+  operationsComment?: string;
+  operationsReviewedBy?: string;
+  operationsReviewedAt?: Date;
+  cooComment?: string;
+  cooReviewedBy?: string;
+  cooReviewedAt?: Date;
+  financePaidBy?: string;
+  financePaidAt?: Date;
+  financePriorityBy?: string;
+  financePriorityAt?: Date;
+  cashierPaidBy?: string;
+  cashierPaidAt?: Date;
+}
+
+export type DeclarationPaymentStatus =
+  | 'PENDING_DECLARATION_MANAGER'
+  | 'PENDING_CONTACT_PERSON'
+  | 'CLIENT_PAYMENT_PENDING'
+  | 'CLIENT_PROOF_SUBMITTED'
+  | 'OFFICE_PENDING_COO'
+  | 'OFFICE_PENDING_FINANCE'
+  | 'OFFICE_READY_FOR_CASHIER'
+  | 'PAID'
+  | 'REJECTED';
+
+export interface DeclarationPaymentFlow {
+  requestedBy?: string;
+  requestedAt?: Date;
+  status?: DeclarationPaymentStatus;
+  payer?: ShipmentChargePayer;
+  declarationManagerComment?: string;
+  declarationManagerReviewedBy?: string;
+  declarationManagerReviewedAt?: Date;
+  clientPaymentProofUrl?: string;
+  clientPaidAt?: Date;
+  cooComment?: string;
+  cooReviewedBy?: string;
+  cooReviewedAt?: Date;
+  financeComment?: string;
+  financeReviewedBy?: string;
+  financeReviewedAt?: Date;
+  cashierPaidBy?: string;
+  cashierPaidAt?: Date;
+  rejectedByRole?: UserRole;
+}
+
+export interface FileCostEntry {
+  id: string;
+  description: string;
+  amount: number;
+  currency: string;
+  enteredBy: string;
+  enteredAt: Date;
+}
+
+export interface DailyCashBalance {
+  date: string;
+  openingBalance: number;
+  expenses: number;
+  closingBalance: number;
+  expenseItems: Array<{ description: string; amount: number; fileId?: string; currency: string }>;
+  openedBy: string;
+  openedAt: Date;
+  closedBy?: string;
+  closedAt?: Date;
+}
 
 // Service Types
 export type ServiceType = 'CLEARANCE' | 'DOCUMENT_HANDOVER' | 'TRANSPORTATION';
@@ -110,6 +194,7 @@ export type PettyCashStatus =
   | 'REJECTED_BY_DECLARATION_MANAGER'
   | 'REJECTED_BY_COO'
   | 'PENDING_FINANCE'
+  | 'ON_QUEUE'
   | 'PENDING_PAYMENT'
   | 'PAID'
   | 'REJECTED_BACK_TO_CLERK';
@@ -229,6 +314,8 @@ export interface ShipmentFile {
   wharfagePaymentConfirmed?: boolean; // NEW: Wharfage payment confirmed (SEA only)
   taxPaymentConfirmedAt?: Date; // NEW: Tax payment confirmation timestamp
   wharfagePaymentConfirmedAt?: Date; // NEW: Wharfage payment confirmation timestamp
+  taxPaymentFlow?: DeclarationPaymentFlow;
+  wharfagePaymentFlow?: DeclarationPaymentFlow;
   declarationDoneAt?: Date;
   taxesPaidAt?: Date;
   
@@ -238,6 +325,7 @@ export interface ShipmentFile {
   eta?: Date; // Estimated Time of Arrival
   etb?: Date; // Estimated Time of Berthing
   carryInDate?: Date;
+  gateInDate?: Date; // AIR shipment gate-in date
   manifestComparisonDate?: Date;
   wharfageDate?: Date;
   // AIR shipment arrival dates (eta, carryInDate, manifestComparisonDate reused)
@@ -282,6 +370,20 @@ export interface ShipmentFile {
   doPaymentRequestStatus?: 'PENDING' | 'PAID' | 'REJECTED';
   doPaymentRequestRequestedAt?: Date;
   doPaymentRequestPaidAt?: Date;
+  deliveryOrderApplicationPayment?: ShipmentChargePaymentFlow;
+
+  // Accounts and client invoicing
+  proformaInvoiceUrl?: string;
+  proformaInvoiceName?: string;
+  proformaInvoiceValue?: number;
+  proformaInvoiceUploadedAt?: Date;
+  proformaInvoiceUploadedBy?: string;
+  fileCostEntries?: FileCostEntry[];
+  clientInvoiceUrl?: string;
+  clientInvoiceName?: string;
+  clientInvoiceAmount?: number;
+  clientInvoiceUploadedAt?: Date;
+  clientInvoiceUploadedBy?: string;
   
   // DO Review by Operations (NEW - Phase 1)
   doReviewedByOperations?: boolean;
@@ -295,6 +397,7 @@ export interface ShipmentFile {
   doChargesPaid?: boolean;
   doChargesPaidAt?: Date;
   doChargesPaidBy?: string;
+  deliveryOrderChargesPayment?: ShipmentChargePaymentFlow;
   
   // Shipping documentation fields (SEA only)
   hblNumber?: string; // House Bill of Lading
@@ -306,8 +409,14 @@ export interface ShipmentFile {
   portChargesInvoiceUrl?: string;
   portChargesUrl?: string; // NEW: Port charges document (SEA)
   portChargesPaidAt?: Date;
+  portChargesPayment?: ShipmentChargePaymentFlow;
+  portChargesAmount?: number;
+  portChargesCurrency?: string;
   swissportChargesUrl?: string; // NEW: Swissport charges document (AIR)
   swissportChargesPaidAt?: Date; // NEW: Swissport charges paid timestamp
+  swissportChargesPayment?: ShipmentChargePaymentFlow;
+  swissportChargesAmount?: number;
+  swissportChargesCurrency?: string;
   operationsDoneAt?: Date; // NEW: When operations are complete (after port charges paid for SEA)
   
   // Commercial / Quotation fields

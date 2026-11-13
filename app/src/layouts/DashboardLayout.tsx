@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { BrandLogo } from '@/components/BrandLogo';
+import { useEffect, useState } from 'react';
 import {
   LayoutDashboard,
   FilePlus,
@@ -16,6 +17,7 @@ import {
   User,
   BarChart3,
   FileText,
+  MessageSquare,
   Receipt,
   Banknote,
   Package,
@@ -53,57 +55,63 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { 
-    label: 'Dashboard', 
-    icon: LayoutDashboard, 
-    href: 'dashboard', 
+  {
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    href: 'dashboard',
     roles: ['*']
   },
-  { 
-    label: 'File Opening', 
-    icon: FilePlus, 
-    href: 'files/open', 
-    roles: ['documentation_officer', 'coo', 'managing_director', 'administrator'] 
-  },
-  { 
-    label: 'Declaration', 
-    icon: ClipboardCheck, 
-    href: 'declaration', 
-    roles: ['declaration_manager', 'declarant', 'administrator'] 
-  },
-  { 
-    label: 'Operations', 
-    icon: Truck, 
-    href: 'operations', 
-    roles: ['operations_manager', 'operation_clerk', 'permits_clerk', 'administrator'] 
-  },
-  { 
-    label: 'Shipping Line', 
-    icon: Truck, 
-    href: 'shipping-line', 
-    roles: ['shipping_line_clerk', 'operations_manager', 'administrator'] 
-  },
-  { 
-    label: 'Petty Cash', 
-    icon: DollarSign, 
-    href: 'petty-cash', 
-    roles: ['documentation_officer', 'declaration_manager', 'declarant', 'operations_manager', 'operation_clerk', 'shipping_line_clerk', 'hr_manager', 'finance_manager', 'cashier', 'commercial_manager', 'coo', 'managing_director', 'administrator'] 
-  },
-  { 
-    label: 'Payroll', 
-    icon: Banknote, 
-    href: 'payroll', 
-    roles: ['hr_manager', 'finance_manager', 'cashier', 'administrator'] 
+  {
+    label: 'File Comments',
+    icon: MessageSquare,
+    href: 'comments',
+    roles: ['*']
   },
   {
-    label: 'Employee Loans',
-    icon: DollarSign,
-    href: 'loans',
-    roles: ['*'],
+    label: 'File Opening',
+    icon: FilePlus,
+    href: 'files/open',
+    roles: ['documentation_officer', 'coo', 'managing_director', 'administrator']
   },
-  { 
-    label: 'Fixed Assets', 
-    icon: Package, 
+  {
+    label: 'Declaration',
+    icon: ClipboardCheck,
+    href: 'declaration',
+    roles: ['declaration_manager', 'declarant', 'administrator']
+  },
+  {
+    label: 'Operations',
+    icon: Truck,
+    href: 'operations',
+    roles: ['operations_manager', 'operation_clerk', 'permits_clerk', 'administrator']
+  },
+  {
+    label: 'Shipping Line',
+    icon: Truck,
+    href: 'shipping-line',
+    roles: ['shipping_line_clerk', 'operations_manager', 'administrator']
+  },
+  {
+    label: 'Petty Cash',
+    icon: DollarSign,
+    href: 'petty-cash',
+    roles: ['*']
+  },
+  {
+    label: 'Accounts & Invoicing',
+    icon: Receipt,
+    href: 'accounts',
+    roles: ['accounts_clerk', 'cashier', 'finance_manager', 'commercial_manager', 'coo', 'managing_director', 'administrator'],
+  },
+  {
+    label: 'Payroll',
+    icon: Banknote,
+    href: 'payroll',
+    roles: ['hr_manager', 'finance_manager', 'managing_director', 'coo', 'administrator']
+  },
+  {
+    label: 'Fixed Assets',
+    icon: Package,
     roles: ['hr_manager', 'finance_manager', 'administrator', 'commercial_manager', 'coo', 'managing_director'],
     children: [
       { label: 'Asset Register', icon: Package, href: 'assets', roles: ['hr_manager', 'finance_manager', 'administrator', 'commercial_manager', 'coo', 'managing_director'] },
@@ -113,9 +121,9 @@ const navItems: NavItem[] = [
       { label: 'Disposals', icon: Trash2, href: 'assets/disposals', roles: ['hr_manager', 'finance_manager', 'administrator', 'commercial_manager', 'coo', 'managing_director'] },
     ]
   },
-  { 
-    label: 'Inventory', 
-    icon: ShoppingCart, 
+  {
+    label: 'Inventory',
+    icon: ShoppingCart,
     roles: ['hr_manager', 'administrator', 'commercial_manager', 'coo', 'managing_director'],
     children: [
       { label: 'Dashboard', icon: LayoutDashboard, href: 'inventory', roles: ['hr_manager', 'administrator', 'commercial_manager', 'coo', 'managing_director'] },
@@ -126,89 +134,97 @@ const navItems: NavItem[] = [
       { label: 'Suppliers', icon: Users, href: 'inventory/suppliers', roles: ['hr_manager', 'administrator', 'commercial_manager', 'coo', 'managing_director'] },
     ]
   },
-  { 
-    label: 'Recruitment', 
-    icon: Briefcase, 
-    href: 'recruitment', 
-    roles: ['hr_manager', 'administrator', 'coo', 'managing_director'] 
+  {
+    label: 'Recruitment',
+    icon: Briefcase,
+    href: 'recruitment',
+    roles: ['hr_manager', 'administrator', 'coo', 'managing_director']
   },
-  { 
-    label: 'Training', 
-    icon: BookOpen, 
-    href: 'training', 
-    roles: ['hr_manager', 'administrator', 'coo', 'managing_director'] 
+  {
+    label: 'Training',
+    icon: BookOpen,
+    href: 'training',
+    roles: ['hr_manager', 'administrator', 'coo', 'managing_director']
   },
-  { 
-    label: 'Performance', 
-    icon: TrendingUp, 
-    href: 'performance', 
-    roles: ['hr_manager', 'administrator', 'coo', 'managing_director'] 
+  {
+    label: 'Performance',
+    icon: TrendingUp,
+    href: 'performance',
+    roles: ['hr_manager', 'administrator', 'coo', 'managing_director']
   },
-  { 
-    label: 'Outsourcing', 
-    icon: Handshake, 
-    href: 'outsourcing', 
-    roles: ['hr_manager', 'administrator', 'coo', 'managing_director'] 
+  {
+    label: 'Outsourcing',
+    icon: Handshake,
+    href: 'outsourcing',
+    roles: ['hr_manager', 'administrator', 'coo', 'managing_director']
   },
-  { 
-    label: 'Leave Management', 
-    icon: Users, 
-    href: 'leave-management', 
+  {
+    label: 'Leave Management',
+    icon: Users,
+    href: 'leave-management',
     roles: ['*']
   },
-  { 
-    label: 'User Management', 
-    icon: Users, 
-    href: 'user-management', 
-    roles: ['hr_manager', 'administrator'] 
+  {
+    label: 'User Management',
+    icon: Users,
+    href: 'user-management',
+    roles: ['hr_manager', 'administrator']
   },
-  { 
-    label: 'Documents', 
-    icon: FileText, 
-    href: 'documents', 
+  {
+    label: 'Documents',
+    icon: FileText,
+    href: 'documents',
     roles: ['*']
   },
-  { 
-    label: 'Reports', 
-    icon: BarChart3, 
-    href: 'reports', 
-    roles: ['operations_manager', 'declaration_manager', 'hr_manager', 'finance_manager', 'commercial_manager', 'coo', 'managing_director', 'administrator'] 
+  {
+    label: 'Reports',
+    icon: BarChart3,
+    href: 'reports',
+    roles: ['operations_manager', 'declaration_manager', 'hr_manager', 'finance_manager', 'commercial_manager', 'coo', 'managing_director', 'administrator']
   },
-  { 
-    label: 'Quotations', 
-    icon: ClipboardList, 
-    href: 'quotations', 
-    roles: ['commercial_manager', 'administrator'] 
+  {
+    label: 'Quotations',
+    icon: ClipboardList,
+    href: 'quotations',
+    roles: ['commercial_manager', 'administrator']
   },
-  { 
-    label: 'Drivers', 
-    icon: Users, 
-    href: 'drivers', 
-    roles: ['hr_manager', 'coo', 'managing_director', 'administrator'] 
+  {
+    label: 'Drivers',
+    icon: Users,
+    href: 'drivers',
+    roles: ['hr_manager', 'coo', 'managing_director', 'administrator']
   },
-  { 
-    label: 'Driver Management', 
-    icon: Truck, 
-    href: 'drivers-management', 
-    roles: ['transport_manager', 'delivery_clerk', 'administrator'] 
+  {
+    label: 'Driver Management',
+    icon: Truck,
+    href: 'drivers-management',
+    roles: ['transport_manager', 'delivery_clerk', 'administrator']
   },
 ];
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  navigate: (route: AppRoute) => void;
+  navigate: (route: AppRoute, params?: Record<string, string>) => void;
   currentRoute: AppRoute;
 }
 
 export function DashboardLayout({ children, navigate, currentRoute }: DashboardLayoutProps) {
   const { user, logout } = useAuthStore();
-  const { getUnreadCount, getNotificationsForUser, markAsRead, markAllAsRead } = useNotificationStore();
+  const { getUnreadCount, getNotificationsForUser, markAsRead, markFileNotificationsAsRead, markAllAsRead } = useNotificationStore();
+  useEffect(() => {
+    const handleAppNavigation = (event: Event) => {
+      const detail = (event as CustomEvent<{ route: AppRoute; params?: Record<string, string> }>).detail;
+      if (detail?.route) navigate(detail.route, detail.params);
+    };
+    window.addEventListener('shipment-workflow:navigate', handleAppNavigation);
+    return () => window.removeEventListener('shipment-workflow:navigate', handleAppNavigation);
+  }, [navigate]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState<string[]>(['Fixed Assets', 'Inventory']);
 
   const unreadCount = user ? getUnreadCount(user.id) : 0;
-  const notifications = user ? getNotificationsForUser(user.id).slice(0, 5) : [];
+  const notifications = user ? getNotificationsForUser(user.id).filter((notification) => !notification.isRead).slice(0, 5) : [];
 
   const toggleSection = (label: string) => {
     setExpandedSections(prev =>
@@ -221,9 +237,9 @@ export function DashboardLayout({ children, navigate, currentRoute }: DashboardL
   // Get notification count per module based on notification links
   const getModuleNotificationCount = (route: AppRoute): number => {
     if (!user) return 0;
-    
+
     const userNotifications = getNotificationsForUser(user.id).filter(n => !n.isRead);
-    
+
     // Map routes to notification link patterns
     const routePatterns: Record<string, string[]> = {
       'dashboard': ['/dashboard'],
@@ -232,6 +248,7 @@ export function DashboardLayout({ children, navigate, currentRoute }: DashboardL
       'operations': ['/operations'],
       'shipping-line': ['/shipping-line'],
       'petty-cash': ['/petty-cash'],
+      'accounts': ['/accounts'],
       'payroll': ['/payroll'],
       'loans': ['/loans'],
       'leave-management': ['/leave-management'],
@@ -241,9 +258,9 @@ export function DashboardLayout({ children, navigate, currentRoute }: DashboardL
       'drivers-management': ['/drivers-management'],
       'quotations': ['/quotations'],
     };
-    
+
     const patterns = routePatterns[route] || [];
-    return userNotifications.filter(n => 
+    return userNotifications.filter(n =>
       n.link && patterns.some(pattern => n.link?.includes(pattern))
     ).length;
   };
@@ -276,26 +293,12 @@ export function DashboardLayout({ children, navigate, currentRoute }: DashboardL
         )}
       >
         {/* Logo */}
-        <div className="h-20 flex items-center justify-center border-b border-white/10">
-          {sidebarOpen ? (
-            <div className="flex items-center gap-3 px-6">
-              <div className="w-12 h-12 flex items-center justify-center">
-                <img src="/dow-elef-logo.svg" alt="DOW ELEF Logo" className="w-full h-full" />
-              </div>
-              <div>
-                <h1 className="font-bold text-lg leading-tight">DOW ELEF</h1>
-                <p className="text-xs text-orange-200">INTERNATIONAL (T) LTD</p>
-              </div>
-            </div>
-          ) : (
-            <div className="w-10 h-10 flex items-center justify-center">
-              <img src="/dow-elef-logo.svg" alt="DOW ELEF Logo" className="w-full h-full" />
-            </div>
-          )}
+        <div className="h-24 flex items-center justify-center border-b border-orange-200/60 bg-gradient-to-br from-slate-50 to-orange-50 px-4">
+          <BrandLogo compact={!sidebarOpen} />
         </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-2 overflow-y-auto" style={{ height: 'calc(100vh - 160px)' }}>
+        <nav className="p-4 space-y-2 overflow-y-auto" style={{ height: 'calc(100vh - 176px)' }}>
           {filteredNavItems.map((item) => {
             if (item.children) {
               // Expandable section
@@ -338,7 +341,7 @@ export function DashboardLayout({ children, navigate, currentRoute }: DashboardL
                 </div>
               );
             }
-            
+
             // Regular item
             const notificationCount = getModuleNotificationCount(item.href!);
             return (
@@ -397,22 +400,14 @@ export function DashboardLayout({ children, navigate, currentRoute }: DashboardL
           mobileMenuOpen ? 'w-72 translate-x-0' : 'w-72 -translate-x-full'
         )}
       >
-        <div className="h-20 flex items-center justify-between px-6 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 flex items-center justify-center">
-              <img src="/dow-elef-logo.svg" alt="DOW ELEF Logo" className="w-full h-full" />
-            </div>
-            <div>
-              <h1 className="font-bold text-lg leading-tight">DOW ELEF</h1>
-              <p className="text-xs text-orange-200">INTERNATIONAL (T) LTD</p>
-            </div>
-          </div>
+        <div className="h-24 flex items-center justify-between gap-3 px-4 border-b border-orange-200/60 bg-gradient-to-br from-slate-50 to-orange-50 text-slate-800">
+          <BrandLogo className="flex-1 min-w-0" />
           <button onClick={() => setMobileMenuOpen(false)}>
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        <nav className="p-4 space-y-2 overflow-y-auto" style={{ height: 'calc(100vh - 80px)' }}>
+        <nav className="p-4 space-y-2 overflow-y-auto" style={{ height: 'calc(100vh - 96px)' }}>
           {filteredNavItems.map((item) => {
             if (item.children) {
               // Expandable section
@@ -454,7 +449,7 @@ export function DashboardLayout({ children, navigate, currentRoute }: DashboardL
                 </div>
               );
             }
-            
+
             // Regular item
             const notificationCount = getModuleNotificationCount(item.href!);
             return (
@@ -549,6 +544,13 @@ export function DashboardLayout({ children, navigate, currentRoute }: DashboardL
                       className="flex flex-col items-start gap-1 p-3 cursor-pointer"
                       onClick={() => {
                         markAsRead(notification.id);
+                        if (notification.fileId) {
+                          markFileNotificationsAsRead(notification.fileId, notification.userId);
+                          navigate('files/:id', { id: notification.fileId });
+                        } else if (notification.link) {
+                          const route = notification.link.replace(/^\//, '') as AppRoute;
+                          navigate(route);
+                        }
                       }}
                     >
                       <div className="flex items-center gap-2 w-full">

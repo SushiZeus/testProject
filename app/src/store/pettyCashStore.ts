@@ -142,7 +142,7 @@ export const usePettyCashStore = (): PettyCashState => {
       if (!data.description || data.description.trim().length === 0) {
         throw new Error('Description is required');
       }
-      if (!data.amount || data.amount <= 0) {
+      if (!Number.isFinite(data.amount) || data.amount <= 0) {
         throw new Error('Amount must be greater than 0');
       }
       if (!data.currency || data.currency.trim().length === 0) {
@@ -165,6 +165,9 @@ export const usePettyCashStore = (): PettyCashState => {
         initialStatus = 'PENDING_DECLARATION_MANAGER_APPROVAL';
       } else if (requester?.role === 'shipping_line_clerk') {
         // Shipping line clerk requests go to Operations Manager first
+        initialStatus = 'PENDING_MANAGER_APPROVAL';
+      } else if (requester?.role === 'permits_clerk') {
+        // Permits clerk requests go to Operations Manager first
         initialStatus = 'PENDING_MANAGER_APPROVAL';
       }
 

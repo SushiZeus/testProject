@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ArrowLeft,
   FileText,
@@ -40,11 +40,15 @@ import { useFileStore } from '@/store/fileStore';
 import { useAuthStore } from '@/store/authStore';
 import type { ShippingDocument } from '@/types';
 import { useDocumentStore } from '@/store/documentStore';
+import { useNotificationStore } from '@/store/notificationStore';
+import { getUserById } from '@/data/mockData';
 import type { AppRoute } from '@/App';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { statusColors } from '@/utils/statusColors';
 import { getShipmentDisplayStatus } from '@/utils/shipmentStatus';
+import { ShipmentChargePaymentPanel } from '@/components/ShipmentChargePaymentPanel';
+import { DeclarationPaymentPanel } from '@/components/DeclarationPaymentPanel';
 
 interface TimelineItemProps {
   status: string;
@@ -139,6 +143,7 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
   const { user, isExecutive } = useAuthStore();
   const { getFileById, getActivityLogs, addComment, addDocument } = useFileStore();
   const { getDocuments } = useDocumentStore();
+  const { markFileNotificationsAsRead } = useNotificationStore();
   
   // Check if user can view client details
   const canViewClientDetails = user && ['documentation_officer', 'commercial_manager', 'managing_director', 'administrator'].includes(user.role);
@@ -150,6 +155,9 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
   const [selectedDocType, setSelectedDocType] = useState<string>('other');
 
   const file = fileId ? getFileById(fileId) : null;
+  useEffect(() => {
+    if (fileId && user?.id) markFileNotificationsAsRead(fileId, user.id);
+  }, [fileId, user?.id]);
   const activityLogs = fileId ? getActivityLogs(fileId) : [];
   const shipmentDocuments: ShippingDocument[] = file ? (() => {
     const documents = [...file.documents];
@@ -173,6 +181,7 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
     });
     const linkedFields: Array<[string, string | undefined]> = [
       ['Tax Assessment', file.taxAssessmentUrl], ['Tax Documents', file.taxDocumentUrl],
+      ['Proforma Invoice', file.proformaInvoiceUrl], ['Client Invoice', file.clientInvoiceUrl],
       ['Wharfage Documents', file.wharfageDocumentUrl], ['Release Order', file.releaseOrderUrl],
       ['Permit Invoice', file.permitInvoiceUrl], ['Permit Document', file.permitDocumentUrl],
       ['Delivery Order Invoice', file.deliveryOrderInvoiceUrl], ['Delivery Order', file.deliveryOrderDocumentUrl],
@@ -199,6 +208,16 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
     });
     return documents.sort((a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime());
   })() : [];
+
+  const assignedContacts = file ? [
+    { user: file.contactPerson || (file.contactPersonId ? getUserById(file.contactPersonId) : undefined), role: 'File Contact Person' },
+    { user: file.assignedDeclarant || (file.assignedDeclarantId ? getUserById(file.assignedDeclarantId) : undefined), role: 'Declarant' },
+    { user: file.assignedOperationClerk || (file.assignedOperationClerkId ? getUserById(file.assignedOperationClerkId) : undefined), role: 'Operations Clerk' },
+    { user: file.assignedPermitsClerk || (file.assignedPermitsClerkId ? getUserById(file.assignedPermitsClerkId) : undefined), role: 'Permits Clerk' },
+    { user: file.assignedShippingLineClerk || (file.assignedShippingLineClerkId ? getUserById(file.assignedShippingLineClerkId) : undefined), role: 'Shipping Line Clerk' },
+    { user: file.assignedDeliveryClerkId ? getUserById(file.assignedDeliveryClerkId) : undefined, role: 'Delivery Clerk' },
+    { user: file.assignedDriver || (file.assignedDriverId ? getUserById(file.assignedDriverId) : undefined), role: 'Driver' },
+  ].filter((assignment) => assignment.user) : [];
 
   const isUserExecutive = isExecutive();
 
@@ -338,6 +357,25 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
         </Card>
       )}
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {file.taxDocumentUrl && <DeclarationPaymentPanel file={file} kind="TAX" />}
+        {file.transportMode === 'SEA' && file.wharfageDocumentUrl && <DeclarationPaymentPanel file={file} kind="WHARFAGE" />}
+        {file.transportMode === 'SEA' && file.portChargesUrl && <ShipmentChargePaymentPanel file={file} chargeType="PORT" invoiceUrl={file.portChargesUrl} amount={file.portChargesAmount} currency={file.portChargesCurrency} />}
+        {file.transportMode === 'AIR' && file.swissportChargesUrl && <ShipmentChargePaymentPanel file={file} chargeType="SWISSPORT" invoiceUrl={file.swissportChargesUrl} amount={file.swissportChargesAmount} currency={file.swissportChargesCurrency} />}
+        {file.transportMode === 'SEA' && file.doPaymentRequestInvoiceUrl && <ShipmentChargePaymentPanel file={file} chargeType="DELIVERY_ORDER_APPLICATION" invoiceUrl={file.doPaymentRequestInvoiceUrl} amount={file.doPaymentRequestAmount} currency={file.doPaymentRequestCurrency} />}
+        {file.transportMode === 'SEA' && file.doChargesInvoiceUrl && <ShipmentChargePaymentPanel file={file} chargeType="DELIVERY_ORDER" invoiceUrl={file.doChargesInvoiceUrl} amount={file.doChargesAmount} currency={file.doChargesCurrency} />}
+      </div>
+
+      {(file.proformaInvoiceValue != null || file.clientInvoiceAmount != null) && (
+        <Card>
+          <CardHeader><CardTitle>Accounts &amp; Invoicing</CardTitle><CardDescription>PFI and client invoice values for this shipment.</CardDescription></CardHeader>
+          <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {file.proformaInvoiceValue != null && <div><p className="text-sm text-gray-500">PFI value</p><p className="text-lg font-semibold">TZS {file.proformaInvoiceValue.toLocaleString()}</p></div>}
+            {file.clientInvoiceAmount != null && <div><p className="text-sm text-gray-500">Client invoice value</p><p className="text-lg font-semibold">TZS {file.clientInvoiceAmount.toLocaleString()}</p></div>}
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -345,7 +383,9 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
               <TabsTrigger value="timeline">Timeline</TabsTrigger>
-              <TabsTrigger value="comments">Comments</TabsTrigger>
+              <TabsTrigger value="comments">
+                Comments ({activityLogs.filter((log) => log.action === 'COMMENT_ADDED').length})
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview">
@@ -400,46 +440,23 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
 
                   <div>
                     <h3 className="text-sm font-medium text-gray-500 mb-3">Assignments</h3>
-                    <div className="space-y-3">
-                      {file.assignedDeclarant && (
-                        <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                          <Avatar className="w-8 h-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {assignedContacts.length ? assignedContacts.map(({ user: assignee, role }) => (
+                        <div key={`${role}-${assignee!.id}`} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border">
+                          <Avatar className="w-8 h-8 shrink-0">
                             <AvatarFallback className="bg-blue-500 text-white text-xs">
-                              {file.assignedDeclarant.name[0]}
+                              {assignee!.name[0]}
                             </AvatarFallback>
                           </Avatar>
-                          <div>
-                            <p className="font-medium">{file.assignedDeclarant.name}</p>
-                            <p className="text-sm text-gray-500">Declarant</p>
+                          <div className="min-w-0">
+                            <p className="font-medium">{assignee!.name}</p>
+                            <p className="text-sm text-gray-500">{role}</p>
+                            {assignee!.email && <a className="block text-sm text-blue-700 break-all hover:underline" href={`mailto:${assignee!.email}`}>{assignee!.email}</a>}
+                            {assignee!.phone && <a className="block text-sm text-blue-700 hover:underline" href={`tel:${assignee!.phone}`}>{assignee!.phone}</a>}
+                            {!assignee!.email && !assignee!.phone && <p className="text-xs text-gray-400">Contact details unavailable</p>}
                           </div>
                         </div>
-                      )}
-                      {file.assignedOperationClerk && (
-                        <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                          <Avatar className="w-8 h-8">
-                            <AvatarFallback className="bg-green-500 text-white text-xs">
-                              {file.assignedOperationClerk.name[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{file.assignedOperationClerk.name}</p>
-                            <p className="text-sm text-gray-500">Operation Clerk</p>
-                          </div>
-                        </div>
-                      )}
-                      {file.assignedDriver && (
-                        <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg">
-                          <Avatar className="w-8 h-8">
-                            <AvatarFallback className="bg-amber-500 text-white text-xs">
-                              {file.assignedDriver.name[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{file.assignedDriver.name}</p>
-                            <p className="text-sm text-gray-500">Driver</p>
-                          </div>
-                        </div>
-                      )}
+                      )) : <p className="text-sm text-gray-500">No contacts have been assigned to this file yet.</p>}
                     </div>
                   </div>
 
@@ -468,6 +485,12 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
                             <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                               <p className="text-sm text-gray-500">Carry In Date</p>
                               <p className="font-medium">{new Date(file.carryInDate).toLocaleDateString()}</p>
+                            </div>
+                          )}
+                          {file.gateInDate && file.transportMode === 'AIR' && (
+                            <div className="p-4 bg-green-50 rounded-lg border border-green-300">
+                              <p className="text-sm text-gray-500">Gate-in Date</p>
+                              <p className="font-medium">{new Date(file.gateInDate).toLocaleDateString()}</p>
                             </div>
                           )}
                           {file.manifestComparisonDate && (

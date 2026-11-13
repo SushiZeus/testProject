@@ -492,33 +492,11 @@ export const useFileStore = (): FileState => {
         activityLogs: [...state.activityLogs, log],
       };
       
-      // Notify shipping line clerks for SEA shipments
       const file = state.files.find(f => f.id === fileId);
-      if (file && file.transportMode === 'SEA' && (file.shipmentType === 'IMPORT' || file.shipmentType === 'EXPORT')) {
-        if (typeof window !== 'undefined') {
-          import('./notificationStore').then(({ useNotificationStore }) => {
-            import('../data/mockData').then(({ mockUsers }) => {
-              const shippingLineClerks = mockUsers.filter(u => u.role === 'shipping_line_clerk' && u.isActive);
-              const notifStore = useNotificationStore.getState?.();
-              if (notifStore) {
-                shippingLineClerks.forEach(clerk => {
-                  // Don't notify the person who made the comment
-                  if (clerk.id !== userId) {
-                    const { addNotification } = useNotificationStore();
-                    addNotification({
-                      userId: clerk.id,
-                      title: '💬 New Comment on SEA File',
-                      message: `New comment added to SEA file ${file.fileNumber}`,
-                      type: 'info',
-                      fileId: file.id,
-                      link: '/shipping-line',
-                    });
-                  }
-                });
-              }
-            });
-          });
-        }
+      if (file && typeof window !== 'undefined') {
+        import('./notificationStore').then(({ useNotificationStore }) => {
+          useNotificationStore.getState?.().notifyFileComment(file, userId);
+        });
       }
       
       notify();
