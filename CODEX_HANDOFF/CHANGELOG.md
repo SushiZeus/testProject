@@ -4,7 +4,9 @@
 
 - Published temporary Administrator-only reset control to the private test site (deployment `6af8478f8ce8e3cbed86919e`) and used it on the current browser profile.
 - Cleared 2 shipment files, their embedded documents and approval history, 5 shipment/petty-cash document-store uploads, and related alerts. No petty-cash or permit requests were present. Preserved user accounts, client records, and unrelated module data; verified the dashboard shows zero files and uploads.
-- Removed the temporary reset control from source; permit requests in the active workflow were stored with shipment records and cleared with them. Final cleanup deployment pending.
+- Removed the temporary reset control from source and published the cleaned build as deployment `6af84957ce34e4f5e84431b9` (`https://6af84957ce34e4f5e84431b9--dow-elef-erp-test.netlify.app/`).
+- Verified the stable site still shows zero shipment files and no uploads, and the User Management page no longer exposes the temporary control. Signed the Administrator test session out afterward.
+- No new shipment or payment request was created; new shipment details are needed before the normal approval chain can begin.
 
 ## 2026-11-14 · Test credentials visibility
 
