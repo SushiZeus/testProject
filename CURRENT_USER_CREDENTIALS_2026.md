@@ -3,7 +3,7 @@
 ## 🌐 **Access URLs:**
 - **Local Development**: http://localhost:5173/
 - **Local Preview**: http://localhost:4173/
-- **Production**: https://shipment-workflow-system.netlify.app
+- **Production**: https://dow-elef-erp-test.netlify.app/
 
 ---
 
@@ -349,7 +349,7 @@ Verify touch interactions work properly
 ### ✅ **Access URLs Ready**
 - **Local Dev**: http://localhost:5173/ (Hot reload)
 - **Local Preview**: http://localhost:4173/ (Production build)
-- **Production**: https://shipment-workflow-system.netlify.app
+- **Production**: https://dow-elef-erp-test.netlify.app/
 
 ---
 

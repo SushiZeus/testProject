@@ -4,7 +4,7 @@
 
 ### 🌐 **Access URLs:**
 - **Local Development**: http://localhost:5173/
-- **Production**: https://shipment-workflow-system.netlify.app
+- **Production**: https://dow-elef-erp-test.netlify.app/
 
 ---
 

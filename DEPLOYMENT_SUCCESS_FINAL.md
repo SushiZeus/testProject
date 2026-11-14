@@ -3,9 +3,9 @@
 ## ✅ PRODUCTION DEPLOYMENT COMPLETE
 
 ### 🚀 Live Application URLs
-- **Production URL**: https://shipment-workflow-system.netlify.app
-- **Unique Deploy URL**: https://699f733715dd65ac15fde25b--shipment-workflow-system.netlify.app
-- **Admin Dashboard**: https://app.netlify.com/projects/shipment-workflow-system
+- **Production URL**: https://dow-elef-erp-test.netlify.app/
+- **Unique Deploy URL**: https://6af82b8f8599fb6bd1c44578--dow-elef-erp-test.netlify.app/
+- **Admin Dashboard**: https://app.netlify.com/projects/dow-elef-erp-test
 
 ### 📊 Deployment Statistics
 - **Build Time**: 24.6 seconds
@@ -46,7 +46,7 @@
 ### Executive Level Access
 ```
 Managing Director:
-URL: https://shipment-workflow-system.netlify.app
+URL: https://dow-elef-erp-test.netlify.app/
 Email: managing_director@company.com
 Password: managing_director123
 Role: Managing Director
@@ -123,7 +123,7 @@ Password: administrator123
 ## 🎯 TESTING WORKFLOW
 
 ### 1. Access the Application
-Visit: https://shipment-workflow-system.netlify.app
+Visit: https://dow-elef-erp-test.netlify.app/
 
 ### 2. Test Login System
 - Select role from dropdown
@@ -193,7 +193,7 @@ The Shipment Management System is now **LIVE IN PRODUCTION** with:
 
 ### 🚀 READY FOR IMMEDIATE USE
 
-**Production URL**: https://shipment-workflow-system.netlify.app
+**Production URL**: https://dow-elef-erp-test.netlify.app/
 
 The system is ready for immediate business use with full functionality, security, and performance optimization.
 

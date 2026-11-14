@@ -25,7 +25,7 @@ npx netlify deploy --prod --dir=dist
 - "Team" → Choose your team
 - "Site name" → Enter a name (e.g., shipment-management)
 
-You'll get a URL like: `https://shipment-management.netlify.app`
+You'll get a URL like: `https://dow-elef-erp-test.netlify.app/`
 
 ---
 

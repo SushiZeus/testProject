@@ -4,7 +4,7 @@
 
 ### 🌐 Application Status: **LIVE AND OPERATIONAL**
 
-**Production URL**: https://shipment-workflow-system.netlify.app  
+**Production URL**: https://dow-elef-erp-test.netlify.app/  
 **Status Code**: HTTP 200 ✅  
 **SSL Certificate**: Active ✅  
 **CDN**: Netlify Edge Network ✅  
@@ -31,7 +31,7 @@
 
 ### Executive Login (Full System Access)
 ```
-URL: https://shipment-workflow-system.netlify.app
+URL: https://dow-elef-erp-test.netlify.app/
 
 Managing Director:
 Email: managing_director@company.com
@@ -110,7 +110,7 @@ Password: coo123
 ### **SYSTEM IS LIVE AND READY FOR BUSINESS USE**
 
 The Shipment Management System is now fully operational at:  
-**https://shipment-workflow-system.netlify.app**
+**https://dow-elef-erp-test.netlify.app/**
 
 All features are working, all users can access their respective modules, and the new reports system provides comprehensive analytics for management decision-making.
 

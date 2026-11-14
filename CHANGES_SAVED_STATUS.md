@@ -38,7 +38,7 @@ All changes have been successfully saved and committed to git for future testing
 ## 🌐 **DEPLOYMENT STATUS**
 
 ### ✅ **Production Environment**
-- **URL**: https://shipment-workflow-system.netlify.app
+- **URL**: https://dow-elef-erp-test.netlify.app/
 - **Status**: ✅ Live and operational
 - **Build**: ✅ Optimized production build
 - **SSL**: ✅ HTTPS enabled
@@ -100,7 +100,7 @@ All accounts saved with full credentials and role-based access:
 URL: http://localhost:5173/
 
 # Production
-URL: https://shipment-workflow-system.netlify.app
+URL: https://dow-elef-erp-test.netlify.app/
 
 # Test Accounts
 Managing Director: managing_director@company.com / managing_director123

@@ -1,6 +1,6 @@
 # DOW ELEF ERP project context
 
-Last updated: 2026-11-13
+Last updated: 2026-11-14
 
 ## Project layout
 
@@ -45,8 +45,8 @@ The local preview used during the latest session was `http://127.0.0.1:5179/`. I
 ## Latest verified deployment
 
 - Private production URL: https://dow-elef-erp-test.netlify.app/
-- Verified deployment URL: https://6af739706b7ca5d404811436--dow-elef-erp-test.netlify.app/
-- Deployment date: 2026-11-13
+- Verified deployment URL: https://6af82b8f8599fb6bd1c44578--dow-elef-erp-test.netlify.app/
+- Deployment date: 2026-11-14
 - Latest checked build: TypeScript project check passed; Vite production build passed.
 - Existing storage checks: 3 passed, 0 failed (`node --test tests\storage.test.mjs`).
 - Netlify access is private. The user's 2026-11-13 approval covered publishing seeded test credentials to this private site only. It does not authorize exposing the site, changing access controls, or publishing real credentials or unrelated private data.

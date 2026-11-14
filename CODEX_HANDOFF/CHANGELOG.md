@@ -1,5 +1,11 @@
 # Project change log
 
+## 2026-11-14 · Link refresh and deployment
+
+- Rebuilt and published the current ERP updates to private Netlify production.
+- Refreshed stale production access links in the handoff, deployment, access, and credential-reference documents to the current DOW ELEF ERP URL. Updated the Netlify project dashboard link.
+- Verified deployment ID: `6af82b8f8599fb6bd1c44578`.
+
 ## 2026-11-13 · File comments
 
 - Added a File Comments page available from the shared navigation for every signed-in role, with file selection, comment history, and posting.

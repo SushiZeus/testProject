@@ -197,7 +197,7 @@ npm run dev
 - **Development Tools**: ✅ Full access
 
 ### Production Deployment
-- **URL**: https://shipment-workflow-system.netlify.app
+- **URL**: https://dow-elef-erp-test.netlify.app/
 - **Optimized Build**: ✅ Minified and compressed
 - **CDN**: ✅ Global distribution
 - **SSL**: ✅ HTTPS enabled
