@@ -5,6 +5,7 @@
 - Rebuilt and published the current ERP updates to private Netlify production.
 - Refreshed stale production access links in the handoff, deployment, access, and credential-reference documents to the current DOW ELEF ERP URL. Updated the Netlify project dashboard link.
 - Verified deployment ID: `6af82b8f8599fb6bd1c44578`.
+- Pushed committed ERP and access-link updates to `SushiZeus/testProject` on `main`; the branch was synchronized with `origin/main`.
 
 ## 2026-11-13 · File comments
 
