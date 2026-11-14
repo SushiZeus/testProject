@@ -36,6 +36,7 @@ The local preview used during the latest session was `http://127.0.0.1:5179/`. I
 - Client payment path: Contact Person uploads proof; the declaration clerk verifies and acknowledges with TAX PAID or WHARFAGE PAID.
 - Office payment path: COO, Finance Manager, then Cashier.
 - Shipments requiring permits notify Permits Clerks. Shipments requiring a Delivery Order notify Shipping Line Clerks.
+- During file opening, choose existing versus new upload independently for each selected document type; a previous upload for one type must not block uploads for other types.
 - Permits Clerks should not see Swissport or Delivery status tabs/status labels.
 - A permit's Available/Not available choice locks after its permit document or invoice is uploaded. A not-available permit may receive its issued document after invoice payment.
 - Petty cash requests from Permits Clerks and Shipping Line Clerks go to the Operations Manager first, then the normal approvals.

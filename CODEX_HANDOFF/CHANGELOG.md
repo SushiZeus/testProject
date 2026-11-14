@@ -1,5 +1,11 @@
 # Project change log
 
+## 2026-11-14 · File-opening document uploads
+
+- Changed document source selection from one global mode to a per-document-type choice, so existing selections and new uploads can be mixed in the same file opening.
+- Document types with no matching existing upload default to the new-upload source; file inputs reset after selection so the same file can be chosen again if needed.
+- TypeScript check and Vite production build passed. No tests were run.
+
 ## 2026-11-14 · Link refresh and deployment
 
 - Rebuilt and published the current ERP updates to private Netlify production.

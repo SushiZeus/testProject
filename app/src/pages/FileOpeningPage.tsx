@@ -111,7 +111,7 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
   const [selectedDocuments, setSelectedDocuments] = useState<DocumentType[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<Record<DocumentType, File[]>>({} as Record<DocumentType, File[]>);
   const [selectedExistingDocuments, setSelectedExistingDocuments] = useState<Record<DocumentType, string[]>>({} as Record<DocumentType, string[]>);
-  const [documentSelectionMode, setDocumentSelectionMode] = useState<'upload' | 'existing'>('existing');
+  const [documentSelectionModes, setDocumentSelectionModes] = useState<Partial<Record<DocumentType, 'upload' | 'existing'>>>({});
 
   // Document numbers state
   const [documentNumbers, setDocumentNumbers] = useState({
@@ -200,7 +200,26 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
     }
   }, [transportMode]);
 
+  const getAccessibleShipmentDocuments = () => user
+    ? getUserAccessibleDocuments(user.id, user.role).filter(doc => doc.category === 'shipment' || doc.category === 'system')
+    : [];
+
+  const getRelevantExistingDocuments = (docType: DocumentType, accessibleDocuments = getAccessibleShipmentDocuments()) => accessibleDocuments.filter(doc =>
+    doc.originalName.toLowerCase().includes(docType.replace('_', ' ')) ||
+    doc.tags.some(tag => tag.toLowerCase().includes(docType.replace('_', ' '))) ||
+    doc.subCategory === docType
+  );
+
+  const getDocumentSelectionMode = (docType: DocumentType): 'upload' | 'existing' =>
+    documentSelectionModes[docType] || (getRelevantExistingDocuments(docType).length > 0 ? 'existing' : 'upload');
+
   const handleDocumentToggle = (docType: DocumentType) => {
+    if (!selectedDocuments.includes(docType)) {
+      setDocumentSelectionModes(prev => ({
+        ...prev,
+        [docType]: prev[docType] || (getRelevantExistingDocuments(docType).length > 0 ? 'existing' : 'upload'),
+      }));
+    }
     setSelectedDocuments(prev =>
       prev.includes(docType)
         ? prev.filter(d => d !== docType)
@@ -429,7 +448,7 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
         // Only validate if documents were selected
         if (selectedDocuments.length > 0) {
           for (const docType of selectedDocuments) {
-            if (documentSelectionMode === 'existing') {
+            if (getDocumentSelectionMode(docType) === 'existing') {
               // Check if existing documents are selected
               if (!selectedExistingDocuments[docType] || selectedExistingDocuments[docType].length === 0) {
                 errors[docType] = true;
@@ -443,7 +462,7 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
           }
           
           if (Object.keys(errors).length > 0) {
-            toast.error(`Please ${documentSelectionMode === 'existing' ? 'select existing documents' : 'upload all selected documents'} (highlighted in red)`);
+            toast.error('Please select an existing document or upload a new document for every selected item');
             setValidationErrors(errors);
             return false;
           }
@@ -481,7 +500,7 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
       }
 
       const documents = selectedDocuments.flatMap(docType => {
-        if (documentSelectionMode === 'existing') {
+        if (getDocumentSelectionMode(docType) === 'existing') {
           // Use existing documents from the system
           const selectedIds = selectedExistingDocuments[docType] || [];
           return selectedIds
@@ -545,9 +564,10 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
       });
 
       // Upload documents to document store if using upload mode
-      if (documentSelectionMode === 'upload') {
+      const documentTypesToUpload = selectedDocuments.filter(docType => getDocumentSelectionMode(docType) === 'upload');
+      if (documentTypesToUpload.length > 0) {
         let storedFileDocuments = file.documents;
-        for (const docType of selectedDocuments) {
+        for (const docType of documentTypesToUpload) {
           const files = uploadedFiles[docType] || [];
           for (const uploadFile of files) {
             try {
@@ -1446,58 +1466,55 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
   );
 
   const renderStep5 = () => {
-    // Get user's accessible documents for shipment category
-    const accessibleDocuments = user ? getUserAccessibleDocuments(user.id, user.role).filter(doc => 
-      doc.category === 'shipment' || doc.category === 'system'
-    ) : [];
+    const accessibleDocuments = getAccessibleShipmentDocuments();
 
     return (
       <div className="space-y-6">
         <div>
           <Label className="text-base font-medium">Documents</Label>
           <p className="text-sm text-gray-500 mt-1">
-            Choose document source and attach required files
+            Choose a source separately for each selected document type
           </p>
-          
-          {/* Document Selection Mode */}
-          <div className="mt-4 mb-6">
-            <Label className="text-sm font-medium">Document Source</Label>
-            <RadioGroup
-              value={documentSelectionMode}
-              onValueChange={(v) => setDocumentSelectionMode(v as 'upload' | 'existing')}
-              className="flex gap-6 mt-2"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="existing" id="existing-docs" />
-                <Label htmlFor="existing-docs" className="cursor-pointer">Use Existing Documents</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="upload" id="upload-docs" />
-                <Label htmlFor="upload-docs" className="cursor-pointer">Upload New Documents</Label>
-              </div>
-            </RadioGroup>
-            <p className="text-xs text-gray-500 mt-1">
-              {documentSelectionMode === 'existing' 
-                ? `${accessibleDocuments.length} documents available from the system`
-                : 'Upload new PDF files for this shipment'
-              }
-            </p>
-          </div>
 
           <div className="space-y-4 mt-4">
             {selectedDocuments.map((docType) => {
               const docInfo = documentTypes.find(d => d.value === docType);
               const uploadedFilesForType = uploadedFiles[docType] || [];
               const selectedExistingForType = selectedExistingDocuments[docType] || [];
-              const relevantExistingDocs = accessibleDocuments.filter(doc => 
-                doc.originalName.toLowerCase().includes(docType.replace('_', ' ')) ||
-                doc.tags.some(tag => tag.toLowerCase().includes(docType.replace('_', ' '))) ||
-                doc.subCategory === docType
-              );
+              const relevantExistingDocs = getRelevantExistingDocuments(docType, accessibleDocuments);
+              const selectionMode = getDocumentSelectionMode(docType);
               
               return (
                 <Card key={docType} className={cn("border-2", validationErrors[docType] && "border-red-500")}>
                   <CardContent className="p-4">
+                    <div className="mb-4 rounded-md bg-slate-50 p-3">
+                      <Label className="text-sm font-medium">Source for {docInfo?.label}</Label>
+                      <RadioGroup
+                        value={selectionMode}
+                        onValueChange={(value) => {
+                          setDocumentSelectionModes(prev => ({
+                            ...prev,
+                            [docType]: value as 'upload' | 'existing',
+                          }));
+                          setValidationErrors(prev => {
+                            const next = { ...prev };
+                            delete next[docType];
+                            return next;
+                          });
+                        }}
+                        className="mt-2 flex flex-wrap gap-x-6 gap-y-2"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="existing" id={`existing-docs-${docType}`} />
+                          <Label htmlFor={`existing-docs-${docType}`} className="cursor-pointer">Use existing ({relevantExistingDocs.length})</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="upload" id={`upload-docs-${docType}`} />
+                          <Label htmlFor={`upload-docs-${docType}`} className="cursor-pointer">Upload new</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
                         <FileText className="w-5 h-5 text-blue-600" />
@@ -1507,17 +1524,17 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
                         )}
                       </div>
                       <Badge variant={
-                        (documentSelectionMode === 'existing' ? selectedExistingForType.length : uploadedFilesForType.length) > 0 
+                        (selectionMode === 'existing' ? selectedExistingForType.length : uploadedFilesForType.length) > 0 
                           ? 'default' : 'secondary'
                       }>
-                        {documentSelectionMode === 'existing' 
+                        {selectionMode === 'existing' 
                           ? `${selectedExistingForType.length} selected`
                           : `${uploadedFilesForType.length} file(s)`
                         }
                       </Badge>
                     </div>
                     
-                    {documentSelectionMode === 'existing' ? (
+                    {selectionMode === 'existing' ? (
                       /* Existing Documents Selection */
                       <div className="space-y-3">
                         {relevantExistingDocs.length > 0 ? (
@@ -1578,7 +1595,10 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
                           accept=".pdf"
                           multiple
                           ref={(el) => { fileInputRefs.current[docType] = el; }}
-                          onChange={(e) => handleFileUpload(docType, e.target.files)}
+                          onChange={(e) => {
+                            handleFileUpload(docType, e.currentTarget.files);
+                            e.currentTarget.value = '';
+                          }}
                           className="hidden"
                         />
                         
@@ -1676,7 +1696,7 @@ export function FileOpeningPage({ navigate }: FileOpeningPageProps) {
             setSelectedDocuments([]);
             setUploadedFiles({} as Record<DocumentType, File[]>);
             setSelectedExistingDocuments({} as Record<DocumentType, string[]>);
-            setDocumentSelectionMode('existing');
+            setDocumentSelectionModes({});
             setDocumentNumbers({ commercialInvoiceNumber: '', blType: '', blNumber: '', awbType: '', awbNumber: '', roadConsignmentNumber: '' });
             setSeaFreightDetails({ seaFreightType: '', fcl20ftQuantity: '', fcl40ftQuantity: '', fclContainerOtherDescription: '' });
             setCargoDescription('');
