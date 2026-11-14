@@ -1,5 +1,10 @@
 # Project change log
 
+## 2026-11-14 · Test credentials visibility
+
+- Added a collapsible test-credentials list to the sign-in page with role labels and one-click form fill for the private test site.
+- Credential values remain sourced from the existing test-account data and are not copied into handoff notes.
+
 ## 2026-11-14 · File-opening document uploads
 
 - Changed document source selection from one global mode to a per-document-type choice, so existing selections and new uploads can be mixed in the same file opening.

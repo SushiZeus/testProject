@@ -31,6 +31,7 @@ The local preview used during the latest session was `http://127.0.0.1:5179/`. I
 
 ## Operational workflow requirements captured from the user
 
+- The private test-site login page has a collapsible test-credentials panel with one-click account fill; never copy the credential values into project notes.
 - Air shipment arrival completion requires both Gate-in Date and Manifest Comparison Date.
 - Tax and SEA Wharfage payments begin with the declaration clerk, then Declaration Manager, then Contact Person chooses Client or Office.
 - Client payment path: Contact Person uploads proof; the declaration clerk verifies and acknowledges with TAX PAID or WHARFAGE PAID.

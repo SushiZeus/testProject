@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAuthStore } from '@/store/authStore';
+import { userCredentials } from '@/data/mockData';
 import type { UserRole } from '@/types';
 import { toast } from 'sonner';
 
@@ -49,6 +50,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<UserRole>('documentation_officer');
   const [showPassword, setShowPassword] = useState(false);
+  const [showTestCredentials, setShowTestCredentials] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [shake, setShake] = useState(false);
 
@@ -189,6 +191,46 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
 
         </form>
+
+        <div className="border-t border-gray-100 px-8 py-5">
+          <button
+            type="button"
+            aria-expanded={showTestCredentials}
+            onClick={() => setShowTestCredentials((visible) => !visible)}
+            className="text-sm font-medium text-slate-700 underline decoration-orange-300 underline-offset-4 hover:text-orange-600"
+          >
+            {showTestCredentials ? 'Hide test credentials' : 'Show test credentials'}
+          </button>
+          {showTestCredentials && (
+            <div className="mt-4 max-h-72 space-y-3 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs text-slate-600">Private test-site accounts. Select an account to fill the sign-in form.</p>
+              {Object.values(userCredentials).map((credential) => {
+                const roleLabel = roles.find((item) => item.value === credential.role)?.label || credential.role;
+                return (
+                  <div key={`${credential.role}-${credential.email}`} className="rounded-md border bg-white p-3 text-left">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <span className="text-sm font-semibold text-slate-800">{roleLabel}</span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setEmail(credential.email);
+                          setPassword(credential.password);
+                          setRole(credential.role as UserRole);
+                        }}
+                      >
+                        Use account
+                      </Button>
+                    </div>
+                    <p className="break-all text-xs text-slate-600"><span className="font-medium">Email:</span> {credential.email}</p>
+                    <p className="break-all text-xs text-slate-600"><span className="font-medium">Password:</span> {credential.password}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {/* Footer */}
         <div className="px-8 pb-6 text-center">
