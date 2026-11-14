@@ -4,7 +4,7 @@
 
 - Published temporary Administrator-only reset control to the private test site (deployment `6af8478f8ce8e3cbed86919e`) and used it on the current browser profile.
 - Cleared 2 shipment files, their embedded documents and approval history, 5 shipment/petty-cash document-store uploads, and related alerts. No petty-cash or permit requests were present. Preserved user accounts, client records, and unrelated module data; verified the dashboard shows zero files and uploads.
-- Removed the temporary reset control from source. Permit records now persist locally so reset state remains empty after reload; final cleanup deployment pending.
+- Removed the temporary reset control from source; permit requests in the active workflow were stored with shipment records and cleared with them. Final cleanup deployment pending.
 
 ## 2026-11-14 · Test credentials visibility
 
