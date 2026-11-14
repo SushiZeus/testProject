@@ -4,6 +4,7 @@
 
 - Added a collapsible test-credentials list to the sign-in page with role labels and one-click form fill for the private test site.
 - Credential values remain sourced from the existing test-account data and are not copied into handoff notes.
+- Built and published the update to the private Netlify site; deployment ID: `6af838f5e6ce372977dd2a12`.
 
 ## 2026-11-14 · File-opening document uploads
 
