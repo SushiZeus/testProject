@@ -1,5 +1,11 @@
 # Project change log
 
+## 2026-11-14 · Temporary operational data reset
+
+- Added a temporary Administrator-only reset control for the private test site, scoped to shipment files, linked shipment/petty-cash uploads and approval history, permit records, petty-cash requests, and related notifications in the current browser profile.
+- Preserved user accounts, client records, and unrelated module data. Added local persistence for permits so an empty reset remains empty after reload.
+- TypeScript check and Vite production build passed. Deployment and reset execution pending.
+
 ## 2026-11-14 · Test credentials visibility
 
 - Added a collapsible test-credentials list to the sign-in page with role labels and one-click form fill for the private test site.

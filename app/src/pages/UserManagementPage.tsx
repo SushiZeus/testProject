@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Users, Plus, Edit, CheckCircle, XCircle, Shield } from 'lucide-react';
+import { Users, Plus, Edit, CheckCircle, XCircle, Shield, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select';
 import { useAuthStore } from '@/store/authStore';
 import { useUserManagementStore } from '@/store/userManagementStore';
+import { mockClients } from '@/data/mockData';
 import type { User, UserRole } from '@/types';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -34,6 +35,59 @@ export function UserManagementPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const readStoredState = (key: string): Record<string, any> => {
+    try {
+      const value = localStorage.getItem(key);
+      return value ? JSON.parse(value) : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const handleResetOperationalData = () => {
+    if (user?.role !== 'administrator') return;
+
+    const currentFiles = readStoredState('fileStore');
+    const currentDocuments = readStoredState('documentStore');
+    const currentPettyCash = readStoredState('pettyCashStore');
+    const currentPermits = readStoredState('permitStore');
+    const fileIds = new Set<string>((currentFiles.files || []).map((file: any) => file.id));
+    const requestIds = new Set<string>((currentPettyCash.requests || []).map((request: any) => request.id));
+    const retainedDocuments = (currentDocuments.documents || []).filter((document: any) =>
+      document.category !== 'shipment' &&
+      document.category !== 'petty_cash' &&
+      !fileIds.has(document.relatedFileId) &&
+      !requestIds.has(document.relatedRequestId)
+    );
+    const notifications = readStoredState('notificationStore').notifications || [];
+    const retainedNotifications = notifications.filter((notification: any) => {
+      const text = `${notification.title || ''} ${notification.message || ''}`;
+      return !fileIds.has(notification.fileId) && !/petty\s*cash\s*request/i.test(text);
+    });
+
+    const impact = [
+      `Shipment files: ${(currentFiles.files || []).length}`,
+      `Shipment/petty-cash uploads: ${(currentDocuments.documents || []).length - retainedDocuments.length}`,
+      `Petty-cash requests: ${(currentPettyCash.requests || []).length}`,
+      `Permit requests: ${(currentPermits.permits || []).length}`,
+    ].join('\n');
+
+    if (!window.confirm(`Reset operational data in this browser only?\n\n${impact}\n\nThis removes shipment files, related uploads and approval history, permit requests, and petty-cash requests. It preserves user accounts, clients, and unrelated module data.`)) return;
+
+    localStorage.setItem('fileStore', JSON.stringify({
+      files: [],
+      clients: Array.isArray(currentFiles.clients) ? currentFiles.clients : mockClients,
+      activityLogs: [],
+    }));
+    localStorage.setItem('documentStore', JSON.stringify({ documents: retainedDocuments }));
+    localStorage.setItem('pettyCashStore', JSON.stringify({ requests: [] }));
+    localStorage.setItem('permitStore', JSON.stringify({ permits: [] }));
+    localStorage.setItem('notificationStore', JSON.stringify({ notifications: retainedNotifications }));
+
+    toast.success('Shipment and request data cleared for this browser profile');
+    window.location.reload();
+  };
 
   const [registerForm, setRegisterForm] = useState({
     name: '',
@@ -201,6 +255,23 @@ export function UserManagementPage() {
           Register User
         </Button>
       </div>
+
+      {user?.role === 'administrator' && (
+        <Card className="border-amber-300 bg-amber-50">
+          <CardHeader>
+            <CardTitle className="text-amber-950">Temporary test data reset</CardTitle>
+            <CardDescription className="text-amber-900">
+              Clears shipment files, their uploads and approval history, permit requests, petty-cash requests, and related alerts from this browser only. User accounts, client records, and unrelated modules are preserved.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="destructive" onClick={handleResetOperationalData}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Review and reset operational data
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -27,14 +27,42 @@ interface PermitState {
   getPendingPaymentPermits: () => Permit[];
 }
 
-let state: {
-  permits: Permit[];
-} = {
-  permits: mockPermits,
+const loadState = (): { permits: Permit[] } => {
+  if (typeof window === 'undefined') return { permits: mockPermits };
+
+  try {
+    const savedState = localStorage.getItem('permitStore');
+    if (savedState) {
+      const parsed = JSON.parse(savedState);
+      return {
+        permits: (parsed.permits || []).map((permit: any) => ({
+          ...permit,
+          createdAt: new Date(permit.createdAt),
+          updatedAt: new Date(permit.updatedAt),
+          paidAt: permit.paidAt ? new Date(permit.paidAt) : undefined,
+        })),
+      };
+    }
+  } catch (error) {
+    console.error('Error loading permit state:', error);
+  }
+
+  return { permits: mockPermits };
 };
 
+let state = loadState();
+
 const listeners = new Set<() => void>();
-const notify = () => listeners.forEach(fn => fn());
+const notify = () => {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('permitStore', JSON.stringify(state));
+    } catch (error) {
+      console.error('Error saving permit state:', error);
+    }
+  }
+  listeners.forEach(fn => fn());
+};
 
 const enrichPermit = (permit: Permit): Permit => ({
   ...permit,
