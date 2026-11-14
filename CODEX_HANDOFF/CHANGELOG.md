@@ -2,9 +2,9 @@
 
 ## 2026-11-14 · Temporary operational data reset
 
-- Added a temporary Administrator-only reset control for the private test site, scoped to shipment files, linked shipment/petty-cash uploads and approval history, permit records, petty-cash requests, and related notifications in the current browser profile.
-- Preserved user accounts, client records, and unrelated module data. Added local persistence for permits so an empty reset remains empty after reload.
-- TypeScript check and Vite production build passed. Deployment and reset execution pending.
+- Published temporary Administrator-only reset control to the private test site (deployment `6af8478f8ce8e3cbed86919e`) and used it on the current browser profile.
+- Cleared 2 shipment files, their embedded documents and approval history, 5 shipment/petty-cash document-store uploads, and related alerts. No petty-cash or permit requests were present. Preserved user accounts, client records, and unrelated module data; verified the dashboard shows zero files and uploads.
+- Removed the temporary reset control from source. Permit records now persist locally so reset state remains empty after reload; final cleanup deployment pending.
 
 ## 2026-11-14 · Test credentials visibility
 
