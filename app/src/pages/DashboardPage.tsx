@@ -964,6 +964,17 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
     const hasChargeInvoice = !!(file.portChargesUrl || file.swissportChargesUrl || file.doChargesInvoiceUrl || file.doPaymentRequestInvoiceUrl);
     return hasChargeInvoice && paymentFlowFor(file).some((flow) => !flow?.payer);
   });
+  const contactPaymentTasks = user?.role === 'contact_person'
+    ? files.flatMap((file) => {
+        const assignedContactIds = [file.contactPersonId, file.contactPerson?.id].filter(Boolean);
+        if (assignedContactIds.length && !assignedContactIds.includes(user.id)) return [];
+        return ([
+          { label: 'Taxes', flow: file.taxPaymentFlow },
+          ...(file.transportMode === 'SEA' ? [{ label: 'Wharfage', flow: file.wharfagePaymentFlow }] : []),
+        ]).filter(({ flow }) => flow?.status === 'PENDING_CONTACT_PERSON' || flow?.status === 'CLIENT_PAYMENT_PENDING')
+          .map(({ label, flow }) => ({ file, label, flow }));
+      })
+    : [];
   const officeChargeFilesAt = (status: string) => files.filter((file) => paymentFlowFor(file).some((flow) => flow?.payer === 'OFFICE' && flow.status === status));
   const officeChargeOpsPending = officeChargeFilesAt('OFFICE_PENDING_OPERATIONS');
   const officeChargeCooPending = officeChargeFilesAt('OFFICE_PENDING_COO');
@@ -1054,6 +1065,26 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
           />
         ))}
       </div>
+
+      {user?.role === 'contact_person' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Tax &amp; Wharfage Requests</CardTitle>
+            <CardDescription>Choose who pays or upload proof for client-paid charges.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {contactPaymentTasks.length ? contactPaymentTasks.map(({ file, label, flow }) => (
+              <div key={`${file.id}-${label}`} className="flex flex-wrap items-center justify-between gap-3 rounded border p-3">
+                <div>
+                  <p className="font-medium">{label} · {file.fileNumber}</p>
+                  <p className="text-sm text-slate-500">{flow?.status === 'PENDING_CONTACT_PERSON' ? 'Select client or office payment' : 'Upload client payment proof'}</p>
+                </div>
+                <Button size="sm" onClick={() => navigate('files/:id', { id: file.id })}>Open request</Button>
+              </div>
+            )) : <p className="text-sm text-slate-500">No tax or wharfage actions need your attention.</p>}
+          </CardContent>
+        </Card>
+      )}
 
       {canViewClerkWorkflowOverview && (
         <section aria-labelledby="clerk-workflow-overview-title" className="space-y-4">

@@ -1,5 +1,12 @@
 # Project change log
 
+## 2026-11-16 · Declaration payment approval access
+
+- Added a contact-person dashboard queue for pending Tax/Wharfage payer selection and client payment proof, with direct file links.
+- Matched payment action access to either the normalized contact ID or embedded contact record; unassigned files follow the existing all-contact notification fallback.
+- Renamed positive Tax/Wharfage payment review actions to “Proceed”. Client proof still requires the declarant’s TAX PAID/WHARFAGE PAID acknowledgement; Declaration Done remains enabled only after required payments are confirmed.
+- Verification: TypeScript project build and Vite production build passed. Existing warnings remain for stale Browserslist data, mixed static/dynamic imports, and the large application bundle. No test suite run.
+
 ## 2026-11-16 · Deployment link refresh
 
 - Confirmed Netlify's latest private production deployment is ready: `6af84957ce34e4f5e84431b9`. The stable production URL remains https://dow-elef-erp-test.netlify.app/.

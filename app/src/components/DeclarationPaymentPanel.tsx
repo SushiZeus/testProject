@@ -32,7 +32,11 @@ export function DeclarationPaymentPanel({ file, kind }: Props) {
   const paidAtKey = isTax ? 'taxPaymentConfirmedAt' : 'wharfagePaymentConfirmedAt';
   const flow = (file[flowKey] || {}) as DeclarationPaymentFlow;
   const isRequester = user?.role === 'declarant' && (!file.assignedDeclarantId || file.assignedDeclarantId === user.id);
-  const isContact = user?.role === 'contact_person' && file.contactPersonId === user.id;
+  // Some older/imported files have the contact stored only as an embedded user,
+  // while newly assigned files use contactPersonId. If no contact is assigned,
+  // match the notification fallback and allow a signed-in contact to respond.
+  const assignedContactIds = [file.contactPersonId, file.contactPerson?.id].filter(Boolean);
+  const isContact = user?.role === 'contact_person' && (!assignedContactIds.length || assignedContactIds.includes(user.id));
   const status = flow.status;
 
   const notifyRole = (role: UserRole, message: string, type: 'info' | 'success' | 'warning' = 'info') => {
@@ -200,7 +204,7 @@ export function DeclarationPaymentPanel({ file, kind }: Props) {
         <Button size="sm" onClick={submitRequest}><Send className="mr-2 h-4 w-4" />Submit for approval</Button>
       )}
       {status === 'PENDING_DECLARATION_MANAGER' && user?.role === 'declaration_manager' && (
-        <div className="space-y-2"><Label>Declaration Manager review</Label><Textarea value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Add a review comment" /><div className="flex gap-2"><Button size="sm" onClick={() => managerDecision(true)}>Approve</Button><Button size="sm" variant="destructive" onClick={() => managerDecision(false)}>Reject</Button></div></div>
+        <div className="space-y-2"><Label>Declaration Manager review</Label><Textarea value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Add a review comment" /><div className="flex gap-2"><Button size="sm" onClick={() => managerDecision(true)}>Proceed</Button><Button size="sm" variant="destructive" onClick={() => managerDecision(false)}>Reject</Button></div></div>
       )}
       {status === 'PENDING_CONTACT_PERSON' && isContact && (
         <div className="space-y-2"><p className="font-medium">Who will pay this charge?</p><label className="flex items-center gap-2"><input type="radio" name={`${file.id}-${kind}-payer`} checked={payerChoice === 'CLIENT'} onChange={() => setPayerChoice('CLIENT')} />Client pays</label><label className="flex items-center gap-2"><input type="radio" name={`${file.id}-${kind}-payer`} checked={payerChoice === 'OFFICE'} onChange={() => setPayerChoice('OFFICE')} />Office pays</label><Button size="sm" disabled={!payerChoice} onClick={selectPayer}>Continue</Button></div>
@@ -211,10 +215,10 @@ export function DeclarationPaymentPanel({ file, kind }: Props) {
       {flow.clientPaymentProofUrl && <a href={flow.clientPaymentProofUrl} download className="text-blue-700 underline">View client payment proof</a>}
       {status === 'CLIENT_PROOF_SUBMITTED' && isRequester && <Button size="sm" onClick={() => markPaid('client')}><CheckCircle className="mr-2 h-4 w-4" />{kind === 'TAX' ? 'TAX PAID' : 'WHARFAGE PAID'}</Button>}
       {status === 'OFFICE_PENDING_COO' && user?.role === 'coo' && (
-        <div className="space-y-2"><Label>COO review</Label><Textarea value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Add a review comment" /><div className="flex gap-2"><Button size="sm" onClick={() => decision(true, 'coo')}>Approve</Button><Button size="sm" variant="destructive" onClick={() => decision(false, 'coo')}>Reject</Button></div></div>
+        <div className="space-y-2"><Label>COO review</Label><Textarea value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Add a review comment" /><div className="flex gap-2"><Button size="sm" onClick={() => decision(true, 'coo')}>Proceed</Button><Button size="sm" variant="destructive" onClick={() => decision(false, 'coo')}>Reject</Button></div></div>
       )}
       {status === 'OFFICE_PENDING_FINANCE' && user?.role === 'finance_manager' && (
-        <div className="space-y-2"><Label>Finance Manager review</Label><Textarea value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Add a review comment" /><div className="flex gap-2"><Button size="sm" onClick={() => decision(true, 'finance')}>Approve for Cashier</Button><Button size="sm" variant="destructive" onClick={() => decision(false, 'finance')}>Reject</Button></div></div>
+        <div className="space-y-2"><Label>Finance Manager review</Label><Textarea value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Add a review comment" /><div className="flex gap-2"><Button size="sm" onClick={() => decision(true, 'finance')}>Proceed</Button><Button size="sm" variant="destructive" onClick={() => decision(false, 'finance')}>Reject</Button></div></div>
       )}
       {status === 'OFFICE_READY_FOR_CASHIER' && user?.role === 'cashier' && <Button size="sm" onClick={() => markPaid('cashier')}><CheckCircle className="mr-2 h-4 w-4" />Confirm payment</Button>}
       {status === 'PAID' && <p className="text-green-700">{kind === 'TAX' ? 'TAX PAID' : 'WHARFAGE PAID'} confirmed.</p>}
