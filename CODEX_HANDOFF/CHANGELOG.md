@@ -1,5 +1,11 @@
 # Project change log
 
+## 2026-11-16 · Deployment link refresh
+
+- Confirmed Netlify's latest private production deployment is ready: `6af84957ce34e4f5e84431b9`. The stable production URL remains https://dow-elef-erp-test.netlify.app/.
+- Refreshed current deployment links in the handoff context and deployment summary; no application code changed, so no new site deployment was needed.
+- Link updates committed and pushed to `SushiZeus/testProject` on `main`.
+
 ## 2026-11-14 · Temporary operational data reset
 
 - Published temporary Administrator-only reset control to the private test site (deployment `6af8478f8ce8e3cbed86919e`) and used it on the current browser profile.

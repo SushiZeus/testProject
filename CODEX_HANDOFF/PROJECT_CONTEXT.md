@@ -1,6 +1,6 @@
 # DOW ELEF ERP project context
 
-Last updated: 2026-11-14
+Last updated: 2026-11-16
 
 ## Project layout
 
@@ -47,7 +47,7 @@ The local preview used during the latest session was `http://127.0.0.1:5179/`. I
 ## Latest verified deployment
 
 - Private production URL: https://dow-elef-erp-test.netlify.app/
-- Verified deployment URL: https://6af838f5e6ce372977dd2a12--dow-elef-erp-test.netlify.app/
+- Verified deployment URL: https://6af84957ce34e4f5e84431b9--dow-elef-erp-test.netlify.app/
 - Deployment date: 2026-11-14
 - Latest checked build: TypeScript project check passed; Vite production build passed.
 - Existing storage checks: 3 passed, 0 failed (`node --test tests\storage.test.mjs`).

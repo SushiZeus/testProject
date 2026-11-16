@@ -4,7 +4,7 @@
 
 ### 🚀 Live Application URLs
 - **Production URL**: https://dow-elef-erp-test.netlify.app/
-- **Unique Deploy URL**: https://6af82b8f8599fb6bd1c44578--dow-elef-erp-test.netlify.app/
+- **Latest Unique Deploy URL (2026-11-14)**: https://6af84957ce34e4f5e84431b9--dow-elef-erp-test.netlify.app/
 - **Admin Dashboard**: https://app.netlify.com/projects/dow-elef-erp-test
 
 ### 📊 Deployment Statistics
