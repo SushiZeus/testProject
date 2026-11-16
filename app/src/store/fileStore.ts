@@ -295,14 +295,49 @@ export const useFileStore = (): FileState => {
         ),
       };
 
+      const sameStatus = oldStatus === newStatus;
+      const trackedFields: Record<string, string> = {
+        taxPaymentFlow: 'Tax payment',
+        wharfagePaymentFlow: 'Wharfage payment',
+        requiredPermits: 'Permit requirements',
+        permitsDoneAt: 'Permit completion',
+        portChargesPayment: 'Port charge payment',
+        swissportChargesPayment: 'Swissport payment',
+        deliveryOrderChargesPayment: 'Delivery Order payment',
+        deliveryOrderApplicationPayment: 'Delivery Order application payment',
+        arrivalStatusFilled: 'Arrival status',
+        gateInDate: 'Gate-in date',
+        manifestComparisonDate: 'Manifest comparison date',
+        eta: 'ETA',
+        etb: 'ETB',
+        wharfageDate: 'Wharfage date',
+        declarationDoneAt: 'Declaration completion',
+        taxPaymentConfirmed: 'Tax payment confirmation',
+        wharfagePaymentConfirmed: 'Wharfage payment confirmation',
+        deliveryOrderDocumentUrl: 'Delivery Order document',
+        releaseOrderUrl: 'Release Order document',
+        verificationPhotos: 'Cargo verification photos',
+        cargoVerificationCompletedAt: 'Cargo verification',
+        cargoCollectedAt: 'Cargo collection',
+      };
+      const changedFieldLabels = Object.keys(additionalData)
+        .map((key) => trackedFields[key])
+        .filter(Boolean);
+      const flowStatuses = [
+        additionalData.taxPaymentFlow && `Tax: ${additionalData.taxPaymentFlow.status || 'updated'}`,
+        additionalData.wharfagePaymentFlow && `Wharfage: ${additionalData.wharfagePaymentFlow.status || 'updated'}`,
+      ].filter(Boolean);
+      const description = sameStatus
+        ? [...new Set(changedFieldLabels)].join(', ') || 'File details updated'
+        : `Status changed from ${oldStatus.replaceAll('_', ' ')} to ${newStatus.replaceAll('_', ' ')}`;
       const log: ActivityLog = {
         id: Math.random().toString(36).substr(2, 9),
         fileId,
         userId,
-        action: 'STATUS_CHANGED',
-        description: `Status changed from ${oldStatus} to ${newStatus} - All channels notified`,
-        oldStatus,
-        newStatus,
+        action: sameStatus ? 'WORKFLOW_UPDATED' : 'STATUS_CHANGED',
+        description: flowStatuses.length ? `${description} · ${flowStatuses.join(' · ')}` : description,
+        oldStatus: sameStatus ? undefined : oldStatus,
+        newStatus: sameStatus ? undefined : newStatus,
         createdAt: new Date(),
       };
 

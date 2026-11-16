@@ -38,7 +38,7 @@ import {
 } from '@/components/ui/select';
 import { useFileStore } from '@/store/fileStore';
 import { useAuthStore } from '@/store/authStore';
-import type { ShippingDocument } from '@/types';
+import type { FileStatus, ShippingDocument } from '@/types';
 import { useDocumentStore } from '@/store/documentStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { getUserById } from '@/data/mockData';
@@ -46,7 +46,7 @@ import type { AppRoute } from '@/App';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { statusColors } from '@/utils/statusColors';
-import { getShipmentDisplayStatus } from '@/utils/shipmentStatus';
+import { getShipmentDisplayStatuses } from '@/utils/shipmentStatus';
 import { ShipmentChargePaymentPanel } from '@/components/ShipmentChargePaymentPanel';
 import { DeclarationPaymentPanel } from '@/components/DeclarationPaymentPanel';
 
@@ -233,6 +233,10 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
     );
   }
 
+  const shipmentStatuses = getShipmentDisplayStatuses(file).filter((status) =>
+    !(user?.role === 'permits_clerk' && /SWISSPORT|DELIVERY.?ORDER|RELEASE.?ORDER/i.test(status))
+  );
+
   const handleAddComment = () => {
     if (!comment.trim() || !user || !fileId) return;
 
@@ -299,11 +303,13 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-bold text-gray-900">{file.fileNumber}</h1>
-              <Badge className={cn(statusColors[getShipmentDisplayStatus(file)])}>
-                {getShipmentDisplayStatus(file).replace(/_/g, ' ')}
-              </Badge>
+              {shipmentStatuses.map((status) => (
+                <Badge key={status} className={cn(statusColors[status as FileStatus] || (status.includes('PAID') ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'))}>
+                  {status.replace(/_/g, ' ')}
+                </Badge>
+              ))}
             </div>
             <p className="text-gray-500 mt-1">
               {file.shipmentType} | {file.transportMode} | Created {new Date(file.createdAt).toLocaleDateString()}
@@ -789,11 +795,12 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
               <CardTitle>Current Status</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className={cn(
-                'p-4 rounded-lg text-center',
-                statusColors[getShipmentDisplayStatus(file)]
-              )}>
-                <p className="text-lg font-semibold">{getShipmentDisplayStatus(file).replace(/_/g, ' ')}</p>
+              <div className="flex flex-wrap gap-2">
+                {shipmentStatuses.map((status) => (
+                  <Badge key={status} className={cn('text-sm', statusColors[status as FileStatus] || (status.includes('PAID') ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'))}>
+                    {status.replace(/_/g, ' ')}
+                  </Badge>
+                ))}
               </div>
 
               <div className="space-y-3">

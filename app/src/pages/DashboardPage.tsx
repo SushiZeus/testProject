@@ -21,11 +21,11 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useAuthStore } from '@/store/authStore';
 import { useFileStore } from '@/store/fileStore';
-import type { ShipmentFile, TransportMode } from '@/types';
+import type { FileStatus, ShipmentFile, TransportMode } from '@/types';
 import type { AppRoute } from '@/App';
 import { cn } from '@/lib/utils';
 import { statusColors } from '@/utils/statusColors';
-import { getShipmentDisplayStatus } from '@/utils/shipmentStatus';
+import { getShipmentDisplayStatuses } from '@/utils/shipmentStatus';
 
 interface StatCardProps {
   title: string;
@@ -96,9 +96,10 @@ function StatCard({ title, value, description, icon: Icon, trend, color, onClick
 interface RecentFileCardProps {
   file: ShipmentFile;
   onClick: () => void;
+  hideShippingStatuses?: boolean;
 }
 
-function RecentFileCard({ file, onClick }: RecentFileCardProps) {
+function RecentFileCard({ file, onClick, hideShippingStatuses = false }: RecentFileCardProps) {
   return (
     <div
       onClick={onClick}
@@ -113,10 +114,14 @@ function RecentFileCard({ file, onClick }: RecentFileCardProps) {
           <p className="text-sm text-gray-500">{file.client?.name}</p>
         </div>
       </div>
-      <div className="flex items-center gap-4">
-        <Badge variant="secondary" className={cn('text-xs', statusColors[getShipmentDisplayStatus(file)])}>
-          {getShipmentDisplayStatus(file).replace(/_/g, ' ')}
-        </Badge>
+      <div className="flex flex-col items-end gap-2">
+        <div className="flex max-w-[420px] flex-wrap justify-end gap-1">
+          {getShipmentDisplayStatuses(file).filter((status) => !(hideShippingStatuses && /SWISSPORT|DELIVERY.?ORDER|RELEASE.?ORDER/i.test(status))).map((status) => (
+            <Badge key={status} variant="secondary" className={cn('text-xs', statusColors[status as FileStatus] || (status.includes('PAID') ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'))}>
+              {status.replace(/_/g, ' ')}
+            </Badge>
+          ))}
+        </div>
         <ArrowRight className="w-4 h-4 text-gray-400" />
       </div>
     </div>
@@ -129,7 +134,7 @@ interface DashboardPageProps {
 
 export function DashboardPage({ navigate }: DashboardPageProps) {
   const { user } = useAuthStore();
-  const { files } = useFileStore();
+  const { files, activityLogs } = useFileStore();
 
   const [stats, setStats] = useState({
     totalFiles: 0,
@@ -885,6 +890,17 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
   const recentFiles = [...files]
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, 5);
+  const hiddenForPermitsClerk = (status: string) => user?.role === 'permits_clerk' && /SWISSPORT|DELIVERY.?ORDER|RELEASE.?ORDER/i.test(status);
+  const filesByDisplayStatus = new Map<string, ShipmentFile[]>();
+  files.forEach((file) => getShipmentDisplayStatuses(file).forEach((status) => {
+    if (hiddenForPermitsClerk(status)) return;
+    filesByDisplayStatus.set(status, [...(filesByDisplayStatus.get(status) || []), file]);
+  }));
+  const statusOverview = [...filesByDisplayStatus.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  const recentMovements = activityLogs
+    .filter((log) => log.action !== 'COMMENT_ADDED' && !(hiddenForPermitsClerk(log.description) || hiddenForPermitsClerk(log.newStatus || '')))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 10);
 
   const getQuickActions = () => {
     if (!user) return [];
@@ -1086,6 +1102,54 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
         </Card>
       )}
 
+      <section aria-labelledby="file-status-overview-title" className="space-y-4">
+        <div>
+          <h2 id="file-status-overview-title" className="text-lg font-semibold text-gray-900">All File Statuses</h2>
+          <p className="text-sm text-gray-500">Current stages and parallel payment, permit, and delivery milestones across the files you can view.</p>
+        </div>
+        {statusOverview.length ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {statusOverview.map(([status, statusFiles]) => (
+              <StatCard
+                key={status}
+                title={status.replace(/_/g, ' ')}
+                value={statusFiles.length}
+                icon={Clock}
+                color={status.includes('PAID') || status.includes('DONE') || status.includes('COMPLETED') ? 'green' : 'amber'}
+                onClick={() => showFilteredFiles(status.replace(/_/g, ' '), statusFiles)}
+                clickable
+              />
+            ))}
+          </div>
+        ) : <p className="text-sm text-gray-500">No shipment files are currently recorded.</p>}
+      </section>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent File Movements</CardTitle>
+          <CardDescription>Status changes and workflow updates, newest first.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {recentMovements.length ? (
+            <div className="divide-y">
+              {recentMovements.map((movement) => {
+                const movementFile = files.find((file) => file.id === movement.fileId);
+                if (!movementFile) return null;
+                return (
+                  <button key={movement.id} type="button" className="flex w-full flex-wrap items-center justify-between gap-2 py-3 text-left hover:bg-slate-50" onClick={() => navigate('files/:id', { id: movementFile.id })}>
+                    <span className="min-w-0">
+                      <span className="mr-2 font-medium text-slate-900">{movementFile.fileNumber}</span>
+                      <span className="text-sm text-slate-600">{movement.description}</span>
+                    </span>
+                    <span className="shrink-0 text-xs text-slate-500">{new Date(movement.createdAt).toLocaleString()}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : <p className="text-sm text-slate-500">No file movements have been recorded yet.</p>}
+        </CardContent>
+      </Card>
+
       {canViewClerkWorkflowOverview && (
         <section aria-labelledby="clerk-workflow-overview-title" className="space-y-4">
           <div>
@@ -1194,9 +1258,13 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
-                        <Badge variant="secondary" className={cn('text-xs font-medium', statusColors[getShipmentDisplayStatus(file)])}>
-                          {getShipmentDisplayStatus(file).replace(/_/g, ' ')}
-                        </Badge>
+                        <div className="flex max-w-[420px] flex-wrap justify-end gap-1">
+                          {getShipmentDisplayStatuses(file).filter((status) => !hiddenForPermitsClerk(status)).map((status) => (
+                            <Badge key={status} variant="secondary" className={cn('text-xs font-medium', statusColors[status as FileStatus] || (status.includes('PAID') ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'))}>
+                              {status.replace(/_/g, ' ')}
+                            </Badge>
+                          ))}
+                        </div>
                         <ArrowRight className="w-5 h-5 text-gray-400" />
                       </div>
                     </div>
@@ -1257,6 +1325,7 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
                       key={file.id}
                       file={file}
                       onClick={() => navigate('files/:id', { id: file.id })}
+                      hideShippingStatuses={user?.role === 'permits_clerk'}
                     />
                   ))
                 )}

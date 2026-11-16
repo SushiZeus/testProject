@@ -1,5 +1,14 @@
 # Project change log
 
+## 2026-11-16 · Complete status visibility and file movement history
+
+- Added a combined status view on the Dashboard and File Details so a file can show its current stage alongside outstanding Tax, Wharfage, permit, Port/Swissport, and Delivery Order milestones.
+- Added dashboard counts that open the files in each active status and a recent file movement feed.
+- Logged same-status workflow changes (including payment approvals, permit updates, arrival dates, and operational milestones) as readable activity entries instead of recording them as no-op status changes.
+- Kept Swissport and Delivery Order statuses hidden from Permits Clerks.
+- Verification: TypeScript project check and Vite production build passed. Existing Browserslist, mixed-import, and bundle-size warnings remain; no tests run.
+- Deployment: pending.
+
 ## 2026-11-16 · Declaration payment approval access
 
 - Added a contact-person dashboard queue for pending Tax/Wharfage payer selection and client payment proof, with direct file links.
