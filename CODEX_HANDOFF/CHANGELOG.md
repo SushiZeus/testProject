@@ -7,7 +7,7 @@
 - Logged same-status workflow changes (including payment approvals, permit updates, arrival dates, and operational milestones) as readable activity entries instead of recording them as no-op status changes.
 - Kept Swissport and Delivery Order statuses hidden from Permits Clerks.
 - Verification: TypeScript project check and Vite production build passed. Existing Browserslist, mixed-import, and bundle-size warnings remain; no tests run.
-- Deployment: pending.
+- Published to the private Netlify site, deployment `6afae9b3d3129d61be84e1c1` (`https://6afae9b3d3129d61be84e1c1--dow-elef-erp-test.netlify.app/`). Netlify confirmed the deploy is live.
 
 ## 2026-11-16 · Declaration payment approval access
 
