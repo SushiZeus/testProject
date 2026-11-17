@@ -33,8 +33,8 @@ The local preview used during the latest session was `http://127.0.0.1:5179/`. I
 
 - The private test-site login page has a collapsible test-credentials panel with one-click account fill; never copy the credential values into project notes.
 - Air shipment arrival completion requires both Gate-in Date and Manifest Comparison Date.
-- Tax and SEA Wharfage payments begin with the declaration clerk, then Declaration Manager, then Contact Person chooses Client or Office.
-- Client payment path: Contact Person uploads proof; the declaration clerk verifies and acknowledges with TAX PAID or WHARFAGE PAID.
+- Tax and SEA Wharfage payments begin with the declaration clerk, then Declaration Manager. The Documentation Officer handles payer choice and client proof for AIR shipments; the assigned Declarant handles payer choice and client proof for SEA shipments. Explicitly assigned legacy Contact Person users remain supported.
+- Client payment path: the shipment-specific payment contact uploads proof; the declaration clerk verifies and acknowledges with TAX PAID or WHARFAGE PAID.
 - Office payment path: COO, Finance Manager, then Cashier.
 - Shipments requiring permits notify Permits Clerks. Shipments requiring a Delivery Order notify Shipping Line Clerks.
 - During file opening, choose existing versus new upload independently for each selected document type; a previous upload for one type must not block uploads for other types.

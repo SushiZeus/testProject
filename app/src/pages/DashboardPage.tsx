@@ -26,6 +26,7 @@ import type { AppRoute } from '@/App';
 import { cn } from '@/lib/utils';
 import { statusColors } from '@/utils/statusColors';
 import { getShipmentDisplayStatuses } from '@/utils/shipmentStatus';
+import { isDeclarationPaymentContact } from '@/utils/declarationPaymentAccess';
 
 interface StatCardProps {
   title: string;
@@ -980,14 +981,16 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
     const hasChargeInvoice = !!(file.portChargesUrl || file.swissportChargesUrl || file.doChargesInvoiceUrl || file.doPaymentRequestInvoiceUrl);
     return hasChargeInvoice && paymentFlowFor(file).some((flow) => !flow?.payer);
   });
-  const contactPaymentTasks = user?.role === 'contact_person'
+  const canViewPaymentContactQueue = !!user && ['contact_person', 'documentation_officer', 'declarant'].includes(user.role);
+  const contactPaymentTasks = user && canViewPaymentContactQueue
     ? files.flatMap((file) => {
-        const assignedContactIds = [file.contactPersonId, file.contactPerson?.id].filter(Boolean);
-        if (assignedContactIds.length && !assignedContactIds.includes(user.id)) return [];
         return ([
           { label: 'Taxes', flow: file.taxPaymentFlow },
           ...(file.transportMode === 'SEA' ? [{ label: 'Wharfage', flow: file.wharfagePaymentFlow }] : []),
-        ]).filter(({ flow }) => flow?.status === 'PENDING_CONTACT_PERSON' || flow?.status === 'CLIENT_PAYMENT_PENDING')
+        ]).filter(({ flow }) =>
+          (flow?.status === 'PENDING_CONTACT_PERSON' || flow?.status === 'CLIENT_PAYMENT_PENDING') &&
+          isDeclarationPaymentContact(user, file, flow?.requestedBy)
+        )
           .map(({ label, flow }) => ({ file, label, flow }));
       })
     : [];
@@ -1082,7 +1085,7 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
         ))}
       </div>
 
-      {user?.role === 'contact_person' && (
+      {canViewPaymentContactQueue && (
         <Card>
           <CardHeader>
             <CardTitle>Tax &amp; Wharfage Requests</CardTitle>

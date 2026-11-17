@@ -1,5 +1,12 @@
 # Project change log
 
+## 2026-11-17 · Shipment-specific payer approval access
+
+- Routed AIR payer choice and client proof to the Documentation Officer who opened the file (or the explicitly assigned officer); routed SEA payer choice and proof to the assigned Declarant, falling back to the request submitter if assignment is missing.
+- Applied the same role/file checks to the payment panel, dashboard action queue, and payment notifications. Kept explicit legacy Contact Person assignments working.
+- Verification: TypeScript project check and Vite production build passed. Existing Browserslist, mixed-import, and bundle-size warnings remain; no test suite run.
+- Deployment: pending.
+
 ## 2026-11-16 · Complete status visibility and file movement history
 
 - Added a combined status view on the Dashboard and File Details so a file can show its current stage alongside outstanding Tax, Wharfage, permit, Port/Swissport, and Delivery Order milestones.

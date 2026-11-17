@@ -10,6 +10,7 @@ import { useFileStore } from '@/store/fileStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { mockUsers } from '@/data/mockData';
 import type { DeclarationPaymentFlow, ShipmentFile, UserRole } from '@/types';
+import { getDeclarationPaymentContactIds, isDeclarationPaymentContact } from '@/utils/declarationPaymentAccess';
 import { toast } from 'sonner';
 
 interface Props {
@@ -35,8 +36,7 @@ export function DeclarationPaymentPanel({ file, kind }: Props) {
   // Some older/imported files have the contact stored only as an embedded user,
   // while newly assigned files use contactPersonId. If no contact is assigned,
   // match the notification fallback and allow a signed-in contact to respond.
-  const assignedContactIds = [file.contactPersonId, file.contactPerson?.id].filter(Boolean);
-  const isContact = user?.role === 'contact_person' && (!assignedContactIds.length || assignedContactIds.includes(user.id));
+  const isContact = isDeclarationPaymentContact(user, file, flow.requestedBy);
   const status = flow.status;
 
   const notifyRole = (role: UserRole, message: string, type: 'info' | 'success' | 'warning' = 'info') => {
@@ -52,18 +52,16 @@ export function DeclarationPaymentPanel({ file, kind }: Props) {
   };
 
   const notifyContact = (message: string, type: 'info' | 'warning' = 'info') => {
-    if (file.contactPersonId) {
-      addNotification({
-        userId: file.contactPersonId,
-        title: `${title} payment update`,
-        message,
-        type,
-        fileId: file.id,
-        link: `/files/${file.id}`,
-      });
-    } else {
-      notifyRole('contact_person', message, type);
-    }
+    const contactIds = getDeclarationPaymentContactIds(file, flow.requestedBy);
+    if (!contactIds.length) return notifyRole('contact_person', message, type);
+    contactIds.forEach((userId) => addNotification({
+      userId,
+      title: `${title} payment update`,
+      message,
+      type,
+      fileId: file.id,
+      link: `/files/${file.id}`,
+    }));
   };
 
   const saveFlow = (
@@ -182,7 +180,7 @@ export function DeclarationPaymentPanel({ file, kind }: Props) {
 
   const statusLabel: Record<string, string> = {
     PENDING_DECLARATION_MANAGER: 'Waiting for Declaration Manager',
-    PENDING_CONTACT_PERSON: 'Waiting for Contact Person',
+    PENDING_CONTACT_PERSON: file.transportMode === 'AIR' ? 'Waiting for Documentation Officer' : 'Waiting for Assigned Declarant',
     CLIENT_PAYMENT_PENDING: 'Waiting for Client Payment',
     CLIENT_PROOF_SUBMITTED: 'Proof Submitted · Awaiting Clerk Acknowledgement',
     OFFICE_PENDING_COO: 'Waiting for COO',
