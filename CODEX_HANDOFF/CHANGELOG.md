@@ -5,7 +5,7 @@
 - Routed AIR payer choice and client proof to the Documentation Officer who opened the file (or the explicitly assigned officer); routed SEA payer choice and proof to the assigned Declarant, falling back to the request submitter if assignment is missing.
 - Applied the same role/file checks to the payment panel, dashboard action queue, and payment notifications. Kept explicit legacy Contact Person assignments working.
 - Verification: TypeScript project check and Vite production build passed. Existing Browserslist, mixed-import, and bundle-size warnings remain; no test suite run.
-- Deployment: pending.
+- Published to the private Netlify site, deployment `6afc547fdab5525e5c2a76e1` (`https://6afc547fdab5525e5c2a76e1--dow-elef-erp-test.netlify.app/`). Netlify confirmed it is live.
 
 ## 2026-11-16 · Complete status visibility and file movement history
 
