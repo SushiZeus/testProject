@@ -47,6 +47,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { statusColors } from '@/utils/statusColors';
 import { getShipmentDisplayStatuses } from '@/utils/shipmentStatus';
+import { getFileProgress } from '@/utils/fileProgress';
 import { ShipmentChargePaymentPanel } from '@/components/ShipmentChargePaymentPanel';
 import { DeclarationPaymentPanel } from '@/components/DeclarationPaymentPanel';
 
@@ -236,6 +237,7 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
   const shipmentStatuses = getShipmentDisplayStatuses(file).filter((status) =>
     !(user?.role === 'permits_clerk' && /SWISSPORT|DELIVERY.?ORDER|RELEASE.?ORDER/i.test(status))
   );
+  const fileProgress = getFileProgress(file);
 
   const handleAddComment = () => {
     if (!comment.trim() || !user || !fileId) return;
@@ -280,21 +282,6 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
     setSelectedDocType('other');
   };
 
-  const getStatusProgress = () => {
-    const statuses = [
-      'WAITING_FOR_DECLARATION',
-      'ASSIGNED_TO_DECLARANT',
-      'DECLARATION_DONE',
-      'READY_FOR_OPERATIONS',
-      'RECEIVED_BY_CLERK',
-      'SWISSPORT_CHARGES_PAID',
-      'DRIVER_ASSIGNED',
-      'CARGO_COLLECTED_FROM_AIRPORT',
-    ];
-    const currentIndex = statuses.indexOf(file.status);
-    return ((currentIndex + 1) / statuses.length) * 100;
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -332,13 +319,24 @@ export function FileDetailPage({ fileId, navigate }: FileDetailPageProps) {
         <CardContent className="p-4">
           <div className="flex justify-between text-sm mb-2">
             <span className="text-gray-600">File Progress</span>
-            <span className="font-medium">{Math.round(getStatusProgress())}%</span>
+            <span className="font-medium">{fileProgress.percent}%</span>
           </div>
-          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div
+            className="w-full h-2 bg-gray-100 rounded-full overflow-hidden"
+            role="progressbar"
+            aria-label="Shipment file progress"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={fileProgress.percent}
+          >
             <div 
               className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-500"
-              style={{ width: `${getStatusProgress()}%` }}
+              style={{ width: `${fileProgress.percent}%` }}
             />
+          </div>
+          <div className="mt-2 flex justify-between gap-3 text-xs text-gray-500">
+            <span>{fileProgress.completedStages} of {fileProgress.totalStages} stages complete</span>
+            <span className="text-right">{fileProgress.nextStage ? `Next: ${fileProgress.nextStage}` : 'Invoicing complete'}</span>
           </div>
         </CardContent>
       </Card>

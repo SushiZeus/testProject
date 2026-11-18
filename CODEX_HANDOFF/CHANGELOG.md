@@ -1,5 +1,12 @@
 # Project change log
 
+## 2026-11-18 · File progress through client invoicing
+
+- Replaced the status-index calculation that returned zero for unlisted workflow states with six ordered milestones: file opened, declaration/commercial processing, operations clearance, delivery started, delivered, and client invoice issued.
+- The progress bar starts when the file is opened and only reaches the invoicing milestone after delivery completion and a client invoice is attached.
+- Verification: TypeScript project check and Vite production build passed. Existing Browserslist, mixed-import, and bundle-size warnings remain; no tests run.
+- Deployment: pending.
+
 ## 2026-11-17 · Shipment-specific payer approval access
 
 - Routed AIR payer choice and client proof to the Documentation Officer who opened the file (or the explicitly assigned officer); routed SEA payer choice and proof to the assigned Declarant, falling back to the request submitter if assignment is missing.
