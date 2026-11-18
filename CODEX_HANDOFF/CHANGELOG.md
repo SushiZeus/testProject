@@ -5,7 +5,7 @@
 - Replaced the status-index calculation that returned zero for unlisted workflow states with six ordered milestones: file opened, declaration/commercial processing, operations clearance, delivery started, delivered, and client invoice issued.
 - The progress bar starts when the file is opened and only reaches the invoicing milestone after delivery completion and a client invoice is attached.
 - Verification: TypeScript project check and Vite production build passed. Existing Browserslist, mixed-import, and bundle-size warnings remain; no tests run.
-- Deployment: pending.
+- Published to the private Netlify site, deployment `6afda1202c030483a0d391dc` (`https://6afda1202c030483a0d391dc--dow-elef-erp-test.netlify.app/`). Netlify confirmed it is live.
 
 ## 2026-11-17 · Shipment-specific payer approval access
 
